@@ -47,13 +47,40 @@ def read_item(item_id: int, q: str = None):
     ```"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" http://127.0.0.1:8000```
 
 ### 
+#### 概要
+- ユーザーは登録操作でサーバーから”シグネチャ”をもらう（シグネチャの中身はBase64Encode文字列）
+
+#### 具体的な流れ
+- 登録URLと注文URLは兼用である。
+- もし注文URLのみでシグネチャを持っていない
+   - 初期登録画面に遷移する。
+- もし注文URLのみでシグネチャを持っている
+   - 登録修正画面に遷移する。
+- もし登録URL以外にアクセスする
+   - アクセスエラーを表示する。
+- 初期登録が正常に完了する
+   - ユーザーにシグネチャを返す。
+- ユーザーは自身のスマホに、シグネチャを保存する。
+
+- ユーザーは注文URLにユーザーのシグネチャと数量を付加してアクセスする。
+- サーバーはシグネチャを検証する
+   - シグネチャが正しくない
+      - エラーを表示する。　
+   - シグネチャが正しい
+      - 正常な注文処理とする。
 
 
-###  余談 Clickイベントの書き方も、現在の最新はこうだ。
-[Element: click イベント](https://developer.mozilla.org/ja/docs/Web/API/Element/click_event?form=MG0AV3)
+Base64Encodingのつくりかた
 
+1. httpsを必ず使う
+2. 暗号化アルゴリズムをnone（署名なし）にしない
+3. トークンのライフサイクルをできるだけ適切にしてリフレッシュする
 
-
+#### OpenSSLのインストール
+1. [ガイドを読む](https://atmarkit.itmedia.co.jp/ait/articles/1601/29/news043.html)
+2. [OpenSSLインストーラー x64 exe light](https://slproweb.com/products/Win32OpenSSL.html)
+3. Pathの設定
+   Ctrl + R  SystemPropertiesAdvanced
 
 
 以上
