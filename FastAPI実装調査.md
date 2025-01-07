@@ -2,26 +2,31 @@
 # FastAPI実装調査
 
 
-## 
-### 環境構築方法
+## 簡易テストコード実行方法
+
+<details><summary>環境構築方法</summary>
+
+### インストール
 ```bash
 pip install fastapi uvicorn
 ```
+</details>
 
-### 簡易テストコード実行方法
+
+<details><summary>仮想環境の作成</summary>
+
 #### 仮想環境の作成
 
 1. 実装調査パスを ```cmd``` で開く
 ```C:\Users\tensy\OneDrive\ドキュメント\okuma\お弁当注文システム\実装調査```
 2. 仮想環境を作成
    ```python -m venv env```
-3. 仮想環境をactivateする
-   ```.\env\Scripts\activate```
-4. 仮想環境を終了する
-   ```deactivate```
+</details>
 
-#### 仮想環境での実行
-5. 以下のappの含まれる```main.py```ファイルを配置する
+<details><summary>アプリの配置</summary>
+
+#### アプリの配置
+3. 以下のappの含まれる```main.py```ファイルを配置する
 ```python
 from fastapi import FastAPI
 
@@ -35,20 +40,38 @@ def read_root():
 def read_item(item_id: int, q: str = None):
     return {"item_id": item_id, "q": q}
 ```
-6. コマンドプロンプトでサーバにプログラムをロードする。
+</details>
+
+<details><summary>仮想環境での実行</summary>
+
+#### 仮想環境での実行
+4. 仮想環境をactivateする
+   ```.\env\Scripts\activate```
+5. コマンドプロンプトでサーバにプログラムをロードする。
    ```uvicorn main:app --reload```
-7. ブラウザで URLに移動する。<br />
+6. ブラウザで URLに移動する。<br />
    ```http://127.0.0.1:8000```<br />
    ```http://127.0.0.1:8000/items/1?q=test```<br />
    ```http://127.0.0.1:8000/login/001?password=testPass```<br />
-8. 終了する
+7. 終了する
     ```Ctrl + C```
-9. Edgeで開く
-    ```"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" http://127.0.0.1:8000```
+8. 仮想環境を終了する
+   ```deactivate```
+</details>
 
-### 
+## ログイン認証のテスト
+
+<details><summary>概要</summary>
+
 #### 概要
-- ユーザーは登録操作でサーバーから”シグネチャ”をもらう（シグネチャの中身はBase64Encode文字列）
+##### サーバーに毎回ログオン不要にするため、サーバーからシグネチャー(Base64Encodingの暗号化文字列)をもらい、それを使って毎回認証の代わりとする。
+   1. ユーザーはNFCタグを読み込むと、初回の場合はユーザーIDを登録してサーバーから”シグネチャ”をもらう（シグネチャの中身はBase64Encode文字列）
+   2. 2回目以降はそのシグネチャと注文件数でサーバーにアクセスすると注文になる。
+   3. シグネチャが古くなると注文できなくなる。再度ユーザーIDで登録（期間延長）する。
+   4. シグネチャーはCookieに保存する予定。
+</details>
+
+<details><summary>具体的な流れ</summary>
 
 #### 具体的な流れ
 - 登録URLと注文URLは兼用である。
@@ -68,22 +91,26 @@ def read_item(item_id: int, q: str = None):
       - エラーを表示する。　
    - シグネチャが正しい
       - 正常な注文処理とする。
+</details>
+
+<details><summary>Base64Encodingのつくりかた</summary>
 
 #### Base64Encodingのつくりかた
+- ローカル環境ではOpenSSLで自己署名証明書を作る。
+- これだけは必ず守るようにする！
+   1. httpsを必ず使う
+   2. 暗号化アルゴリズムをnone（署名なし）にしない
+   3. トークンのライフサイクルをできるだけ適切にしてリフレッシュする
+</details>
 
-これだけは必ず守るようにする！
-1. httpsを必ず使う
-2. 暗号化アルゴリズムをnone（署名なし）にしない
-3. トークンのライフサイクルをできるだけ適切にしてリフレッシュする
+<details><summary>OpenSSLのインストール</summary>
 
 #### ローカル環境にOpenSSLのインストール
 1. [ガイドを読む](https://atmarkit.itmedia.co.jp/ait/articles/1601/29/news043.html)
-2. [OpenSSLインストーラー x64 exe light](https://slproweb.com/products/Win32OpenSSL.html)
-3. Pathの設定
-   Ctrl + R  SystemPropertiesAdvanced
 
-#### OpenSSLによる認証テスト
-具体的な手順
+2. [OpenSSLインストーラー x64 exe light](https://slproweb.com/products/Win32OpenSSL.html)
+
+3. インストールの具体的な手順
 [【Windows 10／11】WindowsにOpenSSL Ver.3をインストールして証明書を取り扱う）](https://atmarkit.itmedia.co.jp/ait/articles/2406/19/news033.html)
 
 - ```winget search openssl```
@@ -92,6 +119,10 @@ def read_item(item_id: int, q: str = None):
 - ```winget list```
 - OpenSSLの場所表示する
    - ```dir /a /s c:\openssl.exe```
+
+4. Pathの設定
+- ```Ctrl + R```
+- ```SystemPropertiesAdvanced```
 <!--
 #### LetsEncryptの使用
 ##### Certbotのインストール(しかし自己署名には不要だった)
@@ -107,6 +138,10 @@ def read_item(item_id: int, q: str = None):
 - コマンドプロンプトで管理者で下記を実行する。<br>
 ```certbot certonly --manual -d ten-system.com -d ten-system.com -m 'k.okuma@ten-system.com' --agree-tos```
 -->
+</details>
+
+<details><summary>OpenSSLで自己署名証明書をつくる</summary>
+
 #### OpenSSLで自己署名証明書をつくる
 
 - コマンドプロンプトで生成先に移動します。
@@ -114,14 +149,20 @@ def read_item(item_id: int, q: str = None):
 ```openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout my-local.key -out my-local.crt -subj "/C=JP/ST=Yamaguchi/L=Shimonoseki/O=Tensystem/OU=WebApplication/CN=localhost"```
 - すると```my-local.key```と```my-local.crt```ができた。
 
+</details>
+
+<details><summary>hostsファイルの編集</summary>
+
 ### hostsファイルの編集
-- hostsのパスを開きます
-```C:\Windows\System32\drivers\etc\hosts```
-- 必ず管理者権限でhostsファイルを上書きします。
-- hostsファイルに以下を追記します。
-```127.0.0.1  my-local.test```
-- 必ず再起動します。
-```ipconfig /flushdns```
+***- 注意：ここは自己署名証明書の生成でCN=localhostと指定してあるので、hostsの編集は不要。***
+~~- メモ帳を管理者権限でhostsファイルを上書きします。~~
+~~```スタートボタン押下　メモ帳の検索　右クリックして「管理者権限で実行」 ```~~
+~~- hostsのパスを開きます~~
+~~```C:\Windows\System32\drivers\etc\hosts```~~
+~~- hostsファイルに以下を追記します。~~
+~~```127.0.0.1  my-local.test```~~
+~~- 必ず再起動します。~~
+~~```ipconfig /flushdns```~~
 
 <!--
 ### ウェブサーバーの設定
@@ -136,6 +177,11 @@ def read_item(item_id: int, q: str = None):
 </VirtualHost>
 ```
 -->
+</details>
+
+<details><summary>自己署名証明書を仮想サーバに組み込む</summary>
+
+#### 自己署名証明書を仮想サーバに組み込む
 
 - 自己署名証明書の生成: OpenSSLを使って、自己署名証明書を生成します。
 1. カレントディレクトリに移動して生成します
@@ -149,10 +195,14 @@ def read_item(item_id: int, q: str = None):
    - ```https://localhost:8000```
 5. 自己署名証明書を信頼する: 自己署名証明書をローカルの信頼済み証明書ストアに追加することで、この警告を回避できます。
    - my-local.crtをダブルクリックして、証明書インストールウィザードを開きます。
+</details>
 
+<details><summary>備考</summary>
 
-備考
-k.okuma@ten-system.com
-https://ten-system.com/index.html
+#### 備考
+- k.okuma@ten-system.com
+- https://ten-system.com/index.html
+</details>
+
 以上
 
