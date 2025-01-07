@@ -1,6 +1,6 @@
 
 # FastAPI実装調査
-
+- 2025.1.7
 
 ## 簡易テストコード実行方法
 
@@ -124,6 +124,7 @@ def read_item(item_id: int, q: str = None):
 - ```Ctrl + R```
 - ```SystemPropertiesAdvanced```
 <!--
+## 備考：OpenSSLで自己署名証明書が発行できるので、LetsEncryptの使用はやめた。
 #### LetsEncryptの使用
 ##### Certbotのインストール(しかし自己署名には不要だった)
 - LetsEncryptを使うが、アカウント作成は不要だが、certbotのインストールが必要。
@@ -140,18 +141,30 @@ def read_item(item_id: int, q: str = None):
 -->
 </details>
 
+<details><summary>秘密鍵と証明書署名要求（CSR）をつくる</summary>
+
+#### 秘密鍵と証明書署名要求（CSR）をつくる
+
+1. コマンドプロンプトで生成先に移動します。
+2. 秘密鍵を生成します
+   ```openssl genrsa -out private-key.pem 2048```
+3. これで2048ビットの秘密鍵```private-key.pem```が生成されます。
+4. 証明書署名要求（CSR）を作成
+```openssl req -new -key private-key.pem -out csr.csr```
+5. このコマンド実行後、色々入力後に秘密鍵とCSRファイルの両方が作成されます。
+</details>
+
 <details><summary>OpenSSLで自己署名証明書をつくる</summary>
 
 #### OpenSSLで自己署名証明書をつくる
 
-- コマンドプロンプトで生成先に移動します。
-- OpenSSLを使って、自己署名証明書の生成します。<br>
-```openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout my-local.key -out my-local.crt -subj "/C=JP/ST=Yamaguchi/L=Shimonoseki/O=Tensystem/OU=WebApplication/CN=localhost"```
-- すると```my-local.key```と```my-local.crt```ができた。
+6. OpenSSLを使って、自己署名証明書の生成します。<br>
+```openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout my-local.key -out my-local.crt -subj "/C=JP/ST=Yamaguchi/L=Shimonoseki/O=Tensystem/OU=IT/CN=localhost"```
+7. すると```my-local.key```と```my-local.crt```ができた。
 
 </details>
 
-<details><summary>hostsファイルの編集</summary>
+<details><summary>~~hostsファイルの編集~~</summary>
 
 ### hostsファイルの編集
 ***- 注意：ここは自己署名証明書の生成でCN=localhostと指定してあるので、hostsの編集は不要。***
@@ -163,43 +176,49 @@ def read_item(item_id: int, q: str = None):
 ~~```127.0.0.1  my-local.test```~~
 ~~- 必ず再起動します。~~
 ~~```ipconfig /flushdns```~~
+</details>
 
-<!--
-### ウェブサーバーの設定
-- 取得した自己署名証明書をウェブサーバーに設定します。
-- Apatchの場合
-```
-<VirtualHost *:443>
-    ServerName my-local.test
-    SSLEngine on
-    SSLCertificateFile /path/to/my-local.crt
-    SSLCertificateKeyFile /path/to/my-local.key
-</VirtualHost>
-```
--->
+<details><summary>OSで自己署名証明書を信頼する</summary>
+
+#### OSで自己署名証明書を信頼する
+
+8. 自己署名証明書を信頼する: 自己署名証明書をローカルの信頼済み証明書ストアに追加することで、この警告を回避できます。
+   1. my-local.crtをダブルクリックして、証明書のインストールをクリックして、証明書インストールウィザードを開きます。
+   2. ローカルコンピューター > 次へ
+   3. 証明書を配置します
+      - 証明書を次のストアに配置する(P)
+      - 参照（R）　>　信頼されたルート証明機関
 </details>
 
 <details><summary>自己署名証明書を仮想サーバに組み込む</summary>
 
 #### 自己署名証明書を仮想サーバに組み込む
 
-- 自己署名証明書の生成: OpenSSLを使って、自己署名証明書を生成します。
-1. カレントディレクトリに移動して生成します
-2. activateする
+9. activateする
    - ```.\env\Scripts\activate```
-~~   - ```uvicorn main:app --reload```~~
-3. uvicornを使ってHTTPSサーバーを起動
+10. uvicornを使ってHTTPSサーバーを起動
    - 生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します。
    - ```uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt```
-4. ブラウザからアクセスする
-   - ```https://localhost:8000```
-5. 自己署名証明書を信頼する: 自己署名証明書をローカルの信頼済み証明書ストアに追加することで、この警告を回避できます。
-   - my-local.crtをダブルクリックして、証明書インストールウィザードを開きます。
+</details>
+
+<details><summary>ブラウザからアクセスする</summary>
+
+11. ブラウザからアクセスする
+   1. ```https://localhost:8000```
+   2. ブラウザでエラー```net::ERR_CERT_AUTHORITY_INVALID```になるので、```「Localhostにすすむ（安全でない）」```を選択する。
+   3. JSON文字列が表示されると成功です。
+</details>
+
+<details><summary>aaa</summary>
+
+## aaa
+
+### bbb
 </details>
 
 <details><summary>備考</summary>
 
-#### 備考
+## 備考
 - k.okuma@ten-system.com
 - https://ten-system.com/index.html
 </details>
