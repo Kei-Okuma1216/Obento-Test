@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
+import random
 
 app = FastAPI()
 
@@ -12,12 +13,34 @@ async def read_root():
         </head>
         <body>
             <h1>こんにちは！</h1>
-            <p>あなたはまだユーザー登録が済んでいません。</p>
-            <p>このページでユーザー登録をしましょう！！</p>
+            <form action="/register" method="post">
+                <label for="username">ID:</label><br>
+                <input type="text" id="username" name="username"><br>
+                <label for="password">パスワード:</label><br>
+                <input type="password" id="password" name="password"><br>
+                <input type="submit" value="OK">
+            </form>
         </body>
     </html>
     """
-    
+
+@app.post("/register", response_class=HTMLResponse)
+async def register(username: str = Form(...), password: str = Form(...)):
+    # IDとパスワードに基づいて乱数を生成 
+    random_number = random.randint(1, 100)
+    return f"""
+    <html>
+        <head>
+            <title>登録完了</title>
+        </head>
+        <body>
+            <h1>OKです</h1>
+            <p>ユーザー登録が完了しました。</p>
+            <p>生成された乱数: {random_number}</p>
+        </body>
+    </html>
+    """
+
 @app.get("/abc", response_class=HTMLResponse)
 async def read_abc():
     return """
@@ -36,4 +59,3 @@ async def read_abc():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
