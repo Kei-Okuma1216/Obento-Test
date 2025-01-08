@@ -1,9 +1,11 @@
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
-import random
+#import random
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives import serialization
+#from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+#from OpenSSL import crypto
 
 """
 venv簡易実行マニュアル
@@ -21,12 +23,59 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-c
 app = FastAPI()
 
 # RSAキーの生成（実際のアプリケーションでは、キーの管理方法を適切にする必要があります）
-private_key = rsa.generate_private_key(
+"""private_key = rsa.generate_private_key(
     public_exponent=65537,
     key_size=2048
 )
 public_key = private_key.public_key()
+"""
+# 秘密鍵をファイルから読み込む関数:
+def load_private_key(key_file: str): 
+    with open(key_file, "rb") as key_file:
+        private_key = load_pem_private_key(key_file.read(), password=None) 
+        return private_key 
+private_key = load_private_key("./my-local.key")
 
+# 署名を生成する関数:
+def sign_message(private_key, message: str):
+    signature = private_key.sign(
+        message.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+# 備考：crtファイルはuvicorn起動だけで使っているため。
+#certificate = load_certificate("./my-local.crt")
+
+# 登録完了画面
+@app.post("/register", response_class=HTMLResponse)
+async def register(username: str = Form(...),password: str = Form(...)):
+    try:
+        # IDとパスワードに基づいてメッセージを生成 
+        message = username + password 
+        
+        # 署名を生成 
+        signature = sign_message(private_key, message) 
+        signature_hex = signature.hex()
+        
+        return f"""
+        <html>
+            <head>
+                <title>登録完了</title>
+            </head>
+            <body>
+                <h1>OKです</h1>
+                <p>ユーザー登録が完了しました。</p>
+                <p>生成されたシグネチャー: {signature_hex}</p>
+            </body>
+        </html>"""
+    except Exception as e: 
+        return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
+
+# ユーザー登録ページ
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     return """
@@ -46,40 +95,7 @@ async def read_root():
         </body>
     </html>
     """
-
-@app.post("/register", response_class=HTMLResponse)
-async def register(username: str = Form(...), password: str = Form(...)):
-    # IDとパスワードに基づいて乱数を生成
-    random_number = random.randint(1, 100)
-    
-    # 乱数に対するシグネチャーの生成
-    message = str(random_number).encode()
-    signature = private_key.sign(
-        message,
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    
-    # シグネチャーを16進数で表示
-    signature_hex = signature.hex()
-    
-    return f"""
-    <html>
-        <head>
-            <title>登録完了</title>
-        </head>
-        <body>
-            <h1>OKです</h1>
-            <p>ユーザー登録が完了しました。</p>
-            <p>生成された乱数: {random_number}</p>
-            <p>生成されたシグネチャー: {signature_hex}</p>
-        </body>
-    </html>
-    """
-
+# /abcを加えた場合    
 @app.get("/abc", response_class=HTMLResponse)
 async def read_abc():
     return """
