@@ -13,3 +13,12 @@
 5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
 - [ ] 未完了のタスク
 - [x] 完了したタスク
+
+## OpenSSLの設定
+- OpenSSLのインストール
+- ```winget search openssl```
+- ```winget install ShiningLight.OpenSSL.Light```
+- ```openssl version```
+- ```winget list```
+- OpenSSLの場所表示する
+   - ```dir /a /s c:\openssl.exe```
