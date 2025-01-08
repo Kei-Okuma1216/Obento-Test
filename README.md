@@ -11,4 +11,5 @@
 """uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt"""
 4. ブラウザで、"""https://localhost:8000"""にアクセスする
 5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
-
+- [ ] 未完了のタスク
+- [ ] - [x] 完了したタスク
