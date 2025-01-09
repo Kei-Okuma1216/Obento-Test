@@ -5,13 +5,16 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date,datetime, timedelta, timezone
 import jwt
+from typing import Union # 型ヒント用モジュール
 
+# 自作モジュール my_module.py をimportする
+#import my_module
 
 app = FastAPI()
 
 import os
 SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key")
-SECRET_KEY = "your-secret-key"
+#SECRET_KEY = "your-secret-key"
 
 # JWTの生成関数
 def create_jwt(username: str, password: str, date: datetime):
@@ -108,7 +111,7 @@ async def register(username: str = Form(...),password: str = Form(...)):
                 <h2>ユーザー登録が完了しました。</h2>
                 <p>f"Generated JWT: {token}"</p>
                 <h2>次の書式でtokenを渡してください</h2>
-                <p>https://localhost:8000/abc?token=your-jwt-token-here</p>
+                <a href="https://localhost:8000/abc?token={token}" alt="説明文">リンクテキスト</a>
             </body>
         </html>"""
     except Exception as e: 
