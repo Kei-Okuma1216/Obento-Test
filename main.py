@@ -6,36 +6,18 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date,datetime, timedelta, timezone
 import jwt
 from typing import Union # 型ヒント用モジュール
+from fastapi.templating import Jinja2Templates # HTMLテンプレート
+from starlette.requests import Request
+
+from module1 import create_jwt, verify_jwt, function1, SECRET_KEY
 
 # 自作モジュール my_module.py をimportする
 #import my_module
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-import os
-SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key")
-#SECRET_KEY = "your-secret-key"
 
-# JWTの生成関数
-def create_jwt(username: str, password: str, date: datetime):
-    payload = {
-        "username": username,
-        "password": password,
-        "date": str(date),
-        "exp": datetime.now(tz=timezone.utc) + timedelta(days=1)  # 有効期限を設定
-    }
-    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
-    return token
-
-# JWTの検証関数
-def verify_jwt(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return payload
-    except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
 
 
 # 秘密鍵をファイルから読み込む関数:
@@ -82,61 +64,29 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-c
 5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
 """
 
-# 登録完了画面
+# ユーザー登録ページtest
+@app.get("/", response_class=HTMLResponse) 
+async def read_root(request: Request): 
+    return templates.TemplateResponse("login.html", {"request": request})
+
+
+# 登録完了画面test
 @app.post("/register", response_class=HTMLResponse)
-async def register(username: str = Form(...),password: str = Form(...)):
+async def register(request: Request, username: str = Form(...), password: str = Form(...)):
     try:
-        # 使用例
         today_date = datetime.today()
         token = create_jwt(username, password, today_date)
         print(f"Generated JWT: {token}")
-        
-     
-        
-        # IDとパスワードに基づいてメッセージを生成 
-        #message = username + password 
-        
-        # 署名を生成 
-        #today_date = date.today()
-        #signature = sign_message(private_key, message, today_date) 
-        #signature_hex = signature.hex()
-        
-        return f"""
-        <html>
-            <head>
-                <title>登録完了</title>
-            </head>
-            <body>
-                <h1>OKです</h1>
-                <h2>ユーザー登録が完了しました。</h2>
-                <p>f"Generated JWT: {token}"</p>
-                <h2>次の書式でtokenを渡してください</h2>
-                <a href="https://localhost:8000/abc?token={token}" alt="説明文">リンクテキスト</a>
-            </body>
-        </html>"""
+
+        # テンプレートにtokenを渡す 
+        return templates.TemplateResponse("regist_complete.html", {"request": request, "token": token})
+        #return templates.TemplateResponse("regist_complete.html", {"request": request})
     except Exception as e: 
         return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
 
-# ユーザー登録ページ
-@app.get("/", response_class=HTMLResponse)
-async def read_root():
-    return """
-    <html>
-        <head>
-            <title>ここはユーザー登録ページです</title>
-        </head>
-        <body>
-            <h1>こんにちは！</h1>
-            <form action="/register" method="post">
-                <label for="username">ID:</label><br>
-                <input type="text" id="username" name="username"><br>
-                <label for="password">パスワード:</label><br>
-                <input type="password" id="password" name="password"><br>
-                <input type="submit" value="OK">
-            </form>
-        </body>
-    </html>
-    """
+
+
+
 
 # /abcを加えた場合    
 @app.get("/abc", response_class=HTMLResponse)
@@ -172,6 +122,15 @@ async def read_abc(token: str = Query(...)):
             </body> 
         </html> 
         """ 
+
+# ブラウザが要求するfaviconのエラーを防ぐ
+# https://github.com/fastapi/fastapi/discussions/11385
+favicon_path = 'favicon.ico'  # Adjust path to file
+
+from starlette.responses import FileResponse
+@app.get('/favicon.ico', include_in_schema=False)
+async def favicon():
+    return FileResponse(favicon_path)
 
 # 他のモジュールでの誤使用を防ぐ
 if __name__ == "__main__":
