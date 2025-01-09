@@ -18,8 +18,8 @@
 ## OpenSSLの設定
 - OpenSSLのインストール
 > winget search openssl
-- ```winget install ShiningLight.OpenSSL.Light```
-- ```openssl version```
-- ```winget list```
+> winget install ShiningLight.OpenSSL.Light
+> openssl version
+> winget list
 - OpenSSLの場所表示する
-   - ```dir /a /s c:\openssl.exe```
+> dir /a /s c:\openssl.exe
