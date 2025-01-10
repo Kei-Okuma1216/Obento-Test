@@ -1,0 +1,24 @@
+<html> 
+ <head> 
+    <title>別のページ</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+    <script> function closeTab() 
+    {
+       if (window.top === window) {
+          window.close(); 
+         } else { 
+            alert("このタブはJavaScriptで開かれたものではないため、閉じることができません。手動で閉じてください。"); 
+         } 
+   } 
+    </script>
+   </head> 
+ <body> 
+    <h1>こちらは別のページです</h1> 
+    <p>このページは「abc」にアクセスしたときに表示されます。</p>
+    <p>Retrieved Date: {{retrieved_date}}</p>
+    <p>Current   Date: {{current_date}}</p>
+    <a href="https://localhost:8000" />
+    <!--<input type="button" onclick="window.close();" value="ウィンドウを閉じる">-->
+    <button onclick="closeTab()">このタブを閉じてください</button>
+ </body> 
+</html>

@@ -4,31 +4,28 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date,datetime, timedelta, timezone
-import jwt
 from typing import Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
 
-from module1 import create_jwt, verify_jwt, function1, SECRET_KEY
+from jwt_module import create_jwt, verify_jwt
 
-# 自作モジュール my_module.py をimportする
-#import my_module
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 
 
-
 # 秘密鍵をファイルから読み込む関数:
+"""
 def load_private_key(key_file: str): 
     with open(key_file, "rb") as key_file:
         private_key = load_pem_private_key(key_file.read(), password=None) 
         return private_key 
-
-#private_key = load_private_key("./my-local.key")
-private_key_path = "./my-local.key"
-private_key = load_private_key(private_key_path)
+"""
+##private_key = load_private_key("./my-local.key")
+#private_key_path = "./my-local.key"
+#private_key = load_private_key(private_key_path)
 
 # 備考：crtファイルはuvicorn起動だけで使っているため。
 #certificate = load_certificate("./my-local.crt")
@@ -51,18 +48,12 @@ def sign_message(private_key, message: str, date: date):
     return signature
 
 
-"""
-venv簡易実行マニュアル
-0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
-1. main.pyのあるディレクトリでcmdを押してエンターを押す
-2. activateする
-.\env\Scripts\activate
-3. uvicornを使ってHTTPSサーバーを起動する
-生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
-uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
-4. ブラウザで、https://localhost:8000 にアクセスする
-5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
-"""
+
+
+# Mount the directory where favicon.ico is located 
+# faviconのマウント
+from fastapi.staticfiles import StaticFiles
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ユーザー登録ページtest
 @app.get("/", response_class=HTMLResponse) 
@@ -80,38 +71,43 @@ async def register(request: Request, username: str = Form(...), password: str = 
 
         # テンプレートにtokenを渡す 
         return templates.TemplateResponse("regist_complete.html", {"request": request, "token": token})
-        #return templates.TemplateResponse("regist_complete.html", {"request": request})
     except Exception as e: 
-        return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
+        #return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
+        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
 
 
-
-
+"""
+venv簡易実行マニュアル
+0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
+1. main.pyのあるディレクトリでcmdを押してエンターを押す
+2. activateする
+.\env\Scripts\activate
+3. uvicornを使ってHTTPSサーバーを起動する
+生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
+uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
+4. ブラウザで、https://localhost:8000 にアクセスする
+5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
+"""
 
 # /abcを加えた場合    
 @app.get("/abc", response_class=HTMLResponse)
-async def read_abc(token: str = Query(...)):
+async def read_abc(request: Request, token: str = Query(...)):
     payload = verify_jwt(token)
     if payload:
         print(f"Token is valid. Payload: {payload}")
+        
+        # 現在の日付
+        cur_date = datetime.now()
         # 日付を取り出す 
-        retrieved_date = datetime.fromisoformat(payload["date"]) 
-        print(f"Retrieved Date: {retrieved_date}")
-        return f""" 
-        <html> 
-            <head> 
-                <title>別のページ</title> 
-            </head> 
-            <body> 
-                <h1>こちらは別のページです</h1> 
-                <p>このページは「abc」にアクセスしたときに表示されます。</p>
-                <p>Retrieved Date: {retrieved_date}</p>
-            </body> 
-        </html>
-        """
+        token_date = datetime.fromisoformat(payload["date"]) 
+        print(f"Retrieved Date: {token_date}")
+        
+        # abc.html
+        return templates.TemplateResponse("abc.html", {"request": request, "token": token, "retrieved_date": token_date, "current_date": cur_date})
     else:
+        # token_error.html
         print("Invalid or expired token.") 
-        return """ 
+        return HTMLResponse(content=""" 
         <html>
             <head> 
                 <title>エラー</title> 
@@ -121,13 +117,14 @@ async def read_abc(token: str = Query(...)):
                 <p>トークンを確認してください。</p> 
             </body> 
         </html> 
-        """ 
+        """ , status_code=400)
 
 # ブラウザが要求するfaviconのエラーを防ぐ
 # https://github.com/fastapi/fastapi/discussions/11385
-favicon_path = 'favicon.ico'  # Adjust path to file
+favicon_path = './static/favicon.ico'  # Adjust path to file
 
 from starlette.responses import FileResponse
+# Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
     return FileResponse(favicon_path)
