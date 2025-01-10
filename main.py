@@ -103,21 +103,15 @@ async def read_abc(request: Request, token: str = Query(...)):
         print(f"Retrieved Date: {token_date}")
         
         # abc.html
-        return templates.TemplateResponse("abc.html", {"request": request, "token": token, "retrieved_date": token_date, "current_date": cur_date})
+        return templates.TemplateResponse("abc.html",
+            {"request": request, "token": token,
+             "retrieved_date": token_date, "current_date": cur_date})
     else:
         # token_error.html
         print("Invalid or expired token.") 
-        return HTMLResponse(content=""" 
-        <html>
-            <head> 
-                <title>エラー</title> 
-            </head> 
-            <body> 
-                <h1>トークンが無効または期限切れです</h1> 
-                <p>トークンを確認してください。</p> 
-            </body> 
-        </html> 
-        """ , status_code=400)
+        return templates.TemplateResponse("token_error.html",
+            {"request": request, "token": token},status_code=400
+            )
 
 # ブラウザが要求するfaviconのエラーを防ぐ
 # https://github.com/fastapi/fastapi/discussions/11385

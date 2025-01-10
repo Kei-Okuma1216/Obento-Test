@@ -8,7 +8,7 @@ def function1():
     return "これは function1 です。"
 
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-default-secret-key")
+SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
 #SECRET_KEY = "your-secret-key"
 
 # 秘密鍵my-local.keyをファイルから読み込む関数:
@@ -19,7 +19,7 @@ def load_private_key(key_file: str):
 
 private_key = load_private_key("./my-local.key")
 
-# 備考：crtファイルはuvicorn起動だけで使っているため。
+# 備考：crtファイルはuvicorn起動だけで使っているためここでは使わない。
 #certificate = load_certificate("./my-local.crt")
 
 # JWTの生成関数
@@ -28,7 +28,8 @@ def create_jwt(username: str, password: str, date: datetime):
         "username": username,
         "password": password,
         "date": str(date),
-        "exp": datetime.now(tz=timezone.utc) + timedelta(days=1)  # 有効期限を設定
+        #"exp": datetime.now(tz=timezone.utc) + timedelta(days=1)  # 有効期限を設定
+        "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=30)  # 有効期限を設定
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
