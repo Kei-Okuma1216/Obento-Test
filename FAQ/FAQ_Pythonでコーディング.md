@@ -779,6 +779,90 @@ async def register(request: Request, username: str = Form(...), password: str = 
 
 </details>
 
+<details><summary>timedeltaの使用法</summary>
+
+#### Q.
+- これはどういう意味でしょうか？
+    - from datetime import datetime, timedelta 
+    - d = datetime.fromisoformat("2004-07-07T00:00:00") 
+    - d #=> datetime.datetime(2004, 7, 7, 0, 0) 
+    - d + timedelta(seconds=30) #=> datetime.datetime(2004, 7, 7, 0, 0, 30) 
+    - d + timedelta(hours=8) #=> datetime.datetime(2004, 7, 7, 8, 0)
+
+#### A.
+- このコードの目的は、`datetime` モジュールと `timedelta` クラスを使用して日付と時間の操作を行うことです。具体的には、ISO 8601形式の文字列から日付と時間を作成し、それに時間の増分を追加しています。以下の説明で詳細を解説します。
+
+### コードの解説
+
+1. **必要なモジュールのインポート**
+    ```python
+    from datetime import datetime, timedelta
+    ```
+    - `datetime` モジュールと `timedelta` クラスをインポートします。
+
+2. **ISO 8601形式の文字列から `datetime` オブジェクトを作成**
+    ```python
+    d = datetime.fromisoformat("2004-07-07T00:00:00")
+    ```
+    - `"2004-07-07T00:00:00"` という文字列を `datetime` オブジェクトに変換し、変数 `d` に代入します。このオブジェクトは `2004年7月7日 00:00:00` を表しています。
+
+3. **`timedelta` を使った時間の加算**
+    ```python
+    d + timedelta(seconds=30) #=> datetime.datetime(2004, 7, 7, 0, 0, 30)
+    ```
+    - `d` に30秒を追加します。結果は `2004年7月7日 00:00:30` となります。
+
+    ```python
+    d + timedelta(hours=8) #=> datetime.datetime(2004, 7, 7, 8, 0)
+    ```
+    - `d` に8時間を追加します。結果は `2004年7月7日 08:00:00` となります。
+
+これにより、指定された日付と時刻に特定の時間を加算した結果が得られます。`timedelta` クラスを使うことで、時間の操作が簡単に行えるようになっています。
+
+他にも何か質問があれば、どうぞお知らせくださいね！😊
+
+</details>
+
+<details><summary>aaa</summary>
+
+#### Q.
+- 
+
+#### A.
+- 
+
+</details>
+
+<details><summary>aaa</summary>
+
+#### Q.
+- 
+
+#### A.
+- 
+
+</details>
+
+<details><summary>aaa</summary>
+
+#### Q.
+- 
+
+#### A.
+- 
+
+</details>
+
+<details><summary>aaa</summary>
+
+#### Q.
+- 
+
+#### A.
+- 
+
+</details>
+
 <details><summary>aaa</summary>
 
 #### Q.

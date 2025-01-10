@@ -1,11 +1,9 @@
 import os
 import jwt
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
-
-def function1():
-    """二つの数値を足し合わせる関数"""
-    return "これは function1 です。"
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives import hashes
 
 
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
@@ -17,7 +15,25 @@ def load_private_key(key_file: str):
         private_key = load_pem_private_key(key_file.read(), password=None) 
         return private_key 
 
+# 同じ階層にある秘密鍵
 private_key = load_private_key("./my-local.key")
+
+# 秘密鍵を元に署名を生成する関数:
+def sign_message(private_key, message: str, date: date):
+    
+    # メッセージに日付を追加 
+    combined_message = message + str(date)
+    
+    # 署名を生成
+    signature = private_key.sign(
+        combined_message.encode(),
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
 
 # 備考：crtファイルはuvicorn起動だけで使っているためここでは使わない。
 #certificate = load_certificate("./my-local.crt")

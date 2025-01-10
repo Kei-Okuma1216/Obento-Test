@@ -1,67 +1,25 @@
+from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, Form, Query
-from fastapi.responses import HTMLResponse
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import rsa, padding
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from datetime import date,datetime, timedelta, timezone
+from fastapi.responses import FileResponse, HTMLResponse
+from datetime import datetime
 from typing import Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
 
-from jwt_module import create_jwt, verify_jwt
+from jwt_module import create_jwt, verify_jwt, sign_message
 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 
-
-# 秘密鍵をファイルから読み込む関数:
-"""
-def load_private_key(key_file: str): 
-    with open(key_file, "rb") as key_file:
-        private_key = load_pem_private_key(key_file.read(), password=None) 
-        return private_key 
-"""
-##private_key = load_private_key("./my-local.key")
-#private_key_path = "./my-local.key"
-#private_key = load_private_key(private_key_path)
-
-# 備考：crtファイルはuvicorn起動だけで使っているため。
-#certificate = load_certificate("./my-local.crt")
-
-# 秘密鍵を元に署名を生成する関数:
-def sign_message(private_key, message: str, date: date):
-    
-    # メッセージに日付を追加 
-    combined_message = message + str(date)
-    
-    # 署名を生成
-    signature = private_key.sign(
-        combined_message.encode(),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    return signature
-
-
-
-
-# Mount the directory where favicon.ico is located 
-# faviconのマウント
-from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# ユーザー登録ページtest
+# ユーザー登録ページ
 @app.get("/", response_class=HTMLResponse) 
 async def read_root(request: Request): 
     return templates.TemplateResponse("login.html", {"request": request})
 
 
-# 登録完了画面test
+# 登録完了画面
 @app.post("/register", response_class=HTMLResponse)
 async def register(request: Request, username: str = Form(...), password: str = Form(...)):
     try:
@@ -70,10 +28,11 @@ async def register(request: Request, username: str = Form(...), password: str = 
         print(f"Generated JWT: {token}")
 
         # テンプレートにtokenを渡す 
-        return templates.TemplateResponse("regist_complete.html", {"request": request, "token": token})
+        return templates.TemplateResponse(
+            "regist_complete.html", {"request": request, "token": token})
     except Exception as e: 
-        #return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
-        return templates.TemplateResponse("error.html", {"request": request, "error": str(e)})
+        return templates.TemplateResponse(
+            "error.html", {"request": request, "error": str(e)})
 
 
 """
@@ -113,15 +72,20 @@ async def read_abc(request: Request, token: str = Query(...)):
             {"request": request, "token": token},status_code=400
             )
 
+
 # ブラウザが要求するfaviconのエラーを防ぐ
 # https://github.com/fastapi/fastapi/discussions/11385
 favicon_path = './static/favicon.ico'  # Adjust path to file
 
-from starlette.responses import FileResponse
 # Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
-    return FileResponse(favicon_path)
+     return FileResponse(favicon_path)
+ 
+# Mount the directory where favicon.ico is located 
+# faviconのマウント
+from fastapi.staticfiles import StaticFiles
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # 他のモジュールでの誤使用を防ぐ
 if __name__ == "__main__":
