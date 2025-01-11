@@ -17,7 +17,18 @@ templates = Jinja2Templates(directory="templates")
 async def read_root(request: Request): 
     return templates.TemplateResponse("login.html", {"request": request})
 
-
+"""
+venv簡易実行マニュアル
+0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
+1. main.pyのあるディレクトリでcmdを押してエンターを押す
+2. activateする
+.\env\Scripts\activate
+3. uvicornを使ってHTTPSサーバーを起動する
+生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
+uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
+4. ブラウザで、https://localhost:8000 にアクセスする
+5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
+"""
 # 登録完了画面
 @app.post("/register", response_class=HTMLResponse)
 async def register(
@@ -27,7 +38,11 @@ async def register(
         # Cookieを設定 
         id = 1
         formatted_id = str(id).zfill(3)
-        response.set_cookie(key="id", value=formatted_id)
+        response.set_cookie(
+            key="id",
+            value=formatted_id,
+            samesite="none"
+            )
         #response.set_cookie(key="id", value="001")
         print(f"Cookie id: 001")
         
@@ -49,18 +64,7 @@ async def register(
             "error.html", {"request": request, "error": str(e)})
 
 
-"""
-venv簡易実行マニュアル
-0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
-1. main.pyのあるディレクトリでcmdを押してエンターを押す
-2. activateする
-.\env\Scripts\activate
-3. uvicornを使ってHTTPSサーバーを起動する
-生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
-uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
-4. ブラウザで、https://localhost:8000 にアクセスする
-5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
-"""
+
 
 # /abcを加えた場合    
 @app.get("/abc", response_class=HTMLResponse)
