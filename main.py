@@ -25,10 +25,10 @@ async def register(
     request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
     try:
         # Cookieを設定 
-        #id = 1
-        #formatted_id = str(id).zfill(3)
-        #response.set_cookie(key="id", value=formatted_id)
-        response.set_cookie(key="id", value="001")
+        id = 1
+        formatted_id = str(id).zfill(3)
+        response.set_cookie(key="id", value=formatted_id)
+        #response.set_cookie(key="id", value="001")
         print(f"Cookie id: 001")
         
         today_date = datetime.today().strftime('%Y-%m-%d %H:%M:%S') 
