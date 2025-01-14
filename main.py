@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Form, Query , Response
-from fastapi.responses import FileResponse, HTMLResponse
-from datetime import datetime
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from datetime import datetime, timedelta
 from typing import Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
@@ -15,6 +15,10 @@ templates = Jinja2Templates(directory="templates")
 # ユーザー登録ページ
 @app.get("/", response_class=HTMLResponse) 
 async def read_root(request: Request): 
+    # もしtokenがついていたら、独自のページに遷移する。
+    token = request.cookies.get("token") 
+    if token: # Tokenがある場合は /cde にリダイレクト 
+        return RedirectResponse(url="/cde")
     return templates.TemplateResponse("login.html", {"request": request})
 
 """
@@ -29,29 +33,47 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-c
 4. ブラウザで、https://localhost:8000 にアクセスする
 5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
 """
-# 登録完了画面
+# 登録完了画面 https://127.0.0.1:8000でアクセスする
 @app.post("/register", response_class=HTMLResponse)
 async def register(
     #request: Request, username: str = Form(...), password: str = Form(...)):
     request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
     try:
-        # Cookieを設定 127.0.0.1では設定できた
+        # Cookieを設定
+        #response.set_cookie(key="my_cookie", value="cookie_value") # OK 
+
         id = "1"
         formatted_id = str(id).zfill(3)
         response.set_cookie(key="id", value=str(formatted_id))
-        #response.set_cookie(key="my_cookie", value="cookie_value") # OK 
         print(f"Cookie id: 001")
         
-        today_date = datetime.today().strftime('%Y-%m-%d %H:%M:%S') 
-        response.set_cookie(key="regist_date", value=today_date)
-        print(f"regist_date: {today_date}")
+        #today_date = datetime.today().strftime('%Y-%m-%d %H:%M:%S') 
+        today_date = datetime.today()
+        today_date_str = datetime.today().strftime('%Y-%m-%d') 
+        print(f"regist_date: {today_date_str}")
         
-        # トークンをCookieに設定 
+        response.set_cookie(
+            key="regist_date",
+            value=today_date_str
+            )
+        
         token = create_jwt(username, password, datetime.today())
-        response.set_cookie(key="token", value=token)
-        print(f"Generated JWT: {token}")
 
-        # tokenを表示 
+        # 有効期間を日単位で設定
+        days_valid = 3 
+        response.set_cookie(
+            key="token",
+            value=token,
+            max_age=timedelta(days=days_valid).total_seconds(),
+            httponly=True
+            )
+        print(f"Generated JWT: {token}")
+        
+        expire_date = today_date + timedelta(days=days_valid)
+        expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
+        print(f"expire_date: {expire_date_str}")
+
+
         page = templates.TemplateResponse(
             "regist_complete.html", {"request": request, "token": token})
         response.set_cookie(key="my_cookie", value="cookie_value") 
@@ -66,7 +88,11 @@ async def register(
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": str(e)})
 
-
+# Cookieにtokenがある場合、/cdeに遷移する    
+@app.get("/cde", response_class=HTMLResponse) 
+async def read_cde(request: Request): 
+    return templates.TemplateResponse("cde.html",
+                                      {"request": request})
 
 
 # /abcを加えた場合    
