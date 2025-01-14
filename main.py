@@ -35,15 +35,11 @@ async def register(
     #request: Request, username: str = Form(...), password: str = Form(...)):
     request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
     try:
-        # Cookieを設定 
-        id = 1
+        # Cookieを設定 127.0.0.1では設定できた
+        id = "1"
         formatted_id = str(id).zfill(3)
-        response.set_cookie(
-            key="id",
-            value=formatted_id,
-            samesite="none"
-            )
-        #response.set_cookie(key="id", value="001")
+        response.set_cookie(key="id", value=str(formatted_id))
+        #response.set_cookie(key="my_cookie", value="cookie_value") # OK 
         print(f"Cookie id: 001")
         
         today_date = datetime.today().strftime('%Y-%m-%d %H:%M:%S') 
@@ -56,8 +52,15 @@ async def register(
         print(f"Generated JWT: {token}")
 
         # tokenを表示 
-        return templates.TemplateResponse(
+        page = templates.TemplateResponse(
             "regist_complete.html", {"request": request, "token": token})
+        response.set_cookie(key="my_cookie", value="cookie_value") 
+        
+        # pageに response.cookiesを追加
+        page.headers.raw.extend(response.headers.raw)
+        
+        return page
+
     except Exception as e: 
         print(f"Error: {str(e)}")
         return templates.TemplateResponse(
