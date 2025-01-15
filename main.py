@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from jwt_module import create_jwt, verify_jwt, sign_message
 
@@ -19,20 +20,13 @@ async def read_root(request: Request):
     token = request.cookies.get("token") 
     if token: # Tokenがある場合は /cde にリダイレクト 
         return RedirectResponse(url="/cde")
+    
     return templates.TemplateResponse("login.html", {"request": request})
 
-"""
-venv簡易実行マニュアル
-0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
-1. main.pyのあるディレクトリでcmdを押してエンターを押す
-2. activateする
-.\env\Scripts\activate
-3. uvicornを使ってHTTPSサーバーを起動する
-生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
-uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
-4. ブラウザで、https://localhost:8000 にアクセスする
-5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
-"""
+@app.exception_handler(StarletteHTTPException) 
+async def http_exception_handler(request, exc): 
+    return HTMLResponse(str(exc.detail), status_code=exc.status_code)
+
 # 登録完了画面 https://127.0.0.1:8000でアクセスする
 @app.post("/register", response_class=HTMLResponse)
 async def register(
@@ -64,19 +58,19 @@ async def register(
         response.set_cookie(
             key="token",
             value=token,
-            max_age=timedelta(days=days_valid).total_seconds(),
-            httponly=True
+            #max_age=timedelta(days=days_valid).total_seconds(),
+            max_age=timedelta(seconds=30).total_seconds(),
             )
         print(f"Generated JWT: {token}")
         
         expire_date = today_date + timedelta(days=days_valid)
+        
         expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
         print(f"expire_date: {expire_date_str}")
 
 
         page = templates.TemplateResponse(
             "regist_complete.html", {"request": request, "token": token})
-        response.set_cookie(key="my_cookie", value="cookie_value") 
         
         # pageに response.cookiesを追加
         page.headers.raw.extend(response.headers.raw)
@@ -91,9 +85,9 @@ async def register(
 # Cookieにtokenがある場合、/cdeに遷移する    
 @app.get("/cde", response_class=HTMLResponse) 
 async def read_cde(request: Request): 
-    return templates.TemplateResponse("cde.html",
-                                      {"request": request})
-
+    return templates.TemplateResponse(
+        "confirm_token.html",{"request": request})
+# tokenが期限切れの場合は不明。
 
 # /abcを加えた場合    
 @app.get("/abc", response_class=HTMLResponse)
@@ -123,6 +117,10 @@ async def read_abc(request: Request, token: str = Query(...)):
         return templates.TemplateResponse( 
             "error.html", {"request": request, "error": str(e)})
 
+@app.get("/get-cookie") 
+def get_cookie(response: Response): 
+    # ここで設定されたCookieを確認する print(response.headers) 
+    return {"message": "Check the response headers in logs"}
 
 # ブラウザが要求するfaviconのエラーを防ぐ
 # https://github.com/fastapi/fastapi/discussions/11385
@@ -141,4 +139,4 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # 他のモジュールでの誤使用を防ぐ
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000, timeout_keep_alive=100)
