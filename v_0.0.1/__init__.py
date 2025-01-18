@@ -8,7 +8,7 @@ def package_function():
     return "this is a package-level function"
 
 # パッケージ内で公開するモジュールや関数を指定
-from .jwt_module import create_jwt, create_jwt, SECRET_KEY, private_key, load_private_key, sign_message
+from .local_jwt_module import create_jwt, create_jwt, SECRET_KEY, private_key, load_private_key, sign_message # type: ignore
 
 """
 この関数はparam1とparam2を受け取り、結果を返します。
