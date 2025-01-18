@@ -9,7 +9,9 @@
 3. uvicornを使ってHTTPSサーバーを起動する
 生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
 """uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt"""
-4. ブラウザで、"""https://localhost:8000"""にアクセスする
+4. ブラウザで、以下にアクセスする もしくは
+"""https://localhost:8000"""
+> http://127.0.0.1:8000
 5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
 - [ ] 未完了のタスク
 - [x] 完了したタスク
