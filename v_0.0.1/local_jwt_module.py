@@ -5,7 +5,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 
-
+ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
 #SECRET_KEY = "your-secret-key"
 
@@ -17,6 +17,7 @@ def load_private_key(key_file: str):
 
 # 同じ階層にある秘密鍵
 private_key = load_private_key("./my-local.key")
+#private_key = load_private_key("./OpenSSL/my-local.key")
 
 # 秘密鍵を元に署名を生成する関数:
 def sign_message(private_key, message: str, date: date):

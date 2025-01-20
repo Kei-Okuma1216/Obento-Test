@@ -1,16 +1,24 @@
 from fastapi import Depends, FastAPI, Form, HTTPException, Header, Query , Response
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Union # 型ヒント用モジュール
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
+import jwt
+from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from local_jwt_module import create_jwt, verify_jwt, sign_message # type: ignore
+from local_jwt_module import create_jwt, verify_jwt, ALGORITHM, SECRET_KEY
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
 
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+# 
+# uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
 
 
 # ユーザー登録ページ
@@ -53,7 +61,6 @@ async def register(
         token = create_jwt(username, password, datetime.today())
 
         # 有効期間を日単位で設定
-        days_valid = 3 
         response.set_cookie(
             key="token",
             value=token,
@@ -61,8 +68,9 @@ async def register(
             max_age=timedelta(seconds=30).total_seconds(),
             )
         print(f"- Generated JWT: {token}")
-        
-        expire_date = today_date + timedelta(days=days_valid)
+        #days_valid = 3 
+        #expire_date = today_date + timedelta(days=days_valid)
+        expire_date = today_date + timedelta(seconds=60)
         
         expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
         print(f"- expire_date: {expire_date_str}")
