@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set "VIRTUAL_ENV=C:\Obento-Test\v_0.1.0\env"
+set VIRTUAL_ENV=C:\Users\tensy\OneDrive\ドキュメント\okuma\お弁当注文システム\実装調査\env
 
 if not defined PROMPT set PROMPT=$P$G
 
@@ -24,8 +24,8 @@ set PYTHONHOME=
 if defined _OLD_VIRTUAL_PATH set PATH=%_OLD_VIRTUAL_PATH%
 if not defined _OLD_VIRTUAL_PATH set _OLD_VIRTUAL_PATH=%PATH%
 
-set "PATH=%VIRTUAL_ENV%\Scripts;%PATH%"
-set "VIRTUAL_ENV_PROMPT=(env) "
+set PATH=%VIRTUAL_ENV%\Scripts;%PATH%
+set VIRTUAL_ENV_PROMPT=(env) 
 
 :END
 if defined _OLD_CODEPAGE (

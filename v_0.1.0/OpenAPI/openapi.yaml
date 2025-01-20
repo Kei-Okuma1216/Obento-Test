@@ -1,0 +1,225 @@
+openapi: 3.0.0
+info:
+  title: お弁当注文システム API
+  description: API for ordering bento lunches
+  version: 1.0.0
+servers:
+  - url: https://localhost:8000/
+    description: Development server
+  - url: https://www.sample.com
+    description: Production server
+paths:
+  /: 
+    get: 
+      summary: アクセスポイント画面
+      description: | 
+        有効期限内のtoken有の場合は /users/me/place-order へ、 
+        無い場合は /regist へ遷移します。 
+      responses: 
+        '200':
+          description: アクセスポイントにアクセス
+          content: 
+            text/html: 
+              schema: 
+                type: string 
+                example: |
+                  <html>
+                      <head>
+                          <title>お弁当注文システム</title>
+                      </head>
+                      <body>
+                          <script>
+                              function checkToken() {
+                                  let cookieValue = document.cookie
+                                      .split('; ')
+                                      .find(row => row.startsWith('token='));
+                                  if (cookieValue) {
+                                      window.location.href = "/users/me/place-order";
+                                  } else {
+                                      window.location.href = "/regist";
+                                  }
+                              }
+                              checkToken();
+                          </script>
+                      </body>
+                  </html>
+  /regist:
+    get:
+      summary: ユーザー登録画面
+      responses:
+        '200':
+          description: ログイン画面表示
+          content: 
+            text/html: 
+              schema: 
+                type: string 
+                example: |
+                  <html>
+                      <head>
+                          <title>ユーザー登録</title>
+                      </head>
+                      <body>
+                          <h1>こんにちは！</h1>
+                          <form action="/register" method="post">
+                              <label for="username">ID:</label><br>
+                              <input type="text" id="username" name="username"><br>
+                              <label for="password">パスワード:</label><br>
+                              <input type="password" id="password" name="password"><br>
+                              <input type="submit" value="OK">
+                          </form>
+                      </body>
+                  </html>
+  /register:
+    post:
+      summary: ユーザー登録および更新処理
+      parameters:
+        - name: username
+          in: formData
+          required: true
+          schema:
+            type: string
+        - name: password
+          in: formData
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 登録成功
+          headers:
+            Location:
+              description: 2秒後にリダイレクト実行
+              schema:
+                type: string
+                example: "/registed"
+        '400':
+          description: 登録エラー
+          headers:
+            Location:
+              description: リダイレクト先
+              schema:
+                type: string
+                example: "/regist-error"
+  /registed:
+    get:
+      summary: ユーザー登録および更新完了画面
+      responses:
+        '200':
+          description: 登録完了画面表示
+          headers:
+            Location:
+              description: 2秒後にリダイレクトする /users/me 
+          content: 
+            text/html: 
+              schema: 
+                type: string 
+                example: "<html><head><title>登録完了</title></head><body><h1>登録完了しました！</h1></body></html>"
+  /regist-error:
+    get:
+      summary: 登録失敗画面
+      responses:
+        '200':
+          description: 登録失敗画面
+          content: 
+            text/html: 
+              schema: 
+                type: string 
+                example: register-error.html
+  /error:
+    get:
+      summary: 一般的なエラーページ
+      responses:
+        '200':
+          description: 一般的なエラーページ
+          content: 
+            text/html: 
+              schema: 
+                type: string 
+                example: error.html
+  /users/me:
+    get:
+      summary: ユーザー情報取得
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+        '401':
+          $ref: '#/components/responses/401'
+  /users/me/orders:
+    get:
+      summary: ユーザーの注文履歴取得
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+        '401':
+          $ref: '#/components/responses/401'
+  /users/me/place-order:
+    post:
+      summary: 注文実施画面
+      description: 注文実施
+      content: 
+        text/html: 
+          schema: 
+            type: string 
+            example: "<html><head><title>注文実施</title></head><body><h1>注文を実施してください。</h1></body></html>"
+      parameters:
+        - name: shop
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: menu
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: value
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+        '400':
+          description: 注文エラー
+  /ordered:
+    get:
+      summary: 注文完了画面
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+  /order-error:
+    get:
+      summary: 注文失敗画面
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+  /token-expired:
+    get:
+      summary: トークン期限切れ画面
+      responses:
+        '200':
+          $ref: '#/components/responses/200'
+components:
+  schemas: 
+    AuthorizationStatus: 
+      type: string  # 正しい型に変更
+      enum:
+        - user 
+        - shop 
+        - admin
+  responses:
+    '200':
+      description: OK
+    '400':
+      description: Bad Request
+    '401':
+      description: Unauthorized
+    '403':
+      description: Forbidden
+    '404':
+      description: Not Found
+    '500':
+      description: Internal Server Error
+    '503':
+      description: Service Unavailable
