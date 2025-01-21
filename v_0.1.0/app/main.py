@@ -27,7 +27,7 @@ async def read_root(request: Request):
     # もしtokenがついていたら、独自のページに遷移する。
     token = request.cookies.get("token") 
     if token: 
-        return RedirectResponse(url="/token_ari")
+        return RedirectResponse(url="/token_yes")
     else:
         return templates.TemplateResponse("login.html", {"request": request})
 
@@ -39,7 +39,7 @@ id_counter = 1
 def get_next_id():
     return id_counter + 1
 
-# 登録完了画面
+# 登録中画面
 @app.post("/register", response_class=HTMLResponse)
 async def register(
     request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
@@ -47,23 +47,6 @@ async def register(
     https://127.0.0.1:8000でアクセスする
     '''
     try:
-        # Cookieを設定
-        #response.set_cookie(key="my_cookie", value="cookie_value") # OK 
-
-
-        # もしIDがなければIDを発行する
-        '''
-        id = get_next_id() #"1"
-        formatted_id = str(id).zfill(3)
-        response.set_cookie(key="id", value=str(formatted_id))
-        print(f"- Cookie id: {id}")
-        
-        today_date = datetime.today()
-        today_date_str = datetime.today().strftime('%Y-%m-%d') 
-        print(f"- regist_date: {today_date_str}")
-        
-        response.set_cookie(key="regist_date", value=today_date_str)
-        '''
  
         token = create_jwt(username, password, datetime.today())
         response.set_cookie(
@@ -82,8 +65,8 @@ async def register(
         
         # pageに response.cookiesを追加
         page.headers.raw.extend(response.headers.raw)
-        
         return page
+    
     except Exception as e: 
         print(f"Error: {str(e)}")
         return templates.TemplateResponse(
@@ -91,29 +74,31 @@ async def register(
 
 
 @app.get("/token_yes", response_class=HTMLResponse) 
-async def read_cde(request: Request): 
+async def read_yes(request: Request): 
     return templates.TemplateResponse(
         "token_yes.html",{"request": request})
 
-# /abcを加えた場合    
+# token確認画面 
 @app.get("/check", response_class=HTMLResponse)
-async def read_abc(
+async def check_token(
     request: Request, token: str = Query(...)):
     try:
+        if token is None: 
+            return templates.TemplateResponse(
+                "token_error.html", {"request": request, "error": "Token is missing"}, status_code=400)
+                     
         payload = verify_jwt(token)
         if payload:
             print(f"Token is valid. Payload: {payload}")
             
-            # 現在の日付
-            cur_date = datetime.now()
             # 日付を取り出す 
             token_date = datetime.fromisoformat(payload["date"]) 
             print(f"Retrieved Date: {token_date}")
             
-            # abc.html
-            return templates.TemplateResponse("abc.html",
+            # date.html
+            return templates.TemplateResponse("date.html",
                 {"request": request, "token": token,
-                "retrieved_date": token_date, "current_date": cur_date})
+                "retrieved_date": token_date, "current_date": datetime.now()})
         else:
             # token_error.html
             print("Invalid or expired token.") 
@@ -124,29 +109,6 @@ async def read_abc(
         return templates.TemplateResponse( 
             "error.html", {"request": request, "error": str(e)})
 
-async def verify_token(x_token: str = Header()):
-    if x_token != "fake-super-secret-token":
-        raise HTTPException(status_code=400, detail="X-Token header invalid")
-    
-async def verify_key(x_key: str = Header()):
-    if x_key != "fake-super-secret-key":
-        raise HTTPException(status_code=400, detail="X-Key header invalid")
-    return x_key
-
-# @app.get("/get-cookie") 
-# def get_cookie(response: Response): 
-@app.get("/check-token", dependencies=[Depends(verify_token)])
-def check_token(): 
-    response = Response()
-    response.headers["X-Custom-Header"] = "CustomValue"
-    response.headers["Set-Cookie"] = "sessionId=12345"
-    response.body = b"Hello, World!"
-    # ここで設定されたCookieを確認する 
-    print(response.headers) 
-    print(response.body) 
-    #return {"message": "Check the response headers in logs"}
-    return JSONResponse(
-        content={"message": "Check the response headers in logs"})
     
     
 # ブラウザが要求するfaviconのエラーを防ぐ
