@@ -26,54 +26,55 @@ templates = Jinja2Templates(directory="templates")
 async def read_root(request: Request): 
     # もしtokenがついていたら、独自のページに遷移する。
     token = request.cookies.get("token") 
-    if token: # Tokenがある場合は /cde にリダイレクト 
-        return RedirectResponse(url="/cde")
-    
-    return templates.TemplateResponse("login.html", {"request": request})
+    if token: 
+        return RedirectResponse(url="/token_ari")
+    else:
+        return templates.TemplateResponse("login.html", {"request": request})
 
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
 
-# 登録完了画面 https://127.0.0.1:8000でアクセスする
+id_counter = 1
+def get_next_id():
+    return id_counter + 1
+
+# 登録完了画面
 @app.post("/register", response_class=HTMLResponse)
 async def register(
     request: Request, response: Response, username: str = Form(...), password: str = Form(...)):
+    '''
+    https://127.0.0.1:8000でアクセスする
+    '''
     try:
         # Cookieを設定
         #response.set_cookie(key="my_cookie", value="cookie_value") # OK 
 
+
         # もしIDがなければIDを発行する
-        id = "1"
+        '''
+        id = get_next_id() #"1"
         formatted_id = str(id).zfill(3)
         response.set_cookie(key="id", value=str(formatted_id))
-        print(f"- Cookie id: 001")
+        print(f"- Cookie id: {id}")
         
         today_date = datetime.today()
         today_date_str = datetime.today().strftime('%Y-%m-%d') 
         print(f"- regist_date: {today_date_str}")
         
-        response.set_cookie(
-            key="regist_date",
-            value=today_date_str
-            )
-        
+        response.set_cookie(key="regist_date", value=today_date_str)
+        '''
+ 
         token = create_jwt(username, password, datetime.today())
-
-        # 有効期間を日単位で設定
         response.set_cookie(
             key="token",
-            value=token,
-            #max_age=timedelta(days=days_valid).total_seconds(),
-            max_age=timedelta(seconds=30).total_seconds(),
-            )
+            value=token
+        )
         print(f"- Generated JWT: {token}")
-        #days_valid = 3 
-        #expire_date = today_date + timedelta(days=days_valid)
-        expire_date = today_date + timedelta(seconds=60)
-        
-        expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
-        print(f"- expire_date: {expire_date_str}")
+
+        #expire_date = today_date + timedelta(seconds=60)
+        #expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
+        #print(f"- expire_date: {expire_date_str}")
 
 
         page = templates.TemplateResponse(
@@ -83,29 +84,16 @@ async def register(
         page.headers.raw.extend(response.headers.raw)
         
         return page
-
     except Exception as e: 
         print(f"Error: {str(e)}")
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": str(e)})
 
-# Cookieにtokenがある場合、/cdeに遷移する    
-@app.get("/cde", response_class=HTMLResponse) 
+
+@app.get("/token_yes", response_class=HTMLResponse) 
 async def read_cde(request: Request): 
     return templates.TemplateResponse(
-        "confirm_token.html",{"request": request})
-# tokenが期限切れの場合は不明。
-
-# https://fastapi.tiangolo.com/ja/tutorial/dependencies/dependencies-in-path-operation-decorators/#path-operationdependencies
-async def verify_token(x_token: str = Header()):
-    if x_token != "fake-super-secret-token":
-        raise HTTPException(status_code=400, detail="X-Token header invalid")
-    
-async def verify_key(x_key: str = Header()):
-    if x_key != "fake-super-secret-key":
-        raise HTTPException(status_code=400, detail="X-Key header invalid")
-    return x_key
-
+        "token_yes.html",{"request": request})
 
 # /abcを加えた場合    
 @app.get("/check", response_class=HTMLResponse)
@@ -136,6 +124,15 @@ async def read_abc(
         return templates.TemplateResponse( 
             "error.html", {"request": request, "error": str(e)})
 
+async def verify_token(x_token: str = Header()):
+    if x_token != "fake-super-secret-token":
+        raise HTTPException(status_code=400, detail="X-Token header invalid")
+    
+async def verify_key(x_key: str = Header()):
+    if x_key != "fake-super-secret-key":
+        raise HTTPException(status_code=400, detail="X-Key header invalid")
+    return x_key
+
 # @app.get("/get-cookie") 
 # def get_cookie(response: Response): 
 @app.get("/check-token", dependencies=[Depends(verify_token)])
@@ -150,6 +147,8 @@ def check_token():
     #return {"message": "Check the response headers in logs"}
     return JSONResponse(
         content={"message": "Check the response headers in logs"})
+    
+    
 # ブラウザが要求するfaviconのエラーを防ぐ
 # https://github.com/fastapi/fastapi/discussions/11385
 favicon_path = './static/favicon.ico'  # Adjust path to file
