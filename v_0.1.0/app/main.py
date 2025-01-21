@@ -1,11 +1,9 @@
-from fastapi import Depends, FastAPI, Form, HTTPException, Header, Query , Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
-from datetime import datetime, timedelta, timezone
+from http.cookiejar import Cookie
+from fastapi import Cookie, FastAPI, Form, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from datetime import datetime
 from typing import Union # 型ヒント用モジュール
-from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
-import jwt
-from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -21,7 +19,7 @@ templates = Jinja2Templates(directory="templates")
 # uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
 
 
-# ユーザー登録ページ
+# 最初にアクセスするページ
 @app.get("/", response_class=HTMLResponse) 
 async def read_root(request: Request): 
     # もしtokenがついていたら、独自のページに遷移する。
@@ -55,11 +53,6 @@ async def register(
         )
         print(f"- Generated JWT: {token}")
 
-        #expire_date = today_date + timedelta(seconds=60)
-        #expire_date_str = expire_date.strftime('%Y-%m-%d %H:%M:%S') 
-        #print(f"- expire_date: {expire_date_str}")
-
-
         page = templates.TemplateResponse(
             "regist_complete.html", {"request": request, "token": token})
         
@@ -72,7 +65,7 @@ async def register(
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": str(e)})
 
-
+# tokenがある場合
 @app.get("/token_yes", response_class=HTMLResponse) 
 async def read_yes(request: Request): 
     return templates.TemplateResponse(
@@ -81,7 +74,7 @@ async def read_yes(request: Request):
 # token確認画面 
 @app.get("/check", response_class=HTMLResponse)
 async def check_token(
-    request: Request, token: str = Query(...)):
+    request: Request, token: str = Cookie(None)):
     try:
         if token is None: 
             return templates.TemplateResponse(
