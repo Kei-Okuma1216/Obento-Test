@@ -1,33 +1,45 @@
 from http.cookiejar import Cookie
-from fastapi import Cookie, FastAPI, Form, Header, Response
+from fastapi import Cookie, FastAPI, Form, Header, Response, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from datetime import datetime
 from typing import Optional, Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
+import sys 
+print(sys.path)
 
 from local_jwt_module import create_jwt, verify_jwt
 ALGORITHM = "HS256"
-import sys 
-print(sys.path)
-from init_module import init_database, insert_mock_user, get_connection, select_mock_user
+from init_module import select_mock_user
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 #init_database()
 
+# 認証不許可クラス
+class NotAuthorizedException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized")
+    
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
 
+# 起動方法
 # cd C:\Obento-Test\v_0.1.0\app
 # .\env\Scripts\activate
 # uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
 
 # お弁当屋の注文確認
 @app.get("/today", response_class=HTMLResponse)
-def shop_today_order(request: Request, hx_request: Optional[str] = Header(None)):
+def shop_today_order(
+    request: Request,
+    hx_request: Optional[str] = Header(None)):
+    # 権限チェック
+    permission = request.cookies.get("permission")
+    if permission != 2:
+        raise NotAuthorizedException()
     orders = [
         {'number':"1", 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "value":1, "date": "2025-1-22"},
         {'number':"2", 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "value":1, "date": "2025-1-22"},
@@ -72,10 +84,6 @@ async def read_yes(request: Request):
 
 
 # tokenがない場合
-id_counter = 1
-def get_next_id():
-    return id_counter + 1
-
 # 登録中画面 login.htmlでOKボタン押下で遷移する
 @app.post("/register", response_class=HTMLResponse)
 async def register(
@@ -83,18 +91,14 @@ async def register(
     userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
-        #print(userid)
-        #print("select_mock_user(userid)実行前")
         result = await select_mock_user(userid, request)
-        #print("select_mock_user(userid)実行後")
-        #print(result)
-        #print("result実行後")
         if  result is None:
-            # ユーザーなし
             print("ユーザーなし")
             token = create_jwt(userid, password, datetime.today())
             response.set_cookie(key="token", value=token)
             print(f"- Generated JWT: {token}")
+
+            response.set_cookie(key="permission", value="2")
 
             page = templates.TemplateResponse(
                 "regist_complete.html",
@@ -102,15 +106,18 @@ async def register(
             
             # pageに response.cookiesを追加
             page.headers.raw.extend(response.headers.raw)
+            # ここで権限を判定できないか？
+                        #permission = request.cookies.get("permission")
+
             return page
         else:
             print("ユーザーあり")
             # ユーザーあり
+
+            # デバッグで持てていない
             token2 = request.cookies.get("token")
             print(f"- すでに持っている JWT: {token2}")
-            # デバッグで持てていない
-            #print(result['userid'])
-            #print(result['password'] + " : " + password)
+            
             if result['password'] == password:  # パスワードチェック
                 return templates.TemplateResponse(
                     "regist_complete.html",
