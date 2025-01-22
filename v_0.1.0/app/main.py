@@ -1,10 +1,8 @@
-from contextlib import asynccontextmanager
 from http.cookiejar import Cookie
-import sqlite3
-from fastapi import Cookie, FastAPI, Form, Response
+from fastapi import Cookie, FastAPI, Form, Header, Response
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from datetime import datetime
-from typing import Union # 型ヒント用モジュール
+from typing import Optional, Union # 型ヒント用モジュール
 from fastapi.templating import Jinja2Templates # HTMLテンプレート
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -19,20 +17,6 @@ app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 #init_database()
 
-'''
-@asynccontextmanager 
-async def lifespan(app: FastAPI): 
-    # 起動時に実行する処理をここに記述 
-    print("FastAPIアプリケーションが起動しました！") 
-    #init_database()    
-    yield 
-    # 終了時に実行する処理をここに記述 
-    print("FastAPIアプリケーションが終了します！") 
-    app.router.lifespan_context = lifespan
-
-app.router.lifespan_context = lifespan
-'''
-
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
@@ -40,6 +24,21 @@ async def http_exception_handler(request, exc):
 # cd C:\Obento-Test\v_0.1.0\app
 # .\env\Scripts\activate
 # uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
+
+# お弁当屋の注文確認
+@app.get("/today", response_class=HTMLResponse)
+def shop_today_order(request: Request, hx_request: Optional[str] = Header(None)):
+    orders = [
+        {'number':"1", 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "value":1, "date": "2025-1-22"},
+        {'number':"2", 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "value":1, "date": "2025-1-22"},
+        {'number':"3", 'company':"テンシステム", 'name':"大隈　慶3", "menu": 100, "value":1, "date": "2025-1-22"}
+    ]
+    context = {'request': request, 'orders': orders}
+    print(f"Context: {context}")
+    if hx_request:
+        return templates.TemplateResponse("table.html",context)
+    return templates.TemplateResponse(
+        "store_orders_today.html",context)
 
 # 最初にアクセスするページ
 # https://127.0.0.1:8000
@@ -56,7 +55,8 @@ async def read_root(request: Request):
             # tokenは有効
             return RedirectResponse(url="/token_yes")
     else:
-        return templates.TemplateResponse("login.html", {"request": request})
+        return templates.TemplateResponse(
+            "login.html", {"request": request})
 
 # tokenがある場合
 @app.get("/token_yes", response_class=HTMLResponse) 
