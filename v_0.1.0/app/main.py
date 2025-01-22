@@ -13,28 +13,33 @@ from local_jwt_module import create_jwt, verify_jwt
 ALGORITHM = "HS256"
 import sys 
 print(sys.path)
-from init_module import init_database, insert_mock_user, get_connection, select_mock_user, select_mock_user
+from init_module import init_database, insert_mock_user, get_connection, select_mock_user
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+#init_database()
 
-
+'''
 @asynccontextmanager 
 async def lifespan(app: FastAPI): 
     # 起動時に実行する処理をここに記述 
     print("FastAPIアプリケーションが起動しました！") 
-    init_database()    
-
+    #init_database()    
     yield 
     # 終了時に実行する処理をここに記述 
     print("FastAPIアプリケーションが終了します！") 
     app.router.lifespan_context = lifespan
 
+app.router.lifespan_context = lifespan
+'''
+
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
 
-
+# cd C:\Obento-Test\v_0.1.0\app
+# .\env\Scripts\activate
+# uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
 
 # 最初にアクセスするページ
 # https://127.0.0.1:8000
@@ -74,13 +79,16 @@ def get_next_id():
 # 登録中画面 login.htmlでOKボタン押下で遷移する
 @app.post("/register", response_class=HTMLResponse)
 async def register(
-    request: Request, response: Response, userid: str = Form(...), password: str = Form(...)):
-
+    request: Request, response: Response,
+    userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
-        conn = get_connection()
-        result = select_mock_user(conn, userid)
+        print(userid)
+        print("select_mock_user(userid)実行前")
+        result = await select_mock_user(userid, request)
+        print("select_mock_user(userid)実行後")
         print(result)
+        print("result実行後")
         if  result is None:
             # ユーザーなし
             token = create_jwt(userid, password, datetime.today())
@@ -97,10 +105,14 @@ async def register(
         else:
             # ユーザーあり
             #print(result['userid'])
-            #print(result['password'])
-            if result[1] == password:  # パスワードチェック
-                return templates.TemplateResponse(       "regist_complete.html",
-                status_code=200)
+            
+            print("ユーザーあり")
+            print(result['password'] + " : " + password)
+            if result['password'] == password:  # パスワードチェック
+                return templates.TemplateResponse(
+                    "regist_complete.html",
+                    {"request": request},
+                    status_code=200)
             else:
                 print(f"Error: {str(e)}")
                 return templates.TemplateResponse(
@@ -168,80 +180,3 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000, timeout_keep_alive=100)
-
-# ----------------------------------
-
-#global conn
-def init_database():
-    
-    try:
-          conn = sqlite3.connect('example.db')
-          if conn is None: 
-               print("データベース接続の確立に失敗しました。")
-          else:
-               cursor = conn.cursor()
-               create_user_table(cursor) 
-               insert_mock_user(conn, "k.okuma", "aaa", "", 1)
-               insert_mock_user(conn, "k.okuma@ten-system.com", "aaa12345", "", 3)
-               print('A'+ str(conn))
-               conn.close() 
-               print("データベースファイル 'sample.db' が正常に作成されました。")
-    except sqlite3.Error as e: 
-         print(f"SQLiteエラー: {e}")
-    except Exception as e: 
-        print(f"Error: {str(e)}")
-        import traceback 
-        traceback.print_exc()
-     
-# テーブルを作成
-def create_user_table(cursor):
-     cursor.execute('''
-     CREATE TABLE User (
-     userid TEXT PRIMARY KEY,
-     password TEXT,
-     token TEXT,
-     permission INTEGER
-     )
-     ''')
-
-# コネクションを閉じる（実際のテストでは不要）
-#conn.close()
-
-def get_connection(): 
-     conn = sqlite3.connect('example.db') 
-     # データベースファイル名を指定 
-     return conn
-
-# テスト用の偽ユーザーを追加する関数
-def insert_mock_user(conn, userid, password, permission):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO User (userid, password, permission)
-    VALUES (?, ?, ?)
-    ''', (userid, password, permission))
-    conn.commit()
-    conn.close()
-
-
-def select_mock_user(conn, userid):
-     conn = get_connection()
-     cursor = conn.cursor()
-     print("手前")
-     result = cursor.execute('SELECT * FROM User')
-     print("後")
-     conn.close()
-     if result[userid] is None:
-          return None
-     else:
-          return result[userid]
-
-# データの確認
-def show_all_users(cursor):
-     conn = get_connection()
-     cursor = conn.cursor()
-     cursor.execute('SELECT * FROM User')
-     rows = cursor.fetchall()
-     for row in rows:
-          print(row)
-     conn.close()
