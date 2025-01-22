@@ -83,14 +83,15 @@ async def register(
     userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
-        print(userid)
-        print("select_mock_user(userid)実行前")
+        #print(userid)
+        #print("select_mock_user(userid)実行前")
         result = await select_mock_user(userid, request)
-        print("select_mock_user(userid)実行後")
-        print(result)
-        print("result実行後")
+        #print("select_mock_user(userid)実行後")
+        #print(result)
+        #print("result実行後")
         if  result is None:
             # ユーザーなし
+            print("ユーザーなし")
             token = create_jwt(userid, password, datetime.today())
             response.set_cookie(key="token", value=token)
             print(f"- Generated JWT: {token}")
@@ -103,15 +104,17 @@ async def register(
             page.headers.raw.extend(response.headers.raw)
             return page
         else:
-            # ユーザーあり
-            #print(result['userid'])
-            
             print("ユーザーあり")
-            print(result['password'] + " : " + password)
+            # ユーザーあり
+            token2 = request.cookies.get("token")
+            print(f"- すでに持っている JWT: {token2}")
+            # デバッグで持てていない
+            #print(result['userid'])
+            #print(result['password'] + " : " + password)
             if result['password'] == password:  # パスワードチェック
                 return templates.TemplateResponse(
                     "regist_complete.html",
-                    {"request": request},
+                    {"request": request, "token": token2},
                     status_code=200)
             else:
                 print(f"Error: {str(e)}")
@@ -133,7 +136,10 @@ async def check_token(
     try:
         if token is None: 
             return templates.TemplateResponse(
-                "token_error.html", {"request": request, "error": "Token is missing"}, status_code=400)
+                "token_error.html",
+                {"request": request,
+                 "error": "Token is missing"},
+                status_code=400)
                      
         payload = verify_jwt(token)
         if payload:
