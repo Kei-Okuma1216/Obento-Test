@@ -9,10 +9,4 @@ def package_function():
 
 # パッケージ内で公開するモジュールや関数を指定
 from .local_jwt_module import create_jwt, create_jwt, SECRET_KEY, private_key, load_private_key, sign_message,ALGORITHM 
-
-"""
-この関数はparam1とparam2を受け取り、結果を返します。
-:param param1: 第一のパラメータ
-:param param2: 第二のパラメータ
-:return: 計算結果
-"""
+from .init_module import init_database, conn

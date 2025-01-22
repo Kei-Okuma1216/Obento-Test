@@ -7,7 +7,6 @@ from cryptography.hazmat.primitives import hashes
 
 ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
-#SECRET_KEY = "your-secret-key"
 
 # 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str): 
@@ -46,7 +45,7 @@ def create_jwt(username: str, password: str, date: datetime):
         "username": username,
         "password": password,
         "date": str(date),
-        "exp": datetime.now(tz=timezone.utc) + timedelta(days=3)
+        "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
