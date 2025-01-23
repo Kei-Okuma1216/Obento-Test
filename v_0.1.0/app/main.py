@@ -11,11 +11,11 @@ print(sys.path)
 
 from local_jwt_module import create_jwt, verify_jwt
 ALGORITHM = "HS256"
-from init_module import select_mock_user
+from mock_db_module import init_database, select_user, select_today_orders
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-#init_database()
+init_database()
 
 # 認証不許可クラス
 class NotAuthorizedException(HTTPException):
@@ -32,7 +32,7 @@ async def http_exception_handler(request, exc):
 # uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
 
 # お弁当屋の注文確認
-@app.get("/today", response_class=HTMLResponse)
+@app.get("/today", response_class=HTMLResponse, tags=["order"])
 def shop_today_order(
     request: Request,
     hx_request: Optional[str] = Header(None)):
@@ -40,10 +40,14 @@ def shop_today_order(
     permission = request.cookies.get("permission")
     if permission != 2:
         raise NotAuthorizedException()
+    
+    # 昨日の全注文
+    orders = select_today_orders('1')
+    
     orders = [
-        {'number':"1", 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "value":1, "date": "2025-1-22"},
-        {'number':"2", 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "value":1, "date": "2025-1-22"},
-        {'number':"3", 'company':"テンシステム", 'name':"大隈　慶3", "menu": 100, "value":1, "date": "2025-1-22"}
+        {'order_id': 1, 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "amount":1, "order_date": "2025-01-23 10:32"},
+        {'order_id': 2, 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "amount":1, "order_date": "2025-01-23 10:33"},
+        {'order_id': 3, 'company':"テンシステム", 'name':"大隈　慶3", "menu": 100, "amount":3, "order_date": "2025-01-23 10:34"}
     ]
     context = {'request': request, 'orders': orders}
     print(f"Context: {context}")
@@ -91,8 +95,9 @@ async def register(
     userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
-        result = await select_mock_user(userid, request)
-        if  result is None:
+        _user = await select_user(userid, request)
+        
+        if  _user is None:
             print("ユーザーなし")
             token = create_jwt(userid, password, datetime.today())
             response.set_cookie(key="token", value=token)
@@ -112,13 +117,11 @@ async def register(
             return page
         else:
             print("ユーザーあり")
-            # ユーザーあり
-
-            # デバッグで持てていない
             token2 = request.cookies.get("token")
             print(f"- すでに持っている JWT: {token2}")
+            # しかしデバッグでは持てていない
             
-            if result['password'] == password:  # パスワードチェック
+            if _user['password'] == password:  # パスワードチェック
                 return templates.TemplateResponse(
                     "regist_complete.html",
                     {"request": request, "token": token2},
