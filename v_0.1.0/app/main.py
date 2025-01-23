@@ -1,22 +1,27 @@
-from http.cookiejar import Cookie
-from fastapi import Cookie, FastAPI, Form, Header, Response, HTTPException, status
+from fastapi import FastAPI, Form, Header, Response, HTTPException, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
-from datetime import datetime
-from typing import Optional, Union # 型ヒント用モジュール
-from fastapi.templating import Jinja2Templates # HTMLテンプレート
+from fastapi.templating import Jinja2Templates
+from http.cookies import SimpleCookie
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import sys 
-print(sys.path)
+from datetime import datetime
+from typing import Optional, Union # 型ヒント用モジュール
 
 from local_jwt_module import create_jwt, verify_jwt
-ALGORITHM = "HS256"
 from mock_db_module import init_database, select_user, select_today_orders
+
+ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-init_database()
+#init_database()
 
+
+# Token期限切れ例外クラス
+class TokenExpiredException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+        
 # 認証不許可クラス
 class NotAuthorizedException(HTTPException):
     def __init__(self):
@@ -33,22 +38,31 @@ async def http_exception_handler(request, exc):
 
 # お弁当屋の注文確認
 @app.get("/today", response_class=HTMLResponse, tags=["order"])
-def shop_today_order(
-    request: Request,
+def shop_today_order(request: Request,
     hx_request: Optional[str] = Header(None)):
     # 権限チェック
     permission = request.cookies.get("permission")
-    if permission != 2:
-        raise NotAuthorizedException()
+    if permission != "2":
+        raise HTTPException(status_code=403, detail="Not Authorized")
     
     # 昨日の全注文
-    orders = select_today_orders('1')
+    orders = select_today_orders(1)
+    # ここで取れていない!
+    print('orders開始')
+    print(type(orders))
+    if orders is None:
+        print('ordersなし')
+    else:
+        print(orders)
     
+    ''' 
     orders = [
         {'order_id': 1, 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "amount":1, "order_date": "2025-01-23 10:32"},
         {'order_id': 2, 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "amount":1, "order_date": "2025-01-23 10:33"},
         {'order_id': 3, 'company':"テンシステム", 'name':"大隈　慶3", "menu": 100, "amount":3, "order_date": "2025-01-23 10:34"}
     ]
+    ''' 
+   
     context = {'request': request, 'orders': orders}
     print(f"Context: {context}")
     if hx_request:
@@ -61,28 +75,33 @@ def shop_today_order(
 @app.get("/", response_class=HTMLResponse) 
 async def read_root(request: Request): 
     token = request.cookies.get("token") 
+    print("/で tokenを取得")
+    print(token)
     if token: 
-        # ここでtokenの期限切れ確認する
         payload = verify_jwt(token)
+        print("/で payloadを取得")
+        print(payload)
+
         if payload == None:
-            # tokenは有効期限切れ
             return RedirectResponse(url="/token_error")
         else:
             # tokenは有効
-            return RedirectResponse(url="/token_yes")
+            print("/で payloadは有効")
+            print(payload)    
+            return RedirectResponse(url="/regist_complete")
     else:
         return templates.TemplateResponse(
             "login.html", {"request": request})
 
-# tokenがある場合
-@app.get("/token_yes", response_class=HTMLResponse) 
-async def read_yes(request: Request): 
-    return templates.TemplateResponse(
-        "regist_complete.html",{"request": request})
-
-# tokenがある場合
+# tokenを持っている場合
 @app.get("/regist_complete", response_class=HTMLResponse) 
-async def read_yes(request: Request): 
+async def regist_complete(
+    request: Request): 
+    # もしCookieのpermission=2ならば、/todayにリダイレクト
+    if request.cookies.get("permission") == "2":
+        print("permission=2")
+        return RedirectResponse(url="/today")
+    
     return templates.TemplateResponse(
         "regist_complete.html",{"request": request})
 
@@ -95,7 +114,7 @@ async def register(
     userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
-        _user = await select_user(userid, request)
+        _user = await select_user(userid)
         
         if  _user is None:
             print("ユーザーなし")
@@ -111,17 +130,19 @@ async def register(
             
             # pageに response.cookiesを追加
             page.headers.raw.extend(response.headers.raw)
-            # ここで権限を判定できないか？
-                        #permission = request.cookies.get("permission")
-
+            
             return page
         else:
             print("ユーザーあり")
             token2 = request.cookies.get("token")
             print(f"- すでに持っている JWT: {token2}")
             # しかしデバッグでは持てていない
-            
-            if _user['password'] == password:  # パスワードチェック
+            # ここで権限を判定できないか？
+            permission = request.cookies.get("permission")
+            print(f"- 権限: {permission}")
+
+            # パスワードチェック
+            if _user['password'] == password:  
                 return templates.TemplateResponse(
                     "regist_complete.html",
                     {"request": request, "token": token2},
@@ -142,7 +163,7 @@ async def register(
 # token確認画面 
 @app.get("/check", response_class=HTMLResponse)
 async def check_token(
-    request: Request, token: str = Cookie(None)):
+    request: Request, token: str = SimpleCookie(None)):
     try:
         if token is None: 
             return templates.TemplateResponse(

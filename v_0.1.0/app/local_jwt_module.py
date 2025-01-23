@@ -1,4 +1,5 @@
 import os
+from fastapi.responses import RedirectResponse
 import jwt
 from datetime import date, datetime, timedelta, timezone
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
@@ -58,9 +59,11 @@ def verify_jwt(token: str):
         return payload
     except jwt.ExpiredSignatureError:
         print("Token has expired")
-        return None
+        # login.htmlにリダイレクト
+        return RedirectResponse(url="/login.html")
     except jwt.InvalidTokenError:
         print("Invalid token")
-        return None
+        # login.htmlにリダイレクト
+        return RedirectResponse(url="/login.html")
 
 
