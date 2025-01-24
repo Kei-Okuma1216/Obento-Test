@@ -50,12 +50,14 @@ def create_jwt(username: str, password: str):
     #formatted_datetime = str(datetime.today().strftime("%Y-%m-%d %H:%M"))
     #td = 60*60*24
     #timedelta(days= td * 60/td * 4)
+    print("create_jwt payload前")
     payload = {
         "username": username,
         "password": password,
         "create-date": datetime.now(tz=timezone.utc),
         "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
     }
+    print("create_jwt payload後")
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 

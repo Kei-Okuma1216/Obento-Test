@@ -14,7 +14,7 @@ ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-#init_database()
+init_database()
 
 
 
@@ -232,10 +232,10 @@ def shop_today_order(request: Request,
     
     # 昨日の全注文
     print('orders開始')
-    orders = select_today_orders(1)
+    orders = select_today_orders(1) # mock_db_module.pyの120へ 
     # ここで取れていない!
     print('orders終了')
-    print(type(orders))
+    print("orderのクラスは " + str(type(orders)))
     if orders is None:
         print('ordersなし')
     else:

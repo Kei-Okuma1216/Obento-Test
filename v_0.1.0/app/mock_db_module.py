@@ -22,23 +22,22 @@ def init_database():
                print("データベース接続の確立に失敗しました。")
           
           reset_orders_autoincrement()
-          delete_all_orders()
+          #delete_all_orders()
           delete_all_user()
           
           cursor = conn.cursor()
+          print("create_user_table()")
           create_user_table(cursor) 
-          print("create_user_table()直後")
           insert_user("k.okuma", "大隈 慶", "aaa", 1)
           insert_user("k.okuma@ten-system.com", "大隈 慶2", "aaa12345", 2)
+          print("create_orders_table()")
           create_orders_table(cursor)
-          insert_order(1, "k.okuma@ten-system.com",1, 1)
-          insert_order(1, "okuma112", 1, 1)
-          insert_order(1, "tenten01", 1, 1)
+          insert_order(1, 1, "k.okuma@ten-system.com",1, 1)
+          insert_order(1, 1, "okuma112", 1, 1)
+          insert_order(1, 1, "tenten01", 1, 1)
           #print("show_all_orders()直前")
           #show_all_orders()
           #print("show_all_orders()直後")
-
-
 
           conn.close() 
           print("データベースファイル 'sample.db' が正常に作成されました。")
@@ -54,9 +53,10 @@ def create_orders_table(cursor):
      cursor.execute('''
      CREATE TABLE IF NOT EXISTS Orders (
      order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+     shop_id INTEGER,
+     menu_id INTEGER,
      company_id INTEGER,
      user_id TEXT,
-     menu_id INTEGER,
      amount INTEGER,
      order_date TEXT
      canceled BOOLEAN DEFAULT FALSE
@@ -105,19 +105,19 @@ def get_yesterday_str():
     return yesterday.strftime("%Y-%m-%d %H:%M")
 
 # テスト用のOrderテーブルに偽注文を追加する
-def insert_order(company_id, user_id, menu_id, amount):
+def insert_order(shop_id, company_id, user_id, menu_id, amount):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO Orders (company_id, user_id, menu_id, amount, order_date)
+    INSERT INTO Orders (shop_id, menu_id, company_id, user_id, amount, order_date)
     VALUES (?, ?, ?, ?, ?)
-    ''', (company_id, user_id, menu_id, amount, get_today_str(-1)))
+    ''', (shop_id, menu_id, company_id, user_id, amount, get_today_str(-1)))
     conn.commit()
     conn.close()
 
 import json
 # 今日の注文を検索する
-def select_today_orders(shopid: int)-> Optional[str]:
+def select_today_orders(shopid: int)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -126,6 +126,7 @@ def select_today_orders(shopid: int)-> Optional[str]:
             'SELECT * FROM Orders WHERE user_id = ? AND date(order_date) = date("now", "-1 day")',
             (shopid,))
         rows = cursor.fetchall()  # または fetchall() を使用
+        print("rows: " + str(rows))
         print("SELECT Orders 後")
         if rows is None:
             raise ValueError("No order found with the given shopid")
@@ -145,7 +146,7 @@ def select_today_orders(shopid: int)-> Optional[str]:
                 "canceled": row[6]
             })
         # リストをJSON形式に変換して返す
-        return json.dumps(orders, ensure_ascii=False)
+        return orders#json.dumps(orders, ensure_ascii=False)
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -248,7 +249,6 @@ def update_user(user_id, token):
         UPDATE User SET token = ? WHERE user_id = ?
         ''', (token, user_id))
         conn.commit()
-        conn.close()
     except Exception as e:
         print(f"Error: {e}")
         print("update_user()エラーあり")
