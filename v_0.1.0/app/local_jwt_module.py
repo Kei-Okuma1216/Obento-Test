@@ -1,13 +1,16 @@
-import os
+from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
-import jwt
-from datetime import date, datetime, timedelta, timezone
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
-from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from datetime import date, datetime, timedelta, timezone
+import jwt
+import os
 
 ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
+TOKEN_EXPIRE_MINUTES = 15
+TOKEN_EXPIRE_DAYS = 30
 
 # 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str): 
@@ -41,14 +44,14 @@ def sign_message(private_key, message: str, date: date):
 
 
 # JWTの生成関数
-def create_jwt(username: str, password: str, date: datetime):
+def create_jwt(username: str, password: str):
     payload = {
         "username": username,
         "password": password,
-        "date": str(date),
+        "create-date": str(datetime.today()),
         "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 # JWTの検証関数
@@ -59,11 +62,18 @@ def verify_jwt(token: str):
         return payload
     except jwt.ExpiredSignatureError:
         print("Token has expired")
-        # login.htmlにリダイレクト
-        return RedirectResponse(url="/login.html")
+        raise TokenExpiredException()
     except jwt.InvalidTokenError:
         print("Invalid token")
-        # login.htmlにリダイレクト
-        return RedirectResponse(url="/login.html")
+        raise NotAuthorizedException()
 
 
+# Token期限切れ例外クラス
+class TokenExpiredException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+        
+# 認証不許可クラス
+class NotAuthorizedException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized")

@@ -10,6 +10,11 @@
             alert("このタブはJavaScriptで開かれたものではないため、閉じることができません。手動で閉じてください。"); 
          } 
    } 
+      return templates.TemplateResponse(
+         "date.html",
+         {"request": request, "token": token,
+         "retrieved_date": token_date, "current_date": datetime.now()})
+      print("Invalid or expired token.")
     </script>
    </head> 
  <body> 

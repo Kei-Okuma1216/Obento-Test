@@ -20,14 +20,16 @@ def init_database():
           conn = get_connection()
           if conn is None: 
                print("データベース接続の確立に失敗しました。")
+          
           cursor = conn.cursor()
           create_user_table(cursor) 
-          insert_user(conn, "k.okuma", "aaa", 1)
-          insert_user(conn, "k.okuma@ten-system.com", "aaa12345", 3)
+          print("create_user_table()直後")
+          insert_user("k.okuma", "大隈 慶", "aaa", 1)
+          insert_user("k.okuma@ten-system.com", "大隈 慶2", "aaa12345", 2)
           create_orders_table(cursor)
-          #insert_order(1, "k.okuma@ten-system.com",1, 1)
-          #insert_order(1, "okuma112", 1, 1)
-          #insert_order(1, "tenten01", 1, 1)
+          insert_order(1, "k.okuma@ten-system.com",1, 1)
+          insert_order(1, "okuma112", 1, 1)
+          insert_order(1, "tenten01", 1, 1)
           #print("show_all_orders()直前")
           #show_all_orders()
           #print("show_all_orders()直後")
@@ -50,7 +52,7 @@ def create_orders_table(cursor):
      CREATE TABLE IF NOT EXISTS Orders (
      order_id INTEGER PRIMARY KEY AUTOINCREMENT,
      company_id INTEGER,
-     user_id INTEGER,
+     user_id TEXT,
      menu_id INTEGER,
      amount INTEGER,
      order_date TEXT
@@ -85,7 +87,10 @@ def delete_all_orders():
 def get_today_str(add_days: int = 0):
     # 例: 2025-01-23 10:34
     #return datetime.now().strftime("%Y-%m-%d %H:%M")
-    return datetime.now() - timedelta(days=add_days).strftime("%Y-%m-%d %H:%M")
+    new_date = datetime.now() - timedelta(days=add_days)
+    return new_date.strftime("%Y-%m-%d %H:%M")
+
+    #return datetime.now() - timedelta(days=add_days).strftime("%Y-%m-%d %H:%M")
 
 def get_yesterday_str():
     yesterday = datetime.now() - timedelta(days=1)
@@ -157,6 +162,7 @@ def create_user_table(cursor):
      cursor.execute('''
      CREATE TABLE IF NOT EXISTS User (
      user_id TEXT PRIMARY KEY,
+     name TEXT,
      password TEXT,
      token TEXT,
      permission INTEGER DEFAULT 1
@@ -164,17 +170,25 @@ def create_user_table(cursor):
      ''')
 
 # テスト用の偽ユーザーを追加する
-def insert_user(conn, user_id, password, permission):
+def insert_user(user_id, name, password, permission):
+    conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO User (user_id, password, permission)
-    VALUES (?, ?, ?)
-    ''', (user_id, password, permission))
+    print("INSERT User 前")
+    
+    # user_idの存在を確認
+    cursor.execute('SELECT COUNT(*) FROM User WHERE user_id = ?', (user_id,))
+    if cursor.fetchone()[0] > 0:
+        print(f"ユーザーID {user_id} は既に存在します。挿入をスキップします。")
+    else:   
+        cursor.execute('''
+        INSERT INTO User (user_id, name, password, permission)
+        VALUES (?, ?, ?, ?)
+        ''', (user_id, name, password, permission))
     conn.commit()
     conn.close()
     
 # ユーザーを検索する
-async def select_user(user_id: int)-> Optional[dict]:
+def select_user(user_id: int)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -183,9 +197,11 @@ async def select_user(user_id: int)-> Optional[dict]:
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
         #print("SELECT User 後")
+        
         if row is None:
-                raise ValueError(
-                    "No user found with the given user_id")
+            raise ValueError(
+                "No user found with the given user_id")
+        
         # 結果を辞書形式に変換        
         #print("row[0]: " + row[0])
         if row:
