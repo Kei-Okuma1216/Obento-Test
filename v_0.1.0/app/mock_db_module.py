@@ -197,20 +197,18 @@ def insert_user(user_id, name, password, permission):
     
 # ユーザーを検索する
 def select_user(user_id: str)-> Optional[dict]:
+    print("select_user()")
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        print("SELECT User 前")
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
-        print("SELECT User 後")
         print(row)
 
         if row is None:
             raise ValueError(
                 "No user found with the given user_id")
-        print("SELECT User 前")
         # 結果を辞書形式に変換        
         result = {
                 "user_id": row[0],
@@ -242,6 +240,7 @@ def show_all_users():
 
 # tokenの更新
 def update_user(user_id, token):
+    print("update_user()前")
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -252,6 +251,8 @@ def update_user(user_id, token):
         conn.close()
     except Exception as e:
         print(f"Error: {e}")
+        print("update_user()エラーあり")
     finally:
         conn.close()
+        print("update_user()後")
     return

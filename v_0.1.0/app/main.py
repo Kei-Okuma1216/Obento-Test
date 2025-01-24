@@ -31,7 +31,7 @@ async def http_exception_handler(request, exc):
 
 # 最初にアクセスするページ
 # https://127.0.0.1:8000
-@app.get("/", response_class=HTMLResponse) 
+@app.get("/", response_class=HTMLResponse, tags=["user"]) 
 async def read_root(): 
     return RedirectResponse(url="/check")
     
@@ -56,7 +56,7 @@ async def read_root():
     '''
 
 # トークンチェック 
-@app.get("/check", response_class=HTMLResponse)
+@app.get("/check", response_class=HTMLResponse, tags=["user"])
 async def check_token(request: Request):
 #async def check_token(
 #    request: Request, token: str = SimpleCookie(None)):
@@ -104,7 +104,7 @@ async def check_token(request: Request):
 
 # tokenがない場合
 # 登録中画面 login.htmlでOKボタン押下で遷移する
-@app.post("/register", response_class=HTMLResponse)
+@app.post("/register", response_class=HTMLResponse, tags=["user"])
 async def register(
     request: Request, response: Response,
     userid: str = Form(...), password: str = Form(...)):
@@ -113,11 +113,10 @@ async def register(
         print("ユーザー登録")
         print(userid)
         _user = select_user(userid)
-        if _user is not None:
-            print(_user)  # キーワード引数として展開
-        else:
+        if _user is None:
             print("User not found or error occurred")
-        
+
+        print(_user)  # キーワード引数として展開
         if  _user is None:
             print("ユーザーなし")
             token = create_jwt(userid, password)
@@ -143,38 +142,45 @@ async def register(
             return page
 
         print("ユーザーあり")
-        token2 = request.cookies.get("token")
-        print(f"- すでに持っている JWT: {token2}")
-        # しかしデバッグでは持てていない
-
         # パスワードチェック
-        if _user['password'] == password:  
-            # ここで権限を判定できないか？
-            permission = request.cookies.get("permission")
-            print(f"- 権限: {permission}")
-            if permission is None:
-                print("権限なし")
-                if _user['permission'] is None:
-                    print("権限なし")
-                    return templates.TemplateResponse(
-                        "error.html", {"request": request, "error": "権限がありません"})
-                print("DBにある権限は: " + str(_user['permission']))
-                permission = _user['permission']
-                print(permission)
-            if permission == 2:
-                print("権限あり /todayへ")
-                return RedirectResponse(url="/today")
-
-            return templates.TemplateResponse(
-                "regist_complete.html",
-                {"request": request, "token": token2},
-                status_code=200)
-        else:
-            print(f"Error: {str(e)}")
+        if _user['password'] != password:  
+            print(f"Password Error: {str(e)}")
             return templates.TemplateResponse(
                 "error.html",
-                {"request": request, "Invalid credentials": str(e)},
-                status_code=400)
+                {"request": request, "Invalid credentials": str(e)},status_code=400)        
+        
+        token2 = request.cookies.get("token")
+        print(f"- すでに持っているtoken2 JWT: {token2}")
+        # しかしデバッグでは持てていない
+        if token2 is None:
+            print("token2はありません")
+        else:
+            # token再生成する
+            token = create_jwt(_user['user_id'], password)
+        
+        # 権限を判定する
+        permission_str = request.cookies.get("permission")
+        print(f"- 権限: {permission_str}です")
+        if permission_str is None:
+            print("権限なし")
+            if _user['permission'] is None:
+                print("権限なし")
+                return templates.TemplateResponse(
+                    "error.html", {"request": request, "error": "権限がありません"})
+        else:
+            print("DBにある権限は: " + str(_user['permission']))
+            permission = _user['permission']
+            print(permission)
+            
+        if permission == 2:
+            print("shop権限あり /todayへ")
+            redirect_response = RedirectResponse(url="/today")
+            redirect_response.set_cookie(key="permission", value=str(2))
+        else:
+            print("shop権限なし")
+            raise HTTPException(status_code=403, detail="Not Authorized")
+        return redirect_response
+
         
     except Exception as e: 
         print(f"Error: {str(e)}")
@@ -183,13 +189,21 @@ async def register(
 
 
 # tokenを持っている場合
-@app.get("/regist_complete", response_class=HTMLResponse) 
+@app.get("/regist_complete", response_class=HTMLResponse, tags=["user"]) 
 async def regist_complete(
     request: Request): 
+    print("regist_completeに来た")
     # もしCookieのpermission=2ならば、/todayにリダイレクト
     if request.cookies.get("permission") == "2":
         print("permission=2")
-        return RedirectResponse(url="/today")
+        
+        # リダイレクトレスポンスを設定
+        redirect_response = RedirectResponse(url="/today")
+        redirect_response.set_cookie(key="permission", value=str(2))
+    
+    # クッキーを設定したレスポンスを返す
+    return redirect_response
+        #return RedirectResponse(url="/today")
     
     return templates.TemplateResponse(
         "regist_complete.html",{"request": request})
@@ -204,18 +218,23 @@ def clear_cookie():
     return response
 
 # お弁当屋の注文確認
+@app.post("/today", response_class=HTMLResponse, tags=["order"])
 @app.get("/today", response_class=HTMLResponse, tags=["order"])
 def shop_today_order(request: Request,
     hx_request: Optional[str] = Header(None)):
     # 権限チェック
     permission = request.cookies.get("permission")
-    if permission != 2:
+    print(permission)
+    print("/todayに来た前")
+    if permission != "2":
         raise HTTPException(status_code=403, detail="Not Authorized")
+    print("/today成功")
     
     # 昨日の全注文
+    print('orders開始')
     orders = select_today_orders(1)
     # ここで取れていない!
-    print('orders開始')
+    print('orders終了')
     print(type(orders))
     if orders is None:
         print('ordersなし')
