@@ -21,6 +21,10 @@ def init_database():
           if conn is None: 
                print("データベース接続の確立に失敗しました。")
           
+          reset_orders_autoincrement()
+          delete_all_orders()
+          delete_all_user()
+          
           cursor = conn.cursor()
           create_user_table(cursor) 
           print("create_user_table()直後")
@@ -34,8 +38,7 @@ def init_database():
           #show_all_orders()
           #print("show_all_orders()直後")
 
-          #reset_orders_autoincrement()
-          #delete_all_orders()
+
 
           conn.close() 
           print("データベースファイル 'sample.db' が正常に作成されました。")
@@ -64,9 +67,7 @@ def create_orders_table(cursor):
 def reset_orders_autoincrement():
     conn = get_connection()
     cursor = conn.cursor()
-    
     cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Orders"')
-    
     conn.commit()
     conn.close()
     
@@ -76,6 +77,13 @@ def delete_all_orders():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('DELETE FROM Orders')    
+    conn.commit()
+    conn.close()
+
+def delete_all_user():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM User')    
     conn.commit()
     conn.close()
 
@@ -181,36 +189,37 @@ def insert_user(user_id, name, password, permission):
         print(f"ユーザーID {user_id} は既に存在します。挿入をスキップします。")
     else:   
         cursor.execute('''
-        INSERT INTO User (user_id, name, password, permission)
+        INSERT INTO User (user_id, name, password, token, permission)
         VALUES (?, ?, ?, ?)
-        ''', (user_id, name, password, permission))
+        ''', (user_id, name, password, '', permission))
     conn.commit()
     conn.close()
     
 # ユーザーを検索する
-def select_user(user_id: int)-> Optional[dict]:
+def select_user(user_id: str)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
 
-        #print("SELECT User 前")
+        print("SELECT User 前")
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
-        #print("SELECT User 後")
-        
+        print("SELECT User 後")
+        print(row)
+
         if row is None:
             raise ValueError(
                 "No user found with the given user_id")
-        
+        print("SELECT User 前")
         # 結果を辞書形式に変換        
-        #print("row[0]: " + row[0])
-        if row:
-            result = {
+        result = {
                 "user_id": row[0],
-                "password": row[1],
-                "token": row[2],
-                "permission": row[3],
+                "name": row[1],
+                "password": row[2],
+                "token": row[3],
+                "permission": row[4],
             }
+            
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -230,3 +239,19 @@ def show_all_users():
             print(row)
     finally:
         conn.close()
+
+# tokenの更新
+def update_user(user_id, token):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''
+        UPDATE User SET token = ? WHERE user_id = ?
+        ''', (token, user_id))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+    return

@@ -41,14 +41,19 @@ def sign_message(private_key, message: str, date: date):
 # 備考：crtファイルはuvicorn起動だけで使っているためここでは使わない。
 #certificate = load_certificate("./my-local.crt")
 
-
+#formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M")
+#print(formatted_datetime)
 
 # JWTの生成関数
 def create_jwt(username: str, password: str):
+    
+    #formatted_datetime = str(datetime.today().strftime("%Y-%m-%d %H:%M"))
+    #td = 60*60*24
+    #timedelta(days= td * 60/td * 4)
     payload = {
         "username": username,
         "password": password,
-        "create-date": str(datetime.today()),
+        "create-date": datetime.now(tz=timezone.utc),
         "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)

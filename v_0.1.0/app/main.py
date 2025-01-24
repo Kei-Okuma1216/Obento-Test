@@ -8,13 +8,13 @@ from datetime import datetime
 from typing import Optional, Union # 型ヒント用モジュール
 
 from local_jwt_module import TokenExpiredException, create_jwt, verify_jwt
-from mock_db_module import init_database, select_user, select_today_orders
+from mock_db_module import init_database, select_user, select_today_orders, update_user
 
 ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-init_database()
+#init_database()
 
 
 
@@ -32,8 +32,8 @@ async def http_exception_handler(request, exc):
 # 最初にアクセスするページ
 # https://127.0.0.1:8000
 @app.get("/", response_class=HTMLResponse) 
-async def read_root(request: Request): 
-    return RedirectResponse(url="/token-check")
+async def read_root(): 
+    return RedirectResponse(url="/check")
     
     print("/で tokenを取得")
     print(token)
@@ -56,12 +56,16 @@ async def read_root(request: Request):
     '''
 
 # トークンチェック 
-@app.get("/check-token", response_class=HTMLResponse)
-async def check_token(
-    request: Request, token: str = SimpleCookie(None)):
+@app.get("/check", response_class=HTMLResponse)
+async def check_token(request: Request):
+#async def check_token(
+#    request: Request, token: str = SimpleCookie(None)):
     try:
+        print("/check開始")
         token = request.cookies.get("token") 
+        print(token)
         if token is None: 
+            print("tokenはありません")
             return templates.TemplateResponse(
                 "login.html", {"request": request})
 
@@ -106,11 +110,23 @@ async def register(
     userid: str = Form(...), password: str = Form(...)):
     try:
         # ユーザー登録
+        print("ユーザー登録")
+        print(userid)
         _user = select_user(userid)
-        print(**_user)
+        if _user is not None:
+            print(_user)  # キーワード引数として展開
+        else:
+            print("User not found or error occurred")
+        
         if  _user is None:
             print("ユーザーなし")
             token = create_jwt(userid, password)
+
+            # tokenをUPDATEする
+            print("update token前")
+            update_user(_user['user_id'], token)
+            print("update token後")
+            
             response.set_cookie(key="token", value=token)
             print(f"- Generated JWT: {token}")
 
@@ -136,7 +152,16 @@ async def register(
             # ここで権限を判定できないか？
             permission = request.cookies.get("permission")
             print(f"- 権限: {permission}")
-            if permission == "2":
+            if permission is None:
+                print("権限なし")
+                if _user['permission'] is None:
+                    print("権限なし")
+                    return templates.TemplateResponse(
+                        "error.html", {"request": request, "error": "権限がありません"})
+                print("DBにある権限は: " + str(_user['permission']))
+                permission = _user['permission']
+                print(permission)
+            if permission == 2:
                 print("権限あり /todayへ")
                 return RedirectResponse(url="/today")
 
@@ -172,6 +197,7 @@ async def regist_complete(
 # cookieを削除してログアウト
 @app.get("/clear")
 def clear_cookie():
+    init_database()
     response = RedirectResponse(url="/")
     response.delete_cookie("token")
     response.delete_cookie("permission")
