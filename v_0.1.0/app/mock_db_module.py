@@ -51,7 +51,7 @@ def create_orders_table(cursor):
      order_id INTEGER PRIMARY KEY AUTOINCREMENT,
      company_id INTEGER,
      user_id INTEGER,
-     menu INTEGER,
+     menu_id INTEGER,
      amount INTEGER,
      order_date TEXT
      canceled BOOLEAN DEFAULT FALSE
@@ -92,13 +92,13 @@ def get_yesterday_str():
     return yesterday.strftime("%Y-%m-%d %H:%M")
 
 # テスト用のOrderテーブルに偽注文を追加する
-def insert_order(company_id, user_id, menu, amount):
+def insert_order(company_id, user_id, menu_id, amount):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO Orders (company_id, user_id, menu, amount, order_date)
+    INSERT INTO Orders (company_id, user_id, menu_id, amount, order_date)
     VALUES (?, ?, ?, ?, ?)
-    ''', (company_id, user_id, menu, amount, get_today_str(-1)))
+    ''', (company_id, user_id, menu_id, amount, get_today_str(-1)))
     conn.commit()
     conn.close()
 
@@ -121,12 +121,12 @@ def select_today_orders(shopid: int)-> Optional[str]:
         orders = {}
         for row in rows:
             '''{'order_id': 1, 'company_id': 1,
-            'name':"大隈 慶1", "menu": 1, "amount": 1, "order_date": "2025-1-22 10:54"},'''
+            'name':"大隈 慶1", "menu_id": 1, "amount": 1, "order_date": "2025-1-22 10:54"},'''
             orders.append({
                 "order_id": row[0],
                 "company_id": row[1],
-                "name": row[2],
-                "menu": row[3],
+                "user_id": row[2],
+                "menu_id": row[3],
                 "amount": row[4],
                 "order_date": row[5],
                 "canceled": row[6]

@@ -14,7 +14,7 @@ ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-#init_database()
+init_database()
 
 
 # Token期限切れ例外クラス
@@ -42,7 +42,7 @@ def shop_today_order(request: Request,
     hx_request: Optional[str] = Header(None)):
     # 権限チェック
     permission = request.cookies.get("permission")
-    if permission != "2":
+    if permission != 2:
         raise HTTPException(status_code=403, detail="Not Authorized")
     
     # 昨日の全注文
