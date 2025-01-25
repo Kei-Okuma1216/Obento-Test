@@ -1,3 +1,5 @@
+from functools import wraps
+import logging
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
 from cryptography.hazmat.primitives import hashes
@@ -11,6 +13,19 @@ ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
 TOKEN_EXPIRE_MINUTES = 15
 TOKEN_EXPIRE_DAYS = 30
+
+# ログ用の設定
+logging.basicConfig(level=logging.INFO)
+
+# カスタムデコレーターを定義
+def log_decorator(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        logging.info("- %s 前", func.__name__)
+        result = await func(*args, **kwargs)
+        logging.info("- %s 後", func.__name__)
+        return result
+    return wrapper
 
 # 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str): 

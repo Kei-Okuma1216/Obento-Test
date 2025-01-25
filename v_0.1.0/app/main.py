@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Form, Header, Response, HTTPException, status
+from functools import wraps
+import logging
+from fastapi import FastAPI, Form, Header, Response, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from http.cookies import SimpleCookie
@@ -17,91 +19,98 @@ templates = Jinja2Templates(directory="templates")
 
 #init_database()
 #delete_database()
-
-
-    
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
 
-# 起動方法
-# cd C:\Obento-Test\v_0.1.0\app
-# .\env\Scripts\activate
-# uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=./my-local.key --ssl-certfile=./my-local.crt
+# ログ用の設定
+logging.basicConfig(level=logging.INFO)
 
+# カスタムデコレーターを定義
+def log_decorator(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        logging.info("- %s 前", func.__name__)
+        result = await func(*args, **kwargs)
+        logging.info("- %s 後", func.__name__)
+        return result
+    return wrapper
 
 # 最初にアクセスするページ
 # https://127.0.0.1:8000
-@app.get("/", response_class=HTMLResponse, tags=["user"]) 
-async def read_root(): 
-    return RedirectResponse(url="/check")
-    
-    print("/で tokenを取得")
-    print(token)
-    '''
-    if token: 
-        payload = verify_jwt(token)
-        print("/で payloadを取得")
-        print(payload)
-
-        if payload == None:
-            return RedirectResponse(url="/token_error")
-        else:
-            # tokenは有効
-            print("/で payloadは有効")
-            print(payload)    
-            return RedirectResponse(url="/regist_complete")
-    else:
-        return templates.TemplateResponse(
-            "login.html", {"request": request})
-    '''
+#@app.get("/", response_class=HTMLResponse, tags=["user"]) 
+#@log_decorator  # デコレーターを適用
+#async def read_root(): 
+#    return RedirectResponse(url="/check")
 
 # トークンチェック 
-@app.get("/check", response_class=HTMLResponse, tags=["user"])
-async def check_token(request: Request):
-#async def check_token(
-#    request: Request, token: str = SimpleCookie(None)):
+@app.get("/", response_class=HTMLResponse, tags=["user"])
+@log_decorator
+async def check_token(request: Request, response: Response):
     try:
-        print("/check開始")
         token = request.cookies.get("token") 
         print(token)
+        # tokenがない場合
         if token is None: 
             print("tokenはありません")
-            return templates.TemplateResponse(
-                "login.html", {"request": request})
+            return RedirectResponse(url="/login")
 
+        # tokenが存在する場合の処理
+        return templates.TemplateResponse("protected_page.html", {"request": request})
+    
         # tokenがある場合
         payload = verify_jwt(token)
-
+        print(payload)
         if payload is None:
             print(f"Token is valid. Payload: {payload}")
             return templates.TemplateResponse("token_error.html", {"request": request, "error": "Token is missing"},status_code=400)
         
         # 生成日
         create_date = datetime.fromisoformat(payload["create-date"]) 
-        print(f"Retrieved Date: {create_date}")
         if create_date is None:
             print("Token create_date is corrupsed.")
             raise TokenExpiredException()
+        print(f"Retrieved Date: {create_date}")
         
         # 有効期限
         expire_date = payload["exp"]
-        print(f"Expire Date: {expire_date}")
         if expire_date is None:
             print("Token expire_date is corrupsed.")
             raise TokenExpiredException()                
         if expire_date < datetime.now():
             print("Token has expired.")
             raise TokenExpiredException()
+        print(f"Expire Date: {expire_date}")
 
-        print("token is OK")           
-        return RedirectResponse(url="/register")
+        print("token is OK")       
+        # ここで権限が渡されていない    
+        #return RedirectResponse(url="/register")
+        response = RedirectResponse(url="/check")
+        response.set_cookie(key="token", value=token)
+        return response
+    
     except Exception as e:
         print(f"Error: {str(e)}") 
         return templates.TemplateResponse( 
             "error.html", {"request": request, "error": str(e)})
 
+# -----------------------------------------------------
+# ログイン画面を表示するエンドポイント
+@app.get("/login", response_class=HTMLResponse, tags=["user"])
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
 
+# ログイン処理用エンドポイント
+@app.post("/login", response_class=HTMLResponse, tags=["user"])
+async def login(request: Request, userid: str = Form(...), password: str = Form(...)):
+    # ここに認証処理を追加
+    if userid == "valid_user" and password == "valid_password":  # サンプルの認証ロジック
+        response = RedirectResponse(url="/check", status_code=303)
+        response.set_cookie(key="token", value="valid_token")  # サンプルトークン設定
+        return response
+    else:
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+# -----------------------------------------------------
 
 # tokenがない場合
 # 登録中画面 login.htmlでOKボタン押下で遷移する
@@ -119,7 +128,7 @@ async def register(
 
         print(_user)  # キーワード引数として展開
         if  _user is None:
-            print("ユーザーなし")
+            print("ユーザー登録なし")
             token = create_jwt(userid, password)
 
             # tokenをUPDATEする
@@ -142,7 +151,7 @@ async def register(
             
             return page
 
-        print("ユーザーあり")
+        print("ユーザー登録あり")
         # パスワードチェック
         if _user['password'] != password:  
             print(f"Password Error: {str(e)}")
@@ -154,10 +163,10 @@ async def register(
         print(f"- すでに持っているtoken2 JWT: {token2}")
         # しかしデバッグでは持てていない
         if token2 is None:
-            print("token2はありません")
-        else:
+            print("token2なし")
             # token再生成する
-            token = create_jwt(_user['user_id'], password)
+            token2 = create_jwt(_user['user_id'], password)
+        
         
         # 権限を判定する
         permission_str = request.cookies.get("permission")

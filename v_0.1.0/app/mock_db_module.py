@@ -1,6 +1,21 @@
 from datetime import datetime, timedelta
+from functools import wraps
+import logging
 import sqlite3
 from typing import Optional
+
+# ログ用の設定
+logging.basicConfig(level=logging.INFO)
+
+# カスタムデコレーターを定義
+def log_decorator(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        logging.info("- %s 前", func.__name__)
+        result = await func(*args, **kwargs)
+        logging.info("- %s 後", func.__name__)
+        return result
+    return wrapper
 
 # データベース初期化
 # インメモリデータベースを作成
@@ -141,6 +156,7 @@ def create_orders_table(cursor):
      )
      ''')
      
+@log_decorator
 def insert_order(shop_id, menu_id, company_id, user_id, amount):
     print("INSERT Orders 前")
     conn = get_connection()
@@ -152,8 +168,8 @@ def insert_order(shop_id, menu_id, company_id, user_id, amount):
     conn.commit()
     conn.close()
 
-import json
 # 今日の注文を検索する
+@log_decorator
 def select_today_orders(shopid: int)-> Optional[dict]:
     try:
         conn = get_connection()
@@ -189,6 +205,7 @@ def select_today_orders(shopid: int)-> Optional[dict]:
         conn.close()
 
 # Orderデータの確認
+@log_decorator
 def show_all_orders():
     try:
         conn = get_connection()
@@ -215,6 +232,7 @@ def create_user_table(cursor):
      ''')
 
 # テスト用の偽ユーザーを追加する
+@log_decorator
 def insert_user(user_id, password, name, token, expire_date, permission):
     try:
         conn = get_connection()
@@ -239,6 +257,7 @@ def insert_user(user_id, password, name, token, expire_date, permission):
         conn.close()
     
 # ユーザーを検索する
+@log_decorator
 def select_user(user_id: str)-> Optional[dict]:
     print("select_user()")
     try:
@@ -247,6 +266,7 @@ def select_user(user_id: str)-> Optional[dict]:
 
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
+        
         print(row)
 
         if row is None:
@@ -271,6 +291,7 @@ def select_user(user_id: str)-> Optional[dict]:
     return result
 
 # Userデータの確認
+@log_decorator
 def show_all_users():
     try:
         conn = get_connection()
@@ -283,6 +304,7 @@ def show_all_users():
         conn.close()
 
 # tokenの更新
+@log_decorator
 def update_user(user_id, token):
     print("update_user()前")
     try:
@@ -299,3 +321,4 @@ def update_user(user_id, token):
         conn.close()
         print("update_user()後")
     return
+
