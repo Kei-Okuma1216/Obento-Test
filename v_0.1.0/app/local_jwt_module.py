@@ -54,7 +54,7 @@ def create_jwt(username: str, password: str):
     payload = {
         "username": username,
         "password": password,
-        "create-date": datetime.now(tz=timezone.utc),
+        "create-date": datetime.now(tz=timezone.utc).isoformat(),
         "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
     }
     print("create_jwt payload後")

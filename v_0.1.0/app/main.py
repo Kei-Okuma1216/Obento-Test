@@ -8,14 +8,15 @@ from datetime import datetime
 from typing import Optional, Union # 型ヒント用モジュール
 
 from local_jwt_module import TokenExpiredException, create_jwt, verify_jwt
-from mock_db_module import init_database, select_user, select_today_orders, update_user
+from mock_db_module import init_database, select_user, select_today_orders, update_user, delete_database
 
 ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-init_database()
 
+#init_database()
+#delete_database()
 
 
     

@@ -14,6 +14,15 @@ def get_connection():
      # データベースファイル名を指定 
      return conn
 
+def get_database():
+    return
+
+def delete_database():
+    reset_orders_autoincrement()
+    delete_all_orders()
+    delete_all_user()
+    return
+
 def init_database():
     print("init_database()開始")
     try:
@@ -21,20 +30,20 @@ def init_database():
           if conn is None: 
                print("データベース接続の確立に失敗しました。")
           
-          reset_orders_autoincrement()
+          #reset_orders_autoincrement()
           #delete_all_orders()
-          delete_all_user()
+          #delete_all_user()
           
           cursor = conn.cursor()
           print("create_user_table()")
           create_user_table(cursor) 
-          insert_user("k.okuma", "大隈 慶", "aaa", 1)
-          insert_user("k.okuma@ten-system.com", "大隈 慶2", "aaa12345", 2)
-          print("create_orders_table()")
+          insert_user("user1", "user1", "大隈 慶1", '', '', 1)
+          insert_user("user2", "user2", "大隈 慶2", '', '', 1)
+          insert_user("shop", "shop", "お店", '', '', 2)
           create_orders_table(cursor)
-          insert_order(1, 1, "k.okuma@ten-system.com",1, 1)
-          insert_order(1, 1, "okuma112", 1, 1)
-          insert_order(1, 1, "tenten01", 1, 1)
+          insert_order(1, 1, 1, "user1",1)
+          insert_order(1, 1, 1, "user2", 2)
+          insert_order(1, 1, 1,"tenten01", 3)
           #print("show_all_orders()直前")
           #show_all_orders()
           #print("show_all_orders()直後")
@@ -50,6 +59,7 @@ def init_database():
 
 # Ordersテーブルを作成
 def create_orders_table(cursor):
+     print("create_orders_table()")
      cursor.execute('''
      CREATE TABLE IF NOT EXISTS Orders (
      order_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,27 +75,38 @@ def create_orders_table(cursor):
 
 # AUTOINCREMENTフィールドをリセット
 def reset_orders_autoincrement():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Orders"')
-    conn.commit()
-    conn.close()
-    
+    try:    
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Orders"')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error: {e}")
     return
 
 def delete_all_orders():
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM Orders')    
+    cursor.execute('DROP TABLE IF EXISTS Orders')
+    #cursor.execute('DELETE FROM Orders')    
     conn.commit()
     conn.close()
 
 def delete_all_user():
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('DELETE FROM User')    
-    conn.commit()
-    conn.close()
+    try:
+        reset_orders_autoincrement()
+        
+        conn = get_connection()
+        cursor = conn.cursor()
+        #cursor.execute('DELETE FROM User')    
+        cursor.execute('DROP TABLE IF EXISTS User')
+        conn.commit()
+        conn.close()
+    except Exception as e:    
+        print(f"Error: {e}")
+    finally:
+        conn.close()
 
 # コネクションを閉じる（実際のテストでは不要）
 #conn.close()
@@ -105,12 +126,28 @@ def get_yesterday_str():
     return yesterday.strftime("%Y-%m-%d %H:%M")
 
 # テスト用のOrderテーブルに偽注文を追加する
-def insert_order(shop_id, company_id, user_id, menu_id, amount):
+# Ordersテーブルを作成
+def create_orders_table(cursor):
+     cursor.execute('''
+     CREATE TABLE Orders (
+     order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+     shop_id INTEGER,
+     menu_id INTEGER,
+     company_id INTEGER,
+     user_id TEXT,
+     amount INTEGER,
+     order_date TEXT,
+     canceled BOOLEAN DEFAULT FALSE
+     )
+     ''')
+     
+def insert_order(shop_id, menu_id, company_id, user_id, amount):
+    print("INSERT Orders 前")
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
     INSERT INTO Orders (shop_id, menu_id, company_id, user_id, amount, order_date)
-    VALUES (?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?)
     ''', (shop_id, menu_id, company_id, user_id, amount, get_today_str(-1)))
     conn.commit()
     conn.close()
@@ -134,8 +171,6 @@ def select_today_orders(shopid: int)-> Optional[dict]:
         # 辞書型のリストとして結果を返却
         orders = {}
         for row in rows:
-            '''{'order_id': 1, 'company_id': 1,
-            'name':"大隈 慶1", "menu_id": 1, "amount": 1, "order_date": "2025-1-22 10:54"},'''
             orders.append({
                 "order_id": row[0],
                 "company_id": row[1],
@@ -171,30 +206,37 @@ def create_user_table(cursor):
      cursor.execute('''
      CREATE TABLE IF NOT EXISTS User (
      user_id TEXT PRIMARY KEY,
-     name TEXT,
      password TEXT,
-     token TEXT,
+     name TEXT,
+     token TEXT DEFAULT NULL,
+     expire_date TEXT DEFAULT NULL,
      permission INTEGER DEFAULT 1
      )
      ''')
 
 # テスト用の偽ユーザーを追加する
-def insert_user(user_id, name, password, permission):
-    conn = get_connection()
-    cursor = conn.cursor()
-    print("INSERT User 前")
-    
-    # user_idの存在を確認
-    cursor.execute('SELECT COUNT(*) FROM User WHERE user_id = ?', (user_id,))
-    if cursor.fetchone()[0] > 0:
-        print(f"ユーザーID {user_id} は既に存在します。挿入をスキップします。")
-    else:   
-        cursor.execute('''
-        INSERT INTO User (user_id, name, password, token, permission)
-        VALUES (?, ?, ?, ?)
-        ''', (user_id, name, password, '', permission))
-    conn.commit()
-    conn.close()
+def insert_user(user_id, password, name, token, expire_date, permission):
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        print("INSERT User 前")
+        
+        # user_idの存在を確認
+        cursor.execute('SELECT COUNT(*) FROM User WHERE user_id = ?', (user_id,))
+        if cursor.fetchone()[0] > 0:
+            print(f"ユーザーID {user_id} は既に存在します。挿入をスキップします。")
+        else:
+            print('INSERT INTO 直前')
+            cursor.execute('''
+            INSERT INTO User (user_id, password, name, token, expire_date, permission)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, password, name, '', '', permission))
+        conn.commit()
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    finally:
+        conn.close()
     
 # ユーザーを検索する
 def select_user(user_id: str)-> Optional[dict]:
@@ -213,10 +255,11 @@ def select_user(user_id: str)-> Optional[dict]:
         # 結果を辞書形式に変換        
         result = {
                 "user_id": row[0],
-                "name": row[1],
-                "password": row[2],
+                "password": row[1],
+                "name": row[2],
                 "token": row[3],
-                "permission": row[4],
+                "expire_date" : row[4],
+                "permission": row[5]
             }
             
     except Exception as e:
