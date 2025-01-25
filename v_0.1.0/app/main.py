@@ -7,18 +7,26 @@ from http.cookies import SimpleCookie
 from starlette.requests import Request
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from datetime import datetime
-from typing import Optional, Union # 型ヒント用モジュール
+from typing import Optional
 
 from local_jwt_module import TokenExpiredException, create_jwt, verify_jwt
-from mock_db_module import init_database, insert_user, select_user, select_today_orders, update_user, delete_database
+from mock_db_module import init_database, insert_order, insert_user, select_user, select_today_orders, update_user, delete_database
+
+import tracemalloc
+
+# tracemallocを有効にする
+tracemalloc.start()
+
 
 ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
-#init_database()
+# テストデータ作成
 #delete_database()
+init_database()
+
 @app.exception_handler(StarletteHTTPException) 
 async def http_exception_handler(request, exc): 
     return HTMLResponse(str(exc.detail), status_code=exc.status_code)
@@ -37,66 +45,69 @@ def log_decorator(func):
     return wrapper
 
 # -----------------------------------------------------
-# 最初にアクセスするページ
-# トークンチェック 
+# エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["user"])
 @log_decorator
-async def check_token(request: Request, response: Response):
+async def root(request: Request, response: Response):
     try:
         token = request.cookies.get("token") 
         print(token)
-        # tokenがない場合
+        # トークンが存在しない場合
         if token is None: 
             print("tokenはありません")
-            return RedirectResponse(url="/login")
-
-        # tokenが存在する場合の処理
-        return RedirectResponse(url="/protected_page")
-   
+            return templates.TemplateResponse("login.html", {"request": request})
+        # トークンが存在する場合
+        return templates.TemplateResponse(
+            "protected_page.html", {"request": request, "permission": "2"}
+        )
     except Exception as e:
         print(f"Error: {str(e)}") 
-        #\return templates.TemplateResponse( 
-        #    "error.html", {"request": request, "error": str(e)})
         return RedirectResponse(url="/login")
 
 # -----------------------------------------------------
 # ログイン画面を表示するエンドポイント
-@app.get("/login", response_class=HTMLResponse, tags=["user"])
+@app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 # ログイン処理用エンドポイント
-@app.post("/login", response_class=HTMLResponse, tags=["user"])
-async def login(request: Request,response: Response, userid: str = Form(...), password: str = Form(...)):
-    # ここに認証処理を追加
-    # もしuseridがなければ
-    _user = select_user(userid)
+@app.post("/login", response_class=HTMLResponse)
+async def login(
+    request: Request,response: Response,
+    userid: str = Form(...),
+    password: str = Form(...),
+    name: str = Form(...)
+    ):
+
+    _user = await select_user(userid)
     if _user is None:
         print("ユーザーなし")
-        insert_user(userid, password)
+        await insert_user(userid, password, name, shop_id=1, menu_id= 1, permission=1)
 
         token = create_jwt(userid, password)
-        response.set_cookie(key="user_id", value=_user['user_id'])
+        
+        response.set_cookie(key="user_id", value=userid)
         response.set_cookie(key="token", value=token)
         response.set_cookie(key="permission", value="1")
         
-        update_user(userid, token)
+        await update_user(userid, token)
         
         return templates.TemplateResponse(
             "login.html", {"request": request, "response": response, "error": "Invalid credentials"})
-    else:
-        if userid == _user['user_id'] and password == _user['password']:  
-            print("ユーザーあり")
-            # サンプルの認証ロジック
-                        
-            response.set_cookie(key="user_id", value=_user['user_id'])
-            response.set_cookie(key="token", value="valid_token")
-            response.set_cookie(key="permission", value=_user['permission'])
-            response = RedirectResponse(url="/protected_page", status_code=303)
 
-            return response
-        else:
-            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    if userid == _user['user_id'] and password == _user['password']:  
+        print("ユーザーあり")
+        # サンプルの認証ロジック
+        response.set_cookie(key="user_id", value=_user['user_id'])
+        token = request.cookies.get("token")
+        response.set_cookie(key="token", value=token)
+        response.set_cookie(key="permission", value=_user['permission'])
+        response = RedirectResponse(url="/protected_page", status_code=303)
+
+        return response
+    else:
+        print("ユーザー認証失敗")
+        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
 
 # -----------------------------------------------------
 # tokenがある場合
@@ -104,11 +115,9 @@ async def login(request: Request,response: Response, userid: str = Form(...), pa
 @log_decorator
 async def protect_token(request: Request, response: Response):
     try:
-        permission = request.cookies.get("permission")
-        if permission is None:
-            return RedirectResponse(url="/login")
-
         user_id = request.get_cookie(key="user_id")
+        token = request.get_cookie(key="token")
+        permission = request.get_cookie(key="permission")
 
         response.set_cookie(key="user_id", value=user_id['user_id'])
         response.set_cookie(key="token", value="valid_token")
@@ -117,9 +126,9 @@ async def protect_token(request: Request, response: Response):
         if permission == "2":
             response = RedirectResponse(url="/today",status_code=303)
         else:
-            response = RedirectResponse(url="/register",status_code=303) 
+            response = RedirectResponse(url="/order_confirmed",status_code=303) 
         
-        # tokenチェック
+        # tokenの状態をlogでチェック
         token = request.cookies.get("token")
         if token is None:
             print(f"Token is valid. Token: {token}")
@@ -129,7 +138,6 @@ async def protect_token(request: Request, response: Response):
         if payload is None:
             print(f"Token is valid. Payload: {payload}")
             return RedirectResponse(url="/login")
-            #return templates.TemplateResponse("token_error.html", {"request": request, "error": "Token is missing"},status_code=400)
             
         print(payload)
         
@@ -151,100 +159,42 @@ async def protect_token(request: Request, response: Response):
         print(f"Expire Date: {expire_date}")
 
         print("token is OK")       
-        request.get_cookie(key="token")
-        response = RedirectResponse(url="/check")
-        response.set_cookie(key="token", value=token)
+
         return response
     
     except Exception as e:
         print(f"Error: {str(e)}") 
         return RedirectResponse(url="/login")
     
-# tokenがない場合
-# 登録中画面 login.htmlでOKボタン押下で遷移する
-@app.post("/register", response_class=HTMLResponse, tags=["user"])
-async def register(
-    request: Request, response: Response,
-    userid: str = Form(...), password: str = Form(...)):
+# 注文確定
+@app.post("/order_confirmed", response_class=HTMLResponse, tags=["user"])
+async def order_confirmed(request: Request, response: Response):
     try:
-        # ユーザー登録
-        print("ユーザー登録")
-        print(userid)
-        _user = select_user(userid)
-        if _user is None:
-            print("User not found or error occurred")
-            return RedirectResponse(url="/login")
-        
-        print(_user)  # キーワード引数として展開
-        if  _user is None:
-            print("ユーザー登録なし")
-            token = create_jwt(userid, password)
-
-            # tokenをUPDATEする
-            print("update token前")
-            update_user(_user['user_id'], token)
-            print("update token後")
-            
-            response.set_cookie(key="token", value=token)
-            print(f"- Generated JWT: {token}")
-
-            print(f'permission: {_user["permission"]}')
-            response.set_cookie(key="permission", value=_user['permission'])
-
+        permission = response.get_cookie(key="permission")
+        if permission == "1":
+            user_id = response.get_cookie(key="user_id")
+            current_user = await select_user(user_id)
+            if current_user is None:
+                return templates.TemplateResponse("login.html", {"request": request})
+            # insert_order(shop_id, menu_id, company_id, user_id, amount)
+            shop_id = current_user['shop_id']
+            menu_id = current_user['menu_id']
+            company_id = current_user['company_id']
+            amount = 1
+            await insert_order(shop_id, menu_id, company_id, user_id=user_id, amount=amount)
+            print("order_item 1件登録した")
             page = templates.TemplateResponse(
-                "regist_complete.html",
-                {"request": request, "token": token})
-            
-            # pageに response.cookiesを追加
-            page.headers.raw.extend(response.headers.raw)
-            
-            return page
+                "regist_complete.html", {"request": request})
+        
+        # pageに response.cookiesを追加
+        page.headers.raw.extend(response.headers.raw)
+        
+        return page
 
-        print("ユーザー登録あり")
-        # パスワードチェック
-        if _user['password'] != password:  
-            print(f"Password Error: {str(e)}")
-            return templates.TemplateResponse(
-                "error.html",
-                {"request": request, "Invalid credentials": str(e)},status_code=400)        
-        
-        token2 = request.cookies.get("token")
-        print(f"- すでに持っているtoken2 JWT: {token2}")
-        # しかしデバッグでは持てていない
-        if token2 is None:
-            print("token2なし")
-            # token再生成する
-            token2 = create_jwt(_user['user_id'], password)
-        
-        
-        # 権限を判定する
-        permission_str = request.cookies.get("permission")
-        print(f"- 権限: {permission_str}です")
-        if permission_str is None:
-            print("権限なし")
-            if _user['permission'] is None:
-                print("権限なし")
-                return templates.TemplateResponse(
-                    "error.html", {"request": request, "error": "権限がありません"})
-        else:
-            print("DBにある権限は: " + str(_user['permission']))
-            permission = _user['permission']
-            print(permission)
-            
-        if permission == 2:
-            print("shop権限あり /todayへ")
-            redirect_response = RedirectResponse(url="/today")
-            redirect_response.set_cookie(key="permission", value=str(2))
-        else:
-            print("shop権限なし")
-            raise HTTPException(status_code=403, detail="Not Authorized")
-        return redirect_response
-
-        
     except Exception as e: 
-        print(f"Error: {str(e)}")
-        return templates.TemplateResponse(
-            "error.html", {"request": request, "error": str(e)})
+            print(f"Error: {str(e)}")
+            return templates.TemplateResponse(
+                "error.html", {"request": request, "error": str(e)})
 
 
 # tokenを持っている場合
@@ -262,10 +212,7 @@ async def regist_complete(
     
     # クッキーを設定したレスポンスを返す
     return redirect_response
-        #return RedirectResponse(url="/today")
-    
-    return templates.TemplateResponse(
-        "regist_complete.html",{"request": request})
+
 
 # cookieを削除してログアウト
 @app.get("/clear")
@@ -279,7 +226,7 @@ def clear_cookie():
 # お弁当屋の注文確認
 @app.post("/today", response_class=HTMLResponse, tags=["order"])
 @app.get("/today", response_class=HTMLResponse, tags=["order"])
-def shop_today_order(request: Request,
+async def shop_today_order(request: Request,
     hx_request: Optional[str] = Header(None)):
     # 権限チェック
     permission = request.cookies.get("permission")
@@ -291,7 +238,7 @@ def shop_today_order(request: Request,
     
     # 昨日の全注文
     print('orders開始')
-    orders = select_today_orders(1) # mock_db_module.pyの120へ 
+    orders = await select_today_orders(1) # mock_db_module.pyの120へ 
     # ここで取れていない!
     print('orders終了')
     print("orderのクラスは " + str(type(orders)))

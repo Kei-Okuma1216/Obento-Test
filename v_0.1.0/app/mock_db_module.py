@@ -11,9 +11,9 @@ logging.basicConfig(level=logging.INFO)
 def log_decorator(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
-        logging.info("- %s 前", func.__name__)
+        logging.info("- %s 開始", func.__name__)
         result = await func(*args, **kwargs)
-        logging.info("- %s 後", func.__name__)
+        logging.info("- %s 終了", func.__name__)
         return result
     return wrapper
 
@@ -38,32 +38,22 @@ def delete_database():
     delete_all_user()
     return
 
-def init_database():
-    print("init_database()開始")
+@log_decorator
+async def init_database():
     try:
-          conn = get_connection()
-          if conn is None: 
-               print("データベース接続の確立に失敗しました。")
+          create_user_table() 
+          await insert_user("user1", "user1", "大隈 慶1","","", 1, 1, 1)
+          await insert_user("user2", "user2", "大隈 慶2","","", 1, 1, 1)
+          await insert_user("shop", "shop", "お店")
           
-          #reset_orders_autoincrement()
-          #delete_all_orders()
-          #delete_all_user()
-          
-          cursor = conn.cursor()
-          print("create_user_table()")
-          create_user_table(cursor) 
-          insert_user("user1", "user1", "大隈 慶1", '', '', 1)
-          insert_user("user2", "user2", "大隈 慶2", '', '', 1)
-          insert_user("shop", "shop", "お店", '', '', 2)
-          create_orders_table(cursor)
-          insert_order(1, 1, 1, "user1",1)
-          insert_order(1, 1, 1, "user2", 2)
-          insert_order(1, 1, 1,"tenten01", 3)
+          create_orders_table()
+          await insert_order(1, 1, 1, "user1",1)
+          await insert_order(1, 1, 1, "user2", 2)
+          await insert_order(1, 1, 1,"tenten01", 3)
           #print("show_all_orders()直前")
           #show_all_orders()
           #print("show_all_orders()直後")
 
-          conn.close() 
           print("データベースファイル 'sample.db' が正常に作成されました。")
     except sqlite3.Error as e: 
          print(f"SQLiteエラー: {e}")
@@ -73,22 +63,29 @@ def init_database():
         traceback.print_exc()
 
 # Ordersテーブルを作成
-def create_orders_table(cursor):
-     print("create_orders_table()")
-     cursor.execute('''
-     CREATE TABLE IF NOT EXISTS Orders (
-     order_id INTEGER PRIMARY KEY AUTOINCREMENT,
-     shop_id INTEGER,
-     menu_id INTEGER,
-     company_id INTEGER,
-     user_id TEXT,
-     amount INTEGER,
-     order_date TEXT
-     canceled BOOLEAN DEFAULT FALSE
-     )
-     ''')
+@log_decorator
+def create_orders_table():
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute('''CREATE TABLE IF NOT EXISTS Orders (
+        order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id INTEGER,
+        user_id TEXT,
+        shop_id INTEGER,
+        menu_id INTEGER,
+        amount INTEGER,
+        order_date TEXT,
+        canceled BOOLEAN DEFAULT FALSE
+        )''')
+        conn.commit()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
 
 # AUTOINCREMENTフィールドをリセット
+@log_decorator
 def reset_orders_autoincrement():
     try:    
         conn = get_connection()
@@ -100,6 +97,7 @@ def reset_orders_autoincrement():
         print(f"Error: {e}")
     return
 
+@log_decorator
 def delete_all_orders():
     conn = get_connection()
     cursor = conn.cursor()
@@ -108,6 +106,7 @@ def delete_all_orders():
     conn.commit()
     conn.close()
 
+@log_decorator
 def delete_all_user():
     try:
         reset_orders_autoincrement()
@@ -127,7 +126,7 @@ def delete_all_user():
 #conn.close()
 
 
-
+@log_decorator
 def get_today_str(add_days: int = 0):
     # 例: 2025-01-23 10:34
     #return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -135,41 +134,52 @@ def get_today_str(add_days: int = 0):
     return new_date.strftime("%Y-%m-%d %H:%M")
 
     #return datetime.now() - timedelta(days=add_days).strftime("%Y-%m-%d %H:%M")
-
+@log_decorator
 def get_yesterday_str():
     yesterday = datetime.now() - timedelta(days=1)
     return yesterday.strftime("%Y-%m-%d %H:%M")
 
 # テスト用のOrderテーブルに偽注文を追加する
 # Ordersテーブルを作成
-def create_orders_table(cursor):
-     cursor.execute('''
-     CREATE TABLE Orders (
-     order_id INTEGER PRIMARY KEY AUTOINCREMENT,
-     shop_id INTEGER,
-     menu_id INTEGER,
-     company_id INTEGER,
-     user_id TEXT,
-     amount INTEGER,
-     order_date TEXT,
-     canceled BOOLEAN DEFAULT FALSE
-     )
-     ''')
-     
 @log_decorator
-def insert_order(shop_id, menu_id, company_id, user_id, amount):
+def create_orders_table():
+    try:
+        conn = get_connection() 
+        if conn is None: 
+            print("データベース接続の確立に失敗しました。")        
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE Orders (
+        order_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id INTEGER,
+        user_id TEXT,
+        shop_id INTEGER,
+        menu_id INTEGER,
+        amount INTEGER,
+        order_date TEXT,
+        canceled BOOLEAN DEFAULT FALSE
+        )
+        ''')
+        conn.commit()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+
+@log_decorator
+async def insert_order(company_id, user_id, shop_id, menu_id, amount):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
-    INSERT INTO Orders (shop_id, menu_id, company_id, user_id, amount, order_date)
+    INSERT INTO Orders (company_id, user_id, shop_id, menu_id,  amount, order_date)
     VALUES (?, ?, ?, ?, ?, ?)
-    ''', (shop_id, menu_id, company_id, user_id, amount, get_today_str(-1)))
+    ''', (company_id, user_id, shop_id, menu_id,  amount, get_today_str(-1)))
     conn.commit()
     conn.close()
 
 # 今日の注文を検索する
 @log_decorator
-def select_today_orders(shopid: int)-> Optional[dict]:
+async def select_today_orders(shopid: int)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -213,23 +223,62 @@ def show_all_orders():
             print(row)
     finally:
         conn.close()
-        
+
 # テスト用のUserテーブルを作成する
-def create_user_table(cursor):
-     cursor.execute('''
-     CREATE TABLE IF NOT EXISTS User (
-     user_id TEXT PRIMARY KEY,
-     password TEXT,
-     name TEXT,
-     token TEXT DEFAULT NULL,
-     expire_date TEXT DEFAULT NULL,
-     permission INTEGER DEFAULT 1
-     )
-     ''')
+@log_decorator
+def create_user_table():
+    try:
+        conn = get_connection()
+        if conn is None: 
+            print("データベース接続の確立に失敗しました。")        
+        cursor = conn.cursor()
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS User (
+        user_id TEXT PRIMARY KEY,
+        password TEXT,
+        name TEXT,
+        token TEXT DEFAULT NULL,
+        expire_date TEXT DEFAULT NULL,
+        shop_id INTEGER DEFAULT NULL,
+        menu_id INTEGER NULL,
+        permission INTEGER DEFAULT 1
+        )
+        ''')
+        conn.commit()
+    except Exception as e:
+        print(f"Error: {e}")
+    finally:
+        conn.close()
+    
+
+# テスト用の偽shopユーザーを作成する
+@log_decorator
+async def insert_shop(user_id, password, name):
+    try:
+        # 備考：user_id == shop_id とする
+        conn = get_connection()
+        cursor = conn.cursor()
+        # user_idの存在を確認
+        cursor.execute('SELECT COUNT(*) FROM User WHERE user_id = ?', (user_id,))
+        if cursor.fetchone()[0] > 0:
+            print(f"このユーザーID {user_id} は既に存在します。挿入をスキップします。")
+        else:
+            print('INSERT INTO 直前')
+            cursor.execute('''
+            INSERT INTO User (user_id, password, name, token, expire_date, shop_id, menu_id, permission)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, password, name, '', '9999-12-31 23:59', user_id, '', 2))
+        conn.commit()
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    finally:
+        conn.close()
+
 
 # テスト用の偽ユーザーを追加する
 @log_decorator
-def insert_user(user_id, password, name, token, expire_date, permission):
+async def insert_user(user_id, password, name, shop_id, menu_id, permission):
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -242,9 +291,9 @@ def insert_user(user_id, password, name, token, expire_date, permission):
         else:
             print('INSERT INTO 直前')
             cursor.execute('''
-            INSERT INTO User (user_id, password, name, token, expire_date, permission)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, password, name, '', '', permission))
+            INSERT INTO User (user_id, password, name, token, expire_date, shop_id, menu_id, permission)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, password, name, '', '', shop_id, menu_id, permission))
         conn.commit()
     except Exception as e:
         print(f"Error: {e}")
@@ -274,7 +323,9 @@ async def select_user(user_id: str)-> Optional[dict]:
                 "name": row[2],
                 "token": row[3],
                 "expire_date" : row[4],
-                "permission": row[5]
+                "shop_id" : row[5],
+                "menu_id" : row[6],
+                "permission": row[7]
             }
             
     except Exception as e:
@@ -304,6 +355,8 @@ def update_user(user_id, token):
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        print("user_id:" + user_id)
+        print("token:" + token)
         cursor.execute('''
         UPDATE User SET token = ? WHERE user_id = ?
         ''', (token, user_id))
