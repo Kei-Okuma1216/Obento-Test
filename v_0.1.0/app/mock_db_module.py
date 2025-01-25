@@ -158,7 +158,6 @@ def create_orders_table(cursor):
      
 @log_decorator
 def insert_order(shop_id, menu_id, company_id, user_id, amount):
-    print("INSERT Orders 前")
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute('''
@@ -174,13 +173,11 @@ def select_today_orders(shopid: int)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        print("SELECT Orders 前")           
         cursor.execute(
             'SELECT * FROM Orders WHERE user_id = ? AND date(order_date) = date("now", "-1 day")',
             (shopid,))
         rows = cursor.fetchall()  # または fetchall() を使用
         print("rows: " + str(rows))
-        print("SELECT Orders 後")
         if rows is None:
             raise ValueError("No order found with the given shopid")
         
@@ -210,7 +207,6 @@ def show_all_orders():
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        print('手前 SELECT * FROM Orders')
         cursor.execute('SELECT * FROM Orders')
         rows = cursor.fetchall()
         for row in rows:
@@ -258,8 +254,7 @@ def insert_user(user_id, password, name, token, expire_date, permission):
     
 # ユーザーを検索する
 @log_decorator
-def select_user(user_id: str)-> Optional[dict]:
-    print("select_user()")
+async def select_user(user_id: str)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -306,7 +301,6 @@ def show_all_users():
 # tokenの更新
 @log_decorator
 def update_user(user_id, token):
-    print("update_user()前")
     try:
         conn = get_connection()
         cursor = conn.cursor()
@@ -316,9 +310,7 @@ def update_user(user_id, token):
         conn.commit()
     except Exception as e:
         print(f"Error: {e}")
-        print("update_user()エラーあり")
     finally:
         conn.close()
-        print("update_user()後")
     return
 

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional, Union # 型ヒント用モジュール
 
 from local_jwt_module import TokenExpiredException, create_jwt, verify_jwt
-from mock_db_module import init_database, select_user, select_today_orders, update_user, delete_database
+from mock_db_module import init_database, insert_user, select_user, select_today_orders, update_user, delete_database
 
 ALGORITHM = "HS256"
 
@@ -36,13 +36,8 @@ def log_decorator(func):
         return result
     return wrapper
 
+# -----------------------------------------------------
 # 最初にアクセスするページ
-# https://127.0.0.1:8000
-#@app.get("/", response_class=HTMLResponse, tags=["user"]) 
-#@log_decorator  # デコレーターを適用
-#async def read_root(): 
-#    return RedirectResponse(url="/check")
-
 # トークンチェック 
 @app.get("/", response_class=HTMLResponse, tags=["user"])
 @log_decorator
@@ -56,14 +51,87 @@ async def check_token(request: Request, response: Response):
             return RedirectResponse(url="/login")
 
         # tokenが存在する場合の処理
-        return templates.TemplateResponse("protected_page.html", {"request": request})
-    
-        # tokenがある場合
+        return RedirectResponse(url="/protected_page")
+   
+    except Exception as e:
+        print(f"Error: {str(e)}") 
+        #\return templates.TemplateResponse( 
+        #    "error.html", {"request": request, "error": str(e)})
+        return RedirectResponse(url="/login")
+
+# -----------------------------------------------------
+# ログイン画面を表示するエンドポイント
+@app.get("/login", response_class=HTMLResponse, tags=["user"])
+async def login_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request})
+
+# ログイン処理用エンドポイント
+@app.post("/login", response_class=HTMLResponse, tags=["user"])
+async def login(request: Request,response: Response, userid: str = Form(...), password: str = Form(...)):
+    # ここに認証処理を追加
+    # もしuseridがなければ
+    _user = select_user(userid)
+    if _user is None:
+        print("ユーザーなし")
+        insert_user(userid, password)
+
+        token = create_jwt(userid, password)
+        response.set_cookie(key="user_id", value=_user['user_id'])
+        response.set_cookie(key="token", value=token)
+        response.set_cookie(key="permission", value="1")
+        
+        update_user(userid, token)
+        
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "response": response, "error": "Invalid credentials"})
+    else:
+        if userid == _user['user_id'] and password == _user['password']:  
+            print("ユーザーあり")
+            # サンプルの認証ロジック
+                        
+            response.set_cookie(key="user_id", value=_user['user_id'])
+            response.set_cookie(key="token", value="valid_token")
+            response.set_cookie(key="permission", value=_user['permission'])
+            response = RedirectResponse(url="/protected_page", status_code=303)
+
+            return response
+        else:
+            return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+
+# -----------------------------------------------------
+# tokenがある場合
+@app.get("/protected_page", response_class=HTMLResponse, tags=["user"])
+@log_decorator
+async def protect_token(request: Request, response: Response):
+    try:
+        permission = request.cookies.get("permission")
+        if permission is None:
+            return RedirectResponse(url="/login")
+
+        user_id = request.get_cookie(key="user_id")
+
+        response.set_cookie(key="user_id", value=user_id['user_id'])
+        response.set_cookie(key="token", value="valid_token")
+        response.set_cookie(key="permission", value=permission)
+
+        if permission == "2":
+            response = RedirectResponse(url="/today",status_code=303)
+        else:
+            response = RedirectResponse(url="/register",status_code=303) 
+        
+        # tokenチェック
+        token = request.cookies.get("token")
+        if token is None:
+            print(f"Token is valid. Token: {token}")
+            return RedirectResponse(url="/login")
+        
         payload = verify_jwt(token)
-        print(payload)
         if payload is None:
             print(f"Token is valid. Payload: {payload}")
-            return templates.TemplateResponse("token_error.html", {"request": request, "error": "Token is missing"},status_code=400)
+            return RedirectResponse(url="/login")
+            #return templates.TemplateResponse("token_error.html", {"request": request, "error": "Token is missing"},status_code=400)
+            
+        print(payload)
         
         # 生成日
         create_date = datetime.fromisoformat(payload["create-date"]) 
@@ -83,35 +151,15 @@ async def check_token(request: Request, response: Response):
         print(f"Expire Date: {expire_date}")
 
         print("token is OK")       
-        # ここで権限が渡されていない    
-        #return RedirectResponse(url="/register")
+        request.get_cookie(key="token")
         response = RedirectResponse(url="/check")
         response.set_cookie(key="token", value=token)
         return response
     
     except Exception as e:
         print(f"Error: {str(e)}") 
-        return templates.TemplateResponse( 
-            "error.html", {"request": request, "error": str(e)})
-
-# -----------------------------------------------------
-# ログイン画面を表示するエンドポイント
-@app.get("/login", response_class=HTMLResponse, tags=["user"])
-async def login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
-
-# ログイン処理用エンドポイント
-@app.post("/login", response_class=HTMLResponse, tags=["user"])
-async def login(request: Request, userid: str = Form(...), password: str = Form(...)):
-    # ここに認証処理を追加
-    if userid == "valid_user" and password == "valid_password":  # サンプルの認証ロジック
-        response = RedirectResponse(url="/check", status_code=303)
-        response.set_cookie(key="token", value="valid_token")  # サンプルトークン設定
-        return response
-    else:
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
-# -----------------------------------------------------
-
+        return RedirectResponse(url="/login")
+    
 # tokenがない場合
 # 登録中画面 login.htmlでOKボタン押下で遷移する
 @app.post("/register", response_class=HTMLResponse, tags=["user"])
@@ -125,7 +173,8 @@ async def register(
         _user = select_user(userid)
         if _user is None:
             print("User not found or error occurred")
-
+            return RedirectResponse(url="/login")
+        
         print(_user)  # キーワード引数として展開
         if  _user is None:
             print("ユーザー登録なし")
