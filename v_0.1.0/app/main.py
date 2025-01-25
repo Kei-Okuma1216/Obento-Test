@@ -176,19 +176,23 @@ async def order_confirmed(request: Request, response: Response):
             current_user = await select_user(user_id)
             if current_user is None:
                 return templates.TemplateResponse("login.html", {"request": request})
+            
             # insert_order(shop_id, menu_id, company_id, user_id, amount)
             shop_id = current_user['shop_id']
             menu_id = current_user['menu_id']
             company_id = current_user['company_id']
             amount = 1
             await insert_order(shop_id, menu_id, company_id, user_id=user_id, amount=amount)
+            
             print("order_item 1件登録した")
             page = templates.TemplateResponse(
                 "regist_complete.html", {"request": request})
-        
-        # pageに response.cookiesを追加
-        page.headers.raw.extend(response.headers.raw)
-        
+        else:
+            redirect_response = RedirectResponse(url="/today")
+            redirect_response.set_cookie(key="permission", value=permission)
+            # pageに response.cookiesを追加
+            page.headers.raw.extend(response.headers.raw)
+            
         return page
 
     except Exception as e: 
@@ -197,21 +201,10 @@ async def order_confirmed(request: Request, response: Response):
                 "error.html", {"request": request, "error": str(e)})
 
 
-# tokenを持っている場合
+# お弁当の注文完了　ユーザーのみ
 @app.get("/regist_complete", response_class=HTMLResponse, tags=["user"]) 
-async def regist_complete(
-    request: Request): 
-    print("regist_completeに来た")
-    # もしCookieのpermission=2ならば、/todayにリダイレクト
-    if request.cookies.get("permission") == "2":
-        print("permission=2")
-        
-        # リダイレクトレスポンスを設定
-        redirect_response = RedirectResponse(url="/today")
-        redirect_response.set_cookie(key="permission", value=str(2))
-    
-    # クッキーを設定したレスポンスを返す
-    return redirect_response
+async def regist_complete(): 
+    return """<html><head><title>Complete</title></head><body><h1>お弁当の注文が完了しました。</h1></body></html>"""
 
 
 # cookieを削除してログアウト
@@ -246,14 +239,6 @@ async def shop_today_order(request: Request,
         print('ordersなし')
     else:
         print(orders)
-    
-    ''' 
-    orders = [
-        {'order_id': 1, 'company':"テンシステム", 'name':"大隈　慶1", "menu": 1, "amount":1, "order_date": "2025-01-23 10:32"},
-        {'order_id': 2, 'company':"テンシステム", 'name':"大隈　慶2", "menu": 1, "amount":1, "order_date": "2025-01-23 10:33"},
-        {'order_id': 3, 'company':"テンシステム", 'name':"大隈　慶3", "menu": 100, "amount":3, "order_date": "2025-01-23 10:34"}
-    ]
-    ''' 
    
     context = {'request': request, 'orders': orders}
     print(f"Context: {context}")
