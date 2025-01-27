@@ -66,33 +66,22 @@ def get_now():
 
 # 有効期限操作
 @log_decorator
-def get_token_limit(stage):
+async def get_token_limit(stage = None):
     if stage == 1:
         td = get_now() + timedelta(seconds=15)
     else:
         td = get_now() + timedelta(days=30)
-    return td#.isoformat()
+    return td.isoformat()
 
-# JWTの生成関数
-'''
-def create_jwt(username: str, password: str):
-    cd = get_now().isoformat()
-    exp = get_token_limit(1)
-    
-    payload = {
-        "username": username,
-        "password": password,
-        "create-date": cd,
-        "exp": exp
-    }
-    pprint(payload)
-    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    return token
-'''
+# クッキーのexpに正確な日時をセット
+def set_cookie_with_exp(response, userid, stage):
+    exp = get_token_limit(stage)
+    response.set_cookie(key="userid", value=userid, expires=exp)
+
 @log_decorator
-def create_payload(username: str, password: str):
+async def create_payload(username: str, password: str):
     cd = get_now().isoformat()
-    exp = get_token_limit(1)
+    exp = await get_token_limit(1)
     
     payload = {
         "username": username,
@@ -104,7 +93,7 @@ def create_payload(username: str, password: str):
     return payload
 
 @log_decorator
-def create_jwt(payload):
+async def create_jwt(payload):
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 

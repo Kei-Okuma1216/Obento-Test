@@ -177,10 +177,19 @@ def show_all_orders():
 def insert_order(company_id, user_id, shop_id, menu_id, amount):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''
-    INSERT INTO Orders (company_id, user_id, shop_id, menu_id,  amount, order_date)
+
+    # SQL文を文字列として定義
+    sql_query = '''
+    INSERT INTO Orders (company_id, user_id, shop_id, menu_id, amount, order_date)
     VALUES (?, ?, ?, ?, ?, ?)
-    ''', (company_id, user_id, shop_id, menu_id,  amount, get_today_str(-1)))
+    '''
+
+    # 値をタプルとして定義
+    values = (company_id, user_id, shop_id, menu_id, amount, get_today_str(-1))
+
+    # SQL文と値をcursor.executeに渡して実行
+    cursor.execute(sql_query, values)
+
     conn.commit()
     conn.close()
 
@@ -190,14 +199,18 @@ def update_user(user_id, key, value):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        print("key:" + key)
-        print("value:" + value)
-        cursor.execute('''
-        UPDATE User SET key = ? WHERE user_id = ?
-        ''', (key, value, user_id))
+        print("key: " + key)
+        print("value: " + str(value))
+        query = f"UPDATE User SET {key} = ? WHERE user_id = ?"
+        cursor.execute(query, (value, user_id))
+        
+        #cursor.execute('''
+        #UPDATE User SET ? = ? WHERE user_id = ?
+        ''', (key, str("'" + value + "'"), user_id))'''
+        
         conn.commit()
     except Exception as e:
-        pprint(f"Error: {e}")
+        print(f"update_user Error: {e}")
     finally:
         conn.close()
     return
@@ -259,11 +272,10 @@ def select_user(user_id: str)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
-
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
         
-        print(row) # いなければNone
+        print("row: " + row) # いなければNone
 
         if row is None:
             warnings.warn(

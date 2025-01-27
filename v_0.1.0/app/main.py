@@ -51,13 +51,17 @@ def log_decorator(func):
 def root(request: Request, response: Response):
     try:
         token = request.cookies.get("token") 
-        print(token)
         # トークンが存在しない場合
         if token is None: 
             print("tokenはありません")
+            print(token)
+
             return templates.TemplateResponse("login.html", {"request": request})
-        # トークンが存在する場合
-        return templates.TemplateResponse(
+        else:
+            # トークンが存在する場合
+            print("tokenがあります")
+            print(token)
+            return templates.TemplateResponse(
             "protected_page.html", {"request": request, "permission": "2"}
         )
     except Exception as e:
@@ -72,7 +76,7 @@ def login_page(request: Request):
 
 # ログイン処理用エンドポイント
 @app.post("/login", response_class=HTMLResponse)
-def login(
+async def login(
     request: Request,response: Response,
     userid: str = Form(...),
     password: str = Form(...),
@@ -84,13 +88,14 @@ def login(
         print("ユーザーなし")
         insert_user(userid, password, name, shop_id=1, menu_id= 1, permission=1)
         
-        payload = create_payload(userid, password)
-        pprint("payload: " + payload)
-        exp = payload['exp']
+        payload = await create_payload(userid, password)
+        print(f"payload: {payload}")
+        #exp = payload["exp"] # ここがおかしい
+        #print(f"exp: {exp}")
         
-        update_user(userid, "exp", exp)
+        #update_user(userid, "exp", exp)
 
-        token = create_jwt(payload)
+        token = await create_jwt(payload)
         update_user(userid, "token", token)
         
         response.set_cookie(key="user_id", value=userid)
@@ -105,20 +110,29 @@ def login(
         print("ユーザーあり")
         # サンプルの認証ロジック
         pprint(_user)
+        
         response.set_cookie(key="user_id", value=_user['user_id'])
-        pprint(_user['token'])
-        if _user['token'] == '':
+        print(f"_user['token']: {_user['token']}")
+        # tokenがない場合
+        
+        if _user['token'] is None :
             print('tokenを作ります')
             #token = create_jwt(_user['user_id'], _user['password'])
-            payload = create_payload(userid, password)
-            pprint(payload)
-            token = create_jwt(payload)
-            pprint(token)
+            payload = await create_payload(userid, password)
+            pprint("payload: " + payload)
+            
+            token = await create_jwt(payload)
+
+            pprint(f"_user['token']: {_user['token']}")
             exp = payload['exp']
             update_user(userid, "exp", exp)
             update_user(userid, "token", token)
         else:
             token = request.cookies.get("token")
+            print(f"token: {token}")
+            
+        print(f"_user['token']: {_user['token']}")
+            
         response.set_cookie(key="token", value=token)
         response.set_cookie(key="permission", value=_user['permission'])
         response = RedirectResponse(url="/protected_page", status_code=303)
