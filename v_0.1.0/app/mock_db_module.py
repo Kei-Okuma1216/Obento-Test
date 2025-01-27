@@ -252,7 +252,7 @@ def insert_user(user_id, password, name, shop_id, menu_id, permission):
         # user_idの存在を確認
         cursor.execute('SELECT COUNT(*) FROM User WHERE user_id = ?', (user_id,))
         if cursor.fetchone()[0] > 0:
-            print(f"ユーザーID {user_id} は既に存在します。挿入をスキップします。")
+            print(f"ユーザーID: {user_id} は既に存在します。挿入をスキップします。")
         else:
             print('INSERT INTO 直前')
             cursor.execute('''
@@ -275,7 +275,7 @@ def select_user(user_id: str)-> Optional[dict]:
         cursor.execute('SELECT * FROM User WHERE user_id = ?', (user_id,))
         row = cursor.fetchone()  # または fetchall() を使用
         
-        print("row: " + row) # いなければNone
+        print(f"row: {row}") # いなければNone
 
         if row is None:
             warnings.warn(
@@ -291,9 +291,9 @@ def select_user(user_id: str)-> Optional[dict]:
                 "menu_id" : row[6],
                 "permission": row[7]
             }
-            
+        show_all_users()
     except Exception as e:
-        pprint(f"Error: {e}")
+        pprint(f"select user Error: {e}")
         return None
     finally:
         conn.close()

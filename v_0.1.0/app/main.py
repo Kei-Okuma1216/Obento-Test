@@ -68,6 +68,25 @@ def root(request: Request, response: Response):
         print(f"Error: {str(e)}") 
         return RedirectResponse(url="/login")
 
+# 新規ユーザーの登録
+def insert_new_user(userid, password, name):
+    default_shop_id = "shop01"
+    insert_user(userid, password, name, shop_id=default_shop_id, menu_id= 1, permission=1)
+            
+# tokenの再作成
+async def update_token_and_exp(userid, password):
+    try:
+        payload = await create_payload(userid, password)
+        exp = payload["exp"]
+        print(f"exp: {exp}")
+        update_user(userid, "expire_date", exp)
+
+        token = await create_jwt(payload)
+        update_user(userid, "token", token)
+    except  Exception as e:
+        print(f"Error: {str(e)}")
+    return {"token": token, "exp": exp}
+
 # -----------------------------------------------------
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse)
@@ -77,72 +96,113 @@ def login_page(request: Request):
 # ログイン処理用エンドポイント
 @app.post("/login", response_class=HTMLResponse)
 async def login(
-    request: Request,response: Response,
+    request: Request, response: Response,
     userid: str = Form(...),
     password: str = Form(...),
     name: str = Form(...)
-    ):
+):
+    try:
+        print(f"login input is {userid}")
+        _user = select_user(userid)
+        
+        current_permission = 1
+        if _user is None:
+            print("ユーザーなし")
+            insert_new_user(userid, password, name)
+            _user = select_user(userid)
 
-    _user = select_user(userid)
-    if _user is None:
-        print("ユーザーなし")
-        insert_user(userid, password, name, shop_id=1, menu_id= 1, permission=1)
-        
-        payload = await create_payload(userid, password)
-        print(f"payload: {payload}")
-        #exp = payload["exp"] # ここがおかしい
-        #print(f"exp: {exp}")
-        
-        #update_user(userid, "exp", exp)
-
-        token = await create_jwt(payload)
-        update_user(userid, "token", token)
-        
-        response.set_cookie(key="user_id", value=userid)
-        response.set_cookie(key="token", value=token)
-        response.set_cookie(key="permission", value="1")
-        
-        
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "response": response, "error": "Invalid credentials"})
-
-    if userid == _user['user_id'] and password == _user['password']:  
-        print("ユーザーあり")
-        # サンプルの認証ロジック
-        pprint(_user)
-        
-        response.set_cookie(key="user_id", value=_user['user_id'])
-        print(f"_user['token']: {_user['token']}")
-        # tokenがない場合
-        
-        if _user['token'] is None :
-            print('tokenを作ります')
-            #token = create_jwt(_user['user_id'], _user['password'])
-            payload = await create_payload(userid, password)
-            pprint("payload: " + payload)
-            
-            token = await create_jwt(payload)
-
-            pprint(f"_user['token']: {_user['token']}")
-            exp = payload['exp']
-            update_user(userid, "exp", exp)
-            update_user(userid, "token", token)
+            response.set_cookie(key="user_id", value=userid)
+            response.set_cookie(key="permission", value="1")
+            current_permission = 1
+        elif userid == _user['user_id'] and password == _user['password']:
+            print("ユーザーあり")
+            print(_user['userid'])
+            response.set_cookie(key="user_id", value=_user['user_id'])
+            response.set_cookie(key="permission", value=_user['permission'])
+            current_permission = _user['permission']
         else:
-            token = request.cookies.get("token")
-            print(f"token: {token}")
+            print("ユーザーあり、パスワード不一致")
+            return templates.TemplateResponse(
+                "login.html", {"request": request, "error": "Invalid credentials"}
+            )
             
-        print(f"_user['token']: {_user['token']}")
-            
-        response.set_cookie(key="token", value=token)
-        response.set_cookie(key="permission", value=_user['permission'])
-        response = RedirectResponse(url="/protected_page", status_code=303)
+        # tokenがない場合 
 
+        # ユーザーなしなのに_user['token']がある場合は、tokenが消えている  
+        if _user['token'] is None:
+            tx = update_token_and_exp(userid, password)
+            token = tx["token"]
+            exp = tx["exp"]            
+        
+        response.set_cookie(key="token", value=token)
+        response.set_cookie(key="expire_date", value=exp)
+    
+        if current_permission == 2:
+            response = RedirectResponse(url="/today", status_code=303)
+        if current_permission == 3:
+            response = RedirectResponse(url="/admin", status_code=303)
+        else:
+            response = RedirectResponse(url="/order_confirmed", status_code=303)
+        
         return response
-    else:
-        print("ユーザー認証失敗")
-        return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    
+    except KeyError as e:
+        print(f"/login KeyError: {e}")
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "response": response, "error": "Invalid credentials"}
+            )
+    except Exception as e:
+        print(f"/login Error: {str(e)}")
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "response": response, "error": "Invalid credentials"}
+            )
+
+            #response = RedirectResponse(url="/protected_page", status_code=303)
+
+            #return response
+
+
+    return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
 
 # -----------------------------------------------------
+# tokenの状態をチェック
+def token_checker(request: Request):
+    try:
+        token = request.cookies.get("token")
+        if token is None:
+            print(f"Token is valid. Token: {token}")
+            return False        
+        
+        payload = verify_jwt(token)
+        if payload is None:
+            print(f"Token is valid. Payload: {payload}")
+            return False
+                    
+        # 生成日
+        create_date = datetime.fromisoformat(payload["create-date"]) 
+        if create_date is None:
+            print("Token create_date is corrupsed.")
+            raise TokenExpiredException()
+        print(f"Retrieved Date: {create_date}")
+        
+        # 有効期限
+        expire_date = payload["exp"]
+        if expire_date is None:
+            print("Token expire_date is corrupsed.")
+            #raise TokenExpiredException()                
+            return False
+        if expire_date < datetime.now():
+            print("Token has expired.")
+            #raise TokenExpiredException()
+            return False
+        print(f"Expire Date: {expire_date}")
+
+        print("token is OK")
+        return True
+    except TokenExpiredException as e:
+        print(f"TokenExpiredException: {str(e)}")
+
+
 # tokenがある場合
 @app.get("/protected_page", response_class=HTMLResponse, tags=["user"])
 @log_decorator
@@ -158,41 +218,11 @@ def protect_token(request: Request, response: Response):
 
         if permission == "2":
             response = RedirectResponse(url="/today",status_code=303)
+        elif permission == "3":
+            response = RedirectResponse(url="/admin",status_code=303)
         else:
             response = RedirectResponse(url="/order_confirmed",status_code=303) 
         
-        # tokenの状態をlogでチェック
-        token = request.cookies.get("token")
-        if token is None:
-            print(f"Token is valid. Token: {token}")
-            return RedirectResponse(url="/login")
-        
-        payload = verify_jwt(token)
-        if payload is None:
-            print(f"Token is valid. Payload: {payload}")
-            return RedirectResponse(url="/login")
-            
-        print(payload)
-        
-        # 生成日
-        create_date = datetime.fromisoformat(payload["create-date"]) 
-        if create_date is None:
-            print("Token create_date is corrupsed.")
-            raise TokenExpiredException()
-        print(f"Retrieved Date: {create_date}")
-        
-        # 有効期限
-        expire_date = payload["exp"]
-        if expire_date is None:
-            print("Token expire_date is corrupsed.")
-            raise TokenExpiredException()                
-        if expire_date < datetime.now():
-            print("Token has expired.")
-            raise TokenExpiredException()
-        print(f"Expire Date: {expire_date}")
-
-        print("token is OK")       
-
         return response
     
     except Exception as e:
