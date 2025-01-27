@@ -69,11 +69,13 @@ def root(request: Request, response: Response):
         return RedirectResponse(url="/login")
 
 # 新規ユーザーの登録
+@log_decorator
 def insert_new_user(userid, password, name):
     default_shop_id = "shop01"
     insert_user(userid, password, name, shop_id=default_shop_id, menu_id= 1, permission=1)
             
 # tokenの再作成
+@log_decorator
 async def update_token_and_exp(userid, password):
     try:
         payload = await create_payload(userid, password)
@@ -116,7 +118,7 @@ async def login(
             current_permission = 1
         elif userid == _user['user_id'] and password == _user['password']:
             print("ユーザーあり")
-            print(_user['userid'])
+            print(_user['user_id'])
             response.set_cookie(key="user_id", value=_user['user_id'])
             response.set_cookie(key="permission", value=_user['permission'])
             current_permission = _user['permission']
@@ -129,13 +131,19 @@ async def login(
         # tokenがない場合 
 
         # ユーザーなしなのに_user['token']がある場合は、tokenが消えている  
-        if _user['token'] is None:
-            tx = update_token_and_exp(userid, password)
+        if _user is not None and 'token' in _user and 'exp' in _user:
+            token = _user['token']
+            exp = _user["exp"]
+        else:
+            tx = await update_token_and_exp(userid, password)
             token = tx["token"]
-            exp = tx["exp"]            
+            exp = tx["exp"]
         
+
+        print("ここまでいった")
         response.set_cookie(key="token", value=token)
         response.set_cookie(key="expire_date", value=exp)
+                
     
         if current_permission == 2:
             response = RedirectResponse(url="/today", status_code=303)
