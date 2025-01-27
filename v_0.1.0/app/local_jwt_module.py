@@ -1,5 +1,6 @@
 from functools import wraps
 import logging
+from pprint import pprint
 from fastapi import HTTPException, status
 from fastapi.responses import RedirectResponse
 from cryptography.hazmat.primitives import hashes
@@ -18,6 +19,7 @@ TOKEN_EXPIRE_DAYS = 30
 logging.basicConfig(level=logging.INFO)
 
 # カスタムデコレーターを定義
+# @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
 def log_decorator(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -59,22 +61,53 @@ def sign_message(private_key, message: str, date: date):
 #formatted_datetime = current_datetime.strftime("%Y-%m-%d %H:%M")
 #print(formatted_datetime)
 
+def get_now():
+    return datetime.now(tz=timezone.utc)
+
+# 有効期限操作
+@log_decorator
+def get_token_limit(stage):
+    if stage == 1:
+        td = get_now() + timedelta(seconds=15)
+    else:
+        td = get_now() + timedelta(days=30)
+    return td#.isoformat()
+
 # JWTの生成関数
+'''
 def create_jwt(username: str, password: str):
+    cd = get_now().isoformat()
+    exp = get_token_limit(1)
     
-    #formatted_datetime = str(datetime.today().strftime("%Y-%m-%d %H:%M"))
-    #td = 60*60*24
-    #timedelta(days= td * 60/td * 4)
-    print("create_jwt payload前")
     payload = {
         "username": username,
         "password": password,
-        "create-date": datetime.now(tz=timezone.utc).isoformat(),
-        "exp": datetime.now(tz=timezone.utc) + timedelta(seconds=15)
+        "create-date": cd,
+        "exp": exp
     }
-    print("create_jwt payload後")
+    pprint(payload)
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
+'''
+@log_decorator
+def create_payload(username: str, password: str):
+    cd = get_now().isoformat()
+    exp = get_token_limit(1)
+    
+    payload = {
+        "username": username,
+        "password": password,
+        "create-date": cd,
+        "exp": exp
+    }
+    pprint(payload)
+    return payload
+
+@log_decorator
+def create_jwt(payload):
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+    return token
+
 
 # JWTの検証関数
 def verify_jwt(token: str):
