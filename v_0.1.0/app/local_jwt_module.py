@@ -65,7 +65,7 @@ def get_now():
     return datetime.now(tz=timezone.utc)
 
 # 有効期限操作
-@log_decorator
+#@log_decorator
 async def get_token_limit(stage = None):
     if stage == 1:
         td = get_now() + timedelta(seconds=15)
@@ -78,7 +78,7 @@ def set_cookie_with_exp(response, userid, stage):
     exp = get_token_limit(stage)
     response.set_cookie(key="userid", value=userid, expires=exp)
 
-@log_decorator
+#@log_decorator
 async def create_payload(username: str, password: str):
     cd = get_now().isoformat()
     exp = await get_token_limit(1)
@@ -89,10 +89,10 @@ async def create_payload(username: str, password: str):
         "create-date": cd,
         "exp": exp
     }
-    pprint(payload)
+    #pprint(payload)
     return payload
 
-@log_decorator
+#@log_decorator
 async def create_jwt(payload):
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token

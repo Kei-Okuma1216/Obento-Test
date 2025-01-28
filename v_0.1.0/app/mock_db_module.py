@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from functools import wraps
+import json
 import logging
 from pprint import pprint
 from typing import Optional
@@ -127,20 +128,40 @@ def create_orders_table():
 
 # 今日の注文を検索する
 @log_decorator
-def select_today_orders(shopid: int)-> Optional[dict]:
+def select_today_orders(shopid: str)-> Optional[dict]:
     try:
         conn = get_connection()
         cursor = conn.cursor()
+        '''
         cursor.execute(
             'SELECT * FROM Orders WHERE user_id = ? AND date(order_date) = date("now", "-1 day")',
             (shopid,))
         rows = cursor.fetchall()  # または fetchall() を使用
+        '''
+        # 前日の日付を取得
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        #print("yesterday: " + yesterday)
+        
+        # テーブル内のすべての注文を取得してみる
+        #cursor.execute('SELECT * FROM Orders')
+        #all_rows = cursor.fetchall()
+        #pprint("All rows: " + str(all_rows))
+        
+        # SQL文を文字列として定義
+        #SQLstr = "SELECT * FROM Orders WHERE shop_id = ? AND dateorder_date = ?"
+        SQLstr = "SELECT * FROM Orders WHERE shop_id = 'shop01'"
+        # 定義したSQL文を使用してクエリを実行
+        cursor.execute(SQLstr)
+
+        #cursor.execute(SQLstr, (shopid, yesterday))
+        rows = cursor.fetchall()
+
         print("rows: " + str(rows))
         if rows is None:
             warnings.warn("No order found with the given shopid")
         
         # 辞書型のリストとして結果を返却
-        orders = {}
+        orders = []
         for row in rows:
             orders.append({
                 "order_id": row[0],
@@ -152,8 +173,8 @@ def select_today_orders(shopid: int)-> Optional[dict]:
                 "canceled": row[6]
             })
         # リストをJSON形式に変換して返す
-        pprint(orders)
-        return orders#json.dumps(orders, ensure_ascii=False)
+        #print(orders)
+        return json.dumps(orders)
     except Exception as e:
         pprint(f"Error: {e}")
         return None
@@ -185,8 +206,11 @@ def insert_order(company_id, user_id, shop_id, menu_id, amount):
     '''
 
     # 値をタプルとして定義
-    values = (company_id, user_id, shop_id, menu_id, amount, get_today_str(-1))
+    test_register_date = +1
+    
+    values = (company_id, user_id, shop_id, menu_id, amount, get_today_str(test_register_date))
 
+    print("values: " + str(values))
     # SQL文と値をcursor.executeに渡して実行
     cursor.execute(sql_query, values)
 
@@ -194,13 +218,13 @@ def insert_order(company_id, user_id, shop_id, menu_id, amount):
     conn.close()
 
 # tokenの更新
-@log_decorator
+#@log_decorator
 def update_user(user_id, key, value):
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        print("key: " + key)
-        print("value: " + str(value))
+        #print("key: " + key)
+        #print("value: " + str(value))
         query = f"UPDATE User SET {key} = ? WHERE user_id = ?"
         cursor.execute(query, (value, user_id))
         
@@ -267,7 +291,7 @@ def insert_user(user_id, password, name, shop_id, menu_id, permission):
         conn.close()
     
 # ユーザーを検索する
-@log_decorator
+#@log_decorator
 def select_user(user_id: str)-> Optional[dict]:
     try:
         conn = get_connection()
@@ -291,7 +315,7 @@ def select_user(user_id: str)-> Optional[dict]:
                 "menu_id" : row[6],
                 "permission": row[7]
             }
-        show_all_users()
+        #show_all_users()
     except Exception as e:
         pprint(f"select user Error: {e}")
         return None
@@ -301,7 +325,7 @@ def select_user(user_id: str)-> Optional[dict]:
     return result
 
 # Userデータの確認
-@log_decorator
+#@log_decorator
 def show_all_users():
     try:
         conn = get_connection()
@@ -364,20 +388,20 @@ def delete_all_user():
 @log_decorator
 def init_database():
     try:
-          create_user_table() 
-          insert_user("user1", "user1", "大隈 慶1", "shop01", 1, 1)
-          insert_user("user2", "user2", "大隈 慶2", "shop01", 1, 1)
-          insert_shop("shop01", "shop01", "お店shop01")
-          
-          create_orders_table()
-          '''INSERT INTO Orders (company_id, user_id, shop_id, menu_id,  amount, order_date)
-          VALUES (?, ?, ?, ?, ?, ?)'''
-          insert_order(1, "user1", "shop01", 1, 1)
-          insert_order(1, "user2", "shop01", 1, 2)
-          insert_order(1, "tenten01", "shop01", 1, 3)
-          show_all_orders()
+        create_user_table() 
+        insert_user("user1", "user1", "大隈 慶1", "shop01", 1, 1)
+        insert_user("user2", "user2", "大隈 慶2", "shop01", 1, 1)
+        insert_shop("shop01", "shop01", "お店shop01")
+        
+        create_orders_table()
+        '''INSERT INTO Orders (company_id, user_id, shop_id, menu_id,  amount, order_date)
+        VALUES (?, ?, ?, ?, ?, ?)'''
+        insert_order(1, "user1", "shop01", 1, 1)
+        insert_order(1, "user2", "shop01", 1, 2)
+        insert_order(1, "tenten01", "shop01", 1, 3)
+        show_all_orders()
 
-          print("データベースファイル 'sample.db' が正常に作成されました。")
+        print("データベースファイル 'sample.db' が正常に作成されました。")
     except sqlite3.Error as e: 
          print(f"SQLiteエラー: {e}")
     except Exception as e: 

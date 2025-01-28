@@ -1,11 +1,21 @@
+<!--
+    "order_id": row[0],
+    "company_id": row[1],
+    "user_id": row[2],
+    "menu_id": row[3],
+    "amount": row[4],
+    "order_date": row[5],
+    "canceled": row[6]
+-->
 {% for order in orders %}
 <tr>
-    <td>{{ order.number }}</td>
-    <td>{{ order.company }}</td>
-    <td>{{ order.name }}</td>
-    <td>{{ order.menu }}</td>
-    <td>{{ order.value }}</td>
-    <td>{{ order.date }}</td>
+    <td>{{ order.order_id }}</td>
+    <td>{{ order.company_id }}</td>
+    <td>{{ order.user_id }}</td>
+    <td>{{ order.menu_id }}</td>
+    <td>{{ order.amount }}</td>
+    <td>{{ order.order_date }}</td>
+    <td>{{ order.canceled }}</td>
 </tr>
 {% endfor %}
 <!--<tr>
