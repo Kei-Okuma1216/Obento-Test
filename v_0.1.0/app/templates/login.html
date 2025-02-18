@@ -5,16 +5,19 @@
     <body>
         <h1>こんにちは！</h1>
         <form method="post" action="/login">
-            <label for="userid">ID:</label><br>
-            <input type="text" id="userid" name="userid"><br>
+            <label for="username">Username:</label><br>
+            <input type="text" id="username" name="username" required><br>
             <label for="password">パスワード:</label><br>
             <input type="password" id="password" name="password"><br>
-            <label for="name">あなたのお名前:</label><br>
-            <input type="text" id="name" name="name"><br>
+            <!--<label for="name">あなたのお名前:</label><br>
+            <input type="text" id="name" name="name"><br>-->
 
             <input type="submit" value="OK">
         </form>
         <Script>
+            /**
+             * 
+             */
             function checkCookie() {
                  let cookieValue = document.cookie 
                     .split('; ') 
@@ -27,9 +30,10 @@
                             alert('Token has expired. Please log in again.');
                         }
                      }
-            } 
+            }
+            //checkCookie()
             // 必要なアクションを実行（例：ログインページにリダイレクト）
-            setInterval(checkCookie, 1000); // 1秒ごとにクッキーの有効期限をチェック
+            //setInterval(checkCookie, 1000); // 1秒ごとにクッキーの有効期限をチェック
         </Script>
     </body>
 </html>
