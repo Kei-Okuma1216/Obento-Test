@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import pprint
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
@@ -11,11 +12,11 @@ import urllib.parse
 
 import jwt
 
-from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
+from local_jwt_module import JST, SECRET_KEY, TokenExpiredException, get_max_age, get_new_token, check_cookie_token, get_now
 
 from sqlite_database import init_database, insert_new_user, insert_order, select_today_orders2, select_user, update_user
 from models import Order, Payload, User
-from utils import stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
+from utils import getout_max_age, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -23,28 +24,18 @@ ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-'''
-def check_token(request):
-    token = request.cookies.get("token")
-    print(f"token: {token}")
-    if token is None: 
-        print(f"tokenはありません: {token}")
-        return redirect_login(request, "tokenの有効期限が切れています。再登録をしてください。")
-        # その返り値を返していません。
-        #そのため、関数はその後も処理を続け、最終的に token, exp_str を返してしまいます。
-    
-    exp_str = request.cookies.get("exp")
-    print(f"exp_str: {exp_str}")
-    
-    if exp_str is None:
-        print("exp クッキーがありません")
-        return redirect_login(request, "tokenの有効期限が切れています。再登録をしてください。")
-    
-    return token ,exp_str
-'''
+
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
+
+# 例外ハンドラーの設定
+@app.exception_handler(TokenExpiredException)
+async def token_expired_exception_handler(request: Request, exc: TokenExpiredException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail},
+    )
 # -----------------------------------------------------
 # エントリポイント
 @app.get("/", response_class=HTMLResponse)
@@ -69,12 +60,7 @@ async def root(request: Request, response: Response):
         print("token_result: ありません")
         message = "token の有効期限が切れています。再登録をしてください。"
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
-        
-        #return redirect_login(request, "token の有効期限が切れています。再登録をしてください。")
 
-    print("ここ通ります 2")
-    
-    print("ここ通ります 3")
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
     if not isinstance(token_result, tuple):
         return token_result
@@ -185,7 +171,7 @@ async def login_post(request: Request, response: Response,
         print(f"user: {user}")
         if user is None:
             # User新規登録する
-            #insert_new_user(form_data.username, form_data.password, form.get('name'))
+            #insert_new_user(form_data.username, form_data.password)
             raise HTTPException(status_code=400, detail="ログインに失敗しました。")
 
         print("username と password一致")
@@ -199,35 +185,16 @@ async def login_post(request: Request, response: Response,
         response = RedirectResponse(
             url=redirect_url, status_code=303)
         
-        print("ここまできた 1")
+        #print("ここまできた 1")
         data = {
             'sub': user.get_username(),
             'token': user.get_token(),
             'max-age': user.get_exp(),
             'permission': user.get_permission()
         }
-        print("ここまできた 2")
+
         set_all_cookies(response, data)
-        print("ここまできた 3")
-        '''
-        for key, value in user.items():
-            print(f"exp含む {key}:{value}:{unix_time_exp}")
-            print("ここまできた 3")
-            response.set_cookie(key, str(value), expires=unix_time_exp)
-            print("ここまできた 4")
-        for key, value in user_info.items():
-            if key == "exp":
-                # exp の場合は、有効期限を UTC 時刻で指定
-                expires = datetime.fromtimestamp(int(value), tz=timezone.utc)   # UNIXタイムスタンプをdatetimeに変換
-                print("expのみ")
-                print(f"key: {key}, value: {value}, expires: {expires}")
-                response.set_cookie(key, str(value), expires=expires)  # expires を指定
-            else:
-                # 他のクッキーは単純に設定
-                print(f"exp以外 {key}:{value}:{unix_time_exp}")
-                response.set_cookie(key, str(value), expires=unix_time_exp)
-'''
-        print("ここまできた 4")
+
         # トークンのsave
         username = user.get_username()
         await update_user(username, "token", user.get_token())
@@ -281,8 +248,6 @@ async def regist_complete(request: Request, response: Response,
             print("No orders found or error occurred.")
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
-        #print("ここまできた 6")
-        #orders = [dict(order) for order in orders]  # 明示的に辞書のリストに変換
         context = {'request': request, 'orders': orders}
 
         if hx_request:
@@ -290,20 +255,23 @@ async def regist_complete(request: Request, response: Response,
             return templates.TemplateResponse("table.html", context)
 
         last_order_date = orders[0].created_at
-        print(f"orders[0].created_at: {orders[0].created_at}")
+        #print(f"orders[0].created_at: {orders[0].created_at}")
         prevent_order_twice(response, last_order_date)
         #print("ここまできた 1")
         #print("ここまできた 2")   
         context = {'request': request, 'orders': orders}
         template_response = templates.TemplateResponse("order_complete.html", context)
         #print(response.headers())
-        print("ここまできた 3")
+        #print("ここまできた 3")
         template_response.headers["Set-Cookie"] = response.headers.get("Set-Cookie")
         
-        #print("1.")
+        #print("1.Cookie Value")
         #print(template_response.headers["Set-Cookie"])
-        #print("2.")
-        #print(response.headers.get("Set-Cookie"))
+        #print("2. max_age value")
+        header = template_response.headers["Set-Cookie"]
+        max_age = getout_max_age(header)
+        print(f"max_age: {max_age}")
+        
 
         return template_response
 

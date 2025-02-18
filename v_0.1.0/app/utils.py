@@ -71,21 +71,13 @@ def get_today_str(offset: int = 0, date_format: str = None):
         ymd = new_date.strftime("%Y-%m-%d %H:%M")
     #print(f"get_today_str(): {ymd}")
     return ymd
-'''
-from enum import Enum
 
-class CookieKeys(Enum):
-    # 使用例
-    # order_twice = cookies[CookieKeys.DUPLICATE_ORDER.value]
-    # 他のキーも必要に応じて追加できます
-    SUB = "sub"
-    TOKEN = "token"
-    EXP = "exp"
-    PERMISSION = "permission"
-'''
-
+@log_decorator
 def set_all_cookies(response: Response, data: Dict[str, str]):
     try:
+        # これを試してみる↓
+        #future_time = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+        
         username = data['sub']
         token = data['token']
         exp = data['max-age']
@@ -107,6 +99,7 @@ def set_all_cookies(response: Response, data: Dict[str, str]):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+@log_decorator
 def get_all_cookies(request: Request) -> Dict[str, str]:
     try:
         username = request.cookies.get("sub")
@@ -169,12 +162,21 @@ def compare_expire_date(exp_unix_str: str) -> bool:
 
 # 二重注文の禁止
 # 設定
-#@log_decorator
+@log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
     end_of_day = get_end_of_today() 
-    unix_time = get_max_age(end_of_day)
+    print(f"end_of_day: {end_of_day}")
+    end_time = get_max_age(end_of_day)
+    print(f"max_time: {end_time}")
+    current = datetime.now(JST)
+    print(f"now: {current}")
+    current_time = get_max_age(current)
+    print(f"current_time: {end_time}")
+    future_time = end_time - current_time
+    print(f"future_time: {end_time}")
+    
     response.set_cookie(
-        key="last_order_date", value=last_order_date, max_age=unix_time)
+        key="last_order_date", value=last_order_date, max_age=future_time)
     print("# 期限を本日の23:59:59にした")
 
 # 期限として本日の23:59:59を作成
@@ -189,26 +191,35 @@ def get_end_of_today() -> datetime:
 @deprecated
 def get_max_age(dt: datetime) -> int:
     unix_time = int(dt.timestamp())
-    print(f"unix_time: {unix_time}")
+    #print(f"unix_time: {unix_time}")
     return unix_time
 
 # チェックする
 #@log_decorator
 def stop_twice_order(request: Request):
-    #permission = request.cookies.get("permission")
-    #print(f"permission: {permission}")
-    #if permission is None:
-    #    return False
-    #if permission is not None:#"1":
-    #    return True
-   
     last_order = request.cookies.get("last_order_date")
     print(f"last_order: {last_order}")
-    if last_order != None:#"1":
-        # 注文処理をやめる
-        #print("# 注文処理をやめる")
+    if last_order != None: # 注文処理をやめる
         return True
     else:
-        #print(f"twice_check = {twice_check}")
         return False
 
+# max-ageを取り出す関数
+def getout_max_age(set_cookie_header):
+    # ヘッダーを分割して各属性に分ける
+    parts = set_cookie_header.split(";")
+    for part in parts:
+        # 各属性をトリムして"max-age"が含まれているか確認
+        part = part.strip()
+        if part.lower().startswith("max-age"):
+            # max-ageの値を取り出して返す
+            return part.split("=")[1]
+    # max-ageが見つからなかった場合
+    return None
+
+def convert_to_max_age(max_age : int):
+    days = max_age / (60*60*24)
+    nokori =  days * (60*60*24)
+    nokori = nokori % (60*60)
+    hours = nokori / 60*60
+    
