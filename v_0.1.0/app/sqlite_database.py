@@ -1,19 +1,17 @@
-import asyncio
 import json
 import logging
 from pprint import pprint
-from traceback import format_exception
 from typing import List, Optional
 import sqlite3
 import warnings
-from utils import JST, deprecated, get_now, log_decorator, get_today_str 
-from models import Order, User, Payload
+from utils import deprecated, log_decorator, get_today_str 
+from models import Order, User
 import aiosqlite
 
 # ログ用の設定
 logging.basicConfig(level=logging.INFO)
 
-default_shop_id = "shop01"
+default_shop_name = "shop01"
 
 # データベース初期化
 # インメモリデータベースを作成
@@ -53,7 +51,7 @@ async def create_user_table():
         token TEXT DEFAULT NULL,
         exp TEXT DEFAULT NULL,
         company_id int DEFAULT NULL,
-        shop_id TEXT DEFAULT NULL,
+        shop_name TEXT DEFAULT NULL,
         menu_id int NULL,
         permission INTEGER DEFAULT 1,
         is_modified INTEGER DEFAULT 0,
@@ -94,7 +92,7 @@ async def select_user(username: str)-> Optional[User]:
             token=row[4],
             exp=row[5],
             company_id=row[6],
-            shop_id=row[7],
+            shop_name=row[7],
             menu_id=row[8],
             permission=row[9],
             is_modified=row[10],
@@ -112,13 +110,13 @@ async def select_user(username: str)-> Optional[User]:
 @log_decorator
 async def insert_new_user(username, password, name = ''):
     try:
-        await insert_user(username, password, name, company_id=1, shop_id=default_shop_id, menu_id=1)
+        await insert_user(username, password, name, company_id=1, shop_name=default_shop_name, menu_id=1)
     except Exception as e:
         print(f"insert_new_user Error: {e}")
 
 # 追加
 @log_decorator
-async def insert_user(username, password, name, company_id, shop_id, menu_id):
+async def insert_user(username, password, name, company_id, shop_name, menu_id):
     try:
         conn = await get_connection()
         #cursor = conn.cursor()       
@@ -133,9 +131,9 @@ async def insert_user(username, password, name, company_id, shop_id, menu_id):
         else:
             #print('INSERT INTO 直前')
             await conn.execute('''
-            INSERT INTO User (username, password, name, token, exp, company_id, shop_id, menu_id)
+            INSERT INTO User (username, password, name, token, exp, company_id, shop_name, menu_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (username, password, name, '', '', company_id, shop_id, menu_id))
+            ''', (username, password, name, '', '', company_id, shop_name, menu_id))
 
             await conn.commit()  # INSERT が実行されたときのみ commit()
             print(f"ユーザー {username} を追加しました。")
@@ -152,9 +150,8 @@ async def insert_user(username, password, name, company_id, shop_id, menu_id):
 @log_decorator
 async def insert_shop(username, password, shop_name):
     try:
-        # 備考：username == shop_id とする
+        # 備考：username == shop_name とする
         conn = await get_connection()
-        #cursor = conn.cursor()
         result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
         count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
         # usernameの存在を確認
@@ -165,7 +162,7 @@ async def insert_shop(username, password, shop_name):
             #print('INSERT INTO 直前')
             await conn.execute('''
             INSERT INTO User (
-                username, password, name, token, exp, company_id, shop_id, menu_id, permission)
+                username, password, name, token, exp, company_id, shop_name, menu_id, permission)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 2))
         await conn.commit()
@@ -223,7 +220,7 @@ async def create_company_table():
             company_id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             tel TEXT DEFAULT NULL,
-            shop_id TEXT DEFAULT NULL,
+            shop_name TEXT DEFAULT NULL,
             created_at TEXT,
             disabled INTEGER DEFAULT 0
         )
@@ -238,17 +235,17 @@ async def create_company_table():
 
 # 追加
 @log_decorator
-async def insert_company(name, tel, shop_id):
+async def insert_company(name, tel, shop_name):
     conn = None
     try:
         conn = await get_connection()
         #cursor = conn.cursor()
         # SQL文を文字列として定義
         sql_query = '''
-        INSERT INTO Company (name, tel, shop_id, created_at, disabled)
+        INSERT INTO Company (name, tel, shop_name, created_at, disabled)
         VALUES (?, ?, ?, ?, ?)
         '''
-        values = (name, tel, shop_id, get_today_str(), False)
+        values = (name, tel, shop_name, get_today_str(), False)
 
         #print(f"SQL Query: {sql_query}")
         #print(f"Values: {values}")
@@ -277,7 +274,7 @@ async def create_orders_table():
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
             company_id INTEGER,
             username TEXT,
-            shop_id TEXT,
+            shop_name TEXT,
             menu_id INTEGER,
             amount INTEGER,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -293,7 +290,7 @@ async def create_orders_table():
 
 # 選択
 @log_decorator
-async def select_all_orders2(shop_id: str = None, days_ago_str: str = 0)-> Optional[List[Order]]:
+async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Optional[List[Order]]:
     conn = None
     try:
         days_ago = int(days_ago_str)
@@ -305,19 +302,19 @@ async def select_all_orders2(shop_id: str = None, days_ago_str: str = 0)-> Optio
         cursor = await conn.cursor()
 
         sqlstr = f"SELECT * FROM Orders"
-        if shop_id is None and days_ago is None:
+        if shop_name is None and days_ago is None:
             sqlstr += ""
         elif days_ago is None or days_ago == "":
-            # shop_id で全件数取る
-            sqlstr += f''' WHERE shop_id = {shop_id};'''
-        elif shop_id is None or shop_id == "":
+            # shop_name で全件数取る
+            sqlstr += f''' WHERE shop_name = {shop_name};'''
+        elif shop_name is None or shop_name == "":
             # days_ago で全件数取る
             today = get_today_str(0, "YMD")
             start_day = get_today_str(days_ago, "YMD")
             sqlstr += f''' WHERE created_at BETWEEN '{start_day} 00:00:00' AND '{today} 23:59:59';'''
         else:
-            # shop_id かつ days_ago
-            sqlstr = f"SELECT * FROM Orders WHERE shop_id = '{shop_id}' AND created_at BETWEEN '{start_day} 00:00:00' AND '{today} 23:59:59';"
+            # shop_name かつ days_ago
+            sqlstr = f"SELECT * FROM Orders WHERE shop_name = '{shop_name}' AND created_at BETWEEN '{start_day} 00:00:00' AND '{today} 23:59:59';"
 
         print(f"sqlstr: {sqlstr}")
         
@@ -416,7 +413,7 @@ def appendOrder(rows) -> List[dict]:
             "order_id": int(row[0]),
             "company_id": int(row[1]),
             "username": row[2],
-            "shop_id": row[3],
+            "shop_name": row[3],
             "menu_id": int(row[4]),
             "amount": int(row[5]),
             "created_at": row[6],
@@ -444,7 +441,7 @@ async def select_today_orders2(shopid: str,
         cursor = await conn.cursor()
 
         # ベースクエリ
-        sqlstr = f'''SELECT * FROM Orders WHERE (shop_id = '{shopid}')'''
+        sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
 
         if days_ago_str is None:
             sqlstr += ""
@@ -512,7 +509,7 @@ async def select_today_orders(shopid: str, userid: str = None)-> Optional[dict]:
 
         # ベースクエリ
         sqlstr = '''SELECT * FROM Orders
-        WHERE (shop_id = ?) AND (created_at BETWEEN ? AND ?)
+        WHERE (shop_name = ?) AND (created_at BETWEEN ? AND ?)
         '''
         params = [shopid, f"{today} 00:00:00", f"{today} 23:59:59"]
 
@@ -556,16 +553,16 @@ async def show_all_orders():
 
 # 追加
 @log_decorator
-async def insert_order(company_id, username, shop_id, menu_id, amount, created_at=None):
+async def insert_order(company_id, username, shop_name, menu_id, amount, created_at=None):
     conn = None
     try:
         conn = await get_connection()
         sql_query = '''
-        INSERT INTO Orders (company_id, username, shop_id, menu_id, amount, created_at)
+        INSERT INTO Orders (company_id, username, shop_name, menu_id, amount, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         '''
         created_at = get_today_str()
-        values = (company_id, username, shop_id, menu_id, amount, created_at)
+        values = (company_id, username, shop_name, menu_id, amount, created_at)
         await conn.execute(sql_query, values)
         await conn.commit()
         #print("注文追加成功")
@@ -605,7 +602,7 @@ async def create_menu_table():
         await conn.execute('''
         CREATE TABLE Menu (
         menu_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        shop_id TEXT,
+        shop_name TEXT,
         name TEXT,
         price INTEGER,
         description TEXT DEFAULT '',
@@ -624,21 +621,21 @@ async def create_menu_table():
 # 追加
 @log_decorator
 # 書式
-# insert_menu(shop_id='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture'もしくはpicture_path=r'c:\\picture')
-async def insert_menu(shop_id, name, price, description, picture_path = None):
+# insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture'もしくはpicture_path=r'c:\\picture')
+async def insert_menu(shop_name, name, price, description, picture_path = None):
     try:
         conn = await get_connection()
         #cursor = conn.cursor()
 
         created_at = get_today_str()
         
-        #print(f"menu_id: ""自動連番"", shop_id: {shop_id}, name: {name}, price: {price}, description: {description}, picture_path: {picture_path}, created_at: {created_at}")
+        #print(f"menu_id: ""自動連番"", shop_name: {shop_name}, name: {name}, price: {price}, description: {description}, picture_path: {picture_path}, created_at: {created_at}")
         
         sql_query = '''
-        INSERT INTO Menu (shop_id, name, price, description, picture_path, created_at)
+        INSERT INTO Menu (shop_name, name, price, description, picture_path, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         '''
-        values = (shop_id, name, price, description, picture_path, created_at)
+        values = (shop_name, name, price, description, picture_path, created_at)
         await conn.execute(sql_query, values)
 
         await conn.commit()
@@ -651,13 +648,13 @@ async def insert_menu(shop_id, name, price, description, picture_path = None):
     
 # 選択
 @log_decorator
-async def select_menu(shop_id: str)-> Optional[dict]:
+async def select_menu(shop_name: str)-> Optional[dict]:
     try:
-        #print("shop_id: " + shop_id)
+        #print("shop_name: " + shop_name)
         conn = await get_connection()
         cursor = conn.cursor()
 
-        sqlstr = f"SELECT * FROM Menu WHERE shop_id = '{shop_id}'"
+        sqlstr = f"SELECT * FROM Menu WHERE shop_name = '{shop_name}'"
         #print(f"sqlstr: {sqlstr}")
         await cursor.execute(sqlstr)
         rows = cursor.fetchall()
@@ -681,7 +678,7 @@ def appendMenu(rows):
     for row in rows:
         items.append({
             "menu_id": row[0],
-            "shop_id": row[1],
+            "shop_name": row[1],
             "name": row[2],
             "price": row[3],
             "description": row[4],
@@ -802,9 +799,9 @@ async def init_database():
 
         await create_user_table() 
         # 1
-        await insert_user("user1", "user1", "大隈 慶1",company_id=1, shop_id="shop01", menu_id=1) 
+        await insert_user("user1", "user1", "大隈 慶1",company_id=1, shop_name="shop01", menu_id=1) 
         # 2
-        await insert_user("user2", "user2", "大隈 慶2",company_id=1, shop_id="shop01", menu_id=1)
+        await insert_user("user2", "user2", "大隈 慶2",company_id=1, shop_name="shop01", menu_id=1)
         # 3
         await insert_shop("shop01", "shop01", "お店shop01")
         
@@ -814,10 +811,10 @@ async def init_database():
 
         await create_menu_table()
         # 1
-        await insert_menu(shop_id='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture')
+        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture')
         
         await create_orders_table()
-        '''INSERT INTO Orders (company_id, username, shop_id, menu_id,  amount, created_at)
+        '''INSERT INTO Orders (company_id, username, shop_name, menu_id,  amount, created_at)
         VALUES (?, ?, ?, ?, ?, ?)'''
         
         

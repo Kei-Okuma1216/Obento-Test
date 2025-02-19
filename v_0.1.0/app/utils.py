@@ -4,7 +4,7 @@ from fastapi import Request, Response
 from functools import wraps
 import functools
 import inspect
-from typing import Dict
+from typing import Dict, Optional
 import warnings
 
 
@@ -73,27 +73,43 @@ def get_today_str(offset: int = 0, date_format: str = None):
     return ymd
 
 @log_decorator
-def set_all_cookies(response: Response, data: Dict[str, str]):
+def set_all_cookies(response: Response, user: Dict):
     try:
-        # これを試してみる↓
-        UTC = timezone.utc
-        future_time = datetime.now(UTC) + timedelta(days=30)
-        expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
+        username = user['sub']
+        token = user['token']
+        permission = user['permission']
+        '''
+        username = user.get_name()
+        token = user.get_token()
+        permission = user.get_permission()
+        '''
+        # expiresを30日後に設定する
+        future_time = datetime.now(timezone.utc) + timedelta(days=30)
+        new_expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
+
+        print("set all cookies")
+        print(f" UserName: {username}")
+        print(f" Token: {token}")
+        print(f" Expires: {new_expires}")
+        print(f" Permission: {permission}")
+        '''
+        data = {
+            'sub': user.get_username(),
+            'token': user.get_token(),
+            'max-age': user.get_exp(),
+            'permission': user.get_permission()
+        }
         
         username = data['sub']
         token = data['token']
         #exp = data['max-age']
         permission = data['permission']
+        '''
+        response.set_cookie(key="token", value=token, expires=new_expires)
+        response.set_cookie(key="sub", value=username, expires=new_expires)
+        response.set_cookie(key="permission", value=permission, expires=new_expires)
         
-        response.set_cookie(key="token", value=token, expires=expires)
-        response.set_cookie(key="sub", value=username, expires=expires)
-        response.set_cookie(key="permission", value=permission, expires=expires)
-        
-        print("set all cookies")
-        print(f" UserName: {username}")
-        print(f" Token: {token}")
-        print(f" Expires: {expires}")
-        print(f" Permission: {permission}")
+        return new_expires
         
     except KeyError as e:
         print(f"Missing key: {e}")
@@ -101,7 +117,7 @@ def set_all_cookies(response: Response, data: Dict[str, str]):
         print(f"An error occurred: {e}")
 
 @log_decorator
-def get_all_cookies(request: Request) -> Dict[str, str]:
+def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     try:
         username = request.cookies.get("sub")
         print(f"cookies['sub']: {username}")
@@ -110,19 +126,17 @@ def get_all_cookies(request: Request) -> Dict[str, str]:
             print("")
             print("cookies['sub']が存在しません")
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
-        else:      
-            print("")  
-            
-        
-        
+            return None
+
+        print("")
         token = request.cookies.get("token")
-        #exp = request.cookies.get("exp")
+        exp = request.cookies.get("exp")
         permission = request.cookies.get("permission")
         data = {
             "sub": username,
             "token": token,
-            #"exp": int(exp),
-            "permission": int(permission),
+            "exp": exp,
+            "permission": int(permission)
         }
         return data
     except KeyError as e:
@@ -147,19 +161,22 @@ def delete_all_cookies(response: Response):
 @log_decorator
 def compare_expire_date(exp_unix_str: str) -> bool:
     # UTCからUNIX値変換
-    print(f"exp_unix_str :{exp_unix_str}")    
-    exp_unix_int = int(exp_unix_str)
+    print(f"exp_unix_str :{exp_unix_str}")
+    #exp_unix_int = int(exp_unix_str)
+    
+    max_age = convert_expires_to_max_age(exp_unix_str)
     
     now_utc_int = int(datetime.now(timezone.utc).timestamp()) 
     print(f"now_utc_int: {now_utc_int}")
+
     # 有効期限をチェック
-    print(f"now: {now_utc_int} < exp: {exp_unix_int}")
-    if now_utc_int < exp_unix_int:
+    print(f"now: {now_utc_int} < exp: {max_age}")
+    if now_utc_int < max_age:
         print("有効期限が無効です")  # 期限切れ
-        return False
+        return True
     else:
         print("有効期限は有効です")  # まだ有効
-    return True
+    return False
 
 # 二重注文の禁止
 # 設定
@@ -206,13 +223,13 @@ def stop_twice_order(request: Request):
         return False
 
 # max-ageを取り出す関数
-def getout_max_age(set_cookie_header):
+def get_exp_value(set_cookie_header):
     # ヘッダーを分割して各属性に分ける
     parts = set_cookie_header.split(";")
     for part in parts:
         # 各属性をトリムして"max-age"が含まれているか確認
         part = part.strip()
-        if part.lower().startswith("max-age"):
+        if part.lower().startswith("exp"):
             # max-ageの値を取り出して返す
             return part.split("=")[1]
     # max-ageが見つからなかった場合
@@ -224,6 +241,7 @@ def getout_max_age(set_cookie_header):
  days, hours, minutes, seconds = convert_max_age_to_dhms(max_age)
  print(f"{days}日 {hours}時間 {minutes}分 {seconds}秒")
 '''
+# max_ageを指定日時に変換する
 def convert_max_age_to_dhms(max_age : int, add_date: datetime = None):    
     if add_date:
         add_max_age = convert_dhms_to_max_age(add_date.day, add_date.hour, add_date.minute, add_date.second)
@@ -233,8 +251,42 @@ def convert_max_age_to_dhms(max_age : int, add_date: datetime = None):
     minutes = (max_age % 3600) // 60
     seconds = max_age % 60
     return days, hours, minutes, seconds
- 
+
+# 指定日時をmax_ageに変換する
 def convert_dhms_to_max_age(days: int, hours: int, minutes: int, seconds: int) -> int:
     max_age = days * 86400 + hours * 3600 + minutes * 60 + seconds
     return max_age
 
+# expires（UTC値の年月日時刻）をmax_age（秒）に変換する
+def convert_expires_to_max_age(expires: str) -> int:
+    # 現在のUTC時刻を取得
+    current_utc_time = datetime.now(timezone.utc)
+    
+    # expiresをdatetimeオブジェクトに変換
+    expires_datetime = datetime.fromisoformat(expires).replace(tzinfo=timezone.utc)
+    
+    # expiresまでの差を計算
+    delta = expires_datetime - current_utc_time
+    
+    # 差を秒に変換
+    max_age = int(delta.total_seconds())
+
+    return max_age
+
+from datetime import datetime, timedelta, timezone
+
+'''
+# 使用例
+get_now = datetime.now  # デモ用のget_now関数
+expired_time = get_now() + timedelta(days=30)
+expires = convert_expired_time_to_expires(expired_time)
+print(expires)
+'''
+def convert_expired_time_to_expires(expired_time: datetime) -> str:
+    # expired_timeをUTCに変換
+    expired_time_utc = expired_time.astimezone(timezone.utc)
+    
+    # ISO形式の文字列に変換
+    expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
+    
+    return expires

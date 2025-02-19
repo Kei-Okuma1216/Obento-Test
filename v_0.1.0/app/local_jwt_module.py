@@ -1,15 +1,13 @@
-from functools import wraps
 from pprint import pprint
 from typing import Union
 from fastapi import HTTPException, status
-from fastapi.responses import RedirectResponse
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date, datetime, timedelta, timezone
 import jwt
 import os
-from utils import JST, get_max_age, get_now, log_decorator
+from utils import convert_expired_time_to_expires, get_max_age, get_now, log_decorator
 
 ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
@@ -53,40 +51,26 @@ def sign_message(private_key, message: str, date: date):
 @log_decorator
 def get_new_token(data) -> str:
     try:
-        expires_delta_15s = timedelta(seconds=15)
-        expires_delta_30s = timedelta(seconds=30)
-        expires_delta_30m = timedelta(minutes=30)
-        expires_delta_1d = timedelta(days=1)
-        expires_delta_30d = timedelta(days=30)
-        #expires_delta = expires_delta_30d
-        #if not expires_delta:
-        #    raise HTTPException(status_code=404,
-        #                        detail="expires delta undefined")
-
-        expired_time = get_now(JST) + expires_delta_30d
-        #print(f"expired_time: {expired_time}")
-        #print("ここまできた 1")
-        # UNIX時間に変換
-        unix_time = get_max_age(expired_time)
-        #int(expired_time.timestamp())   
-        #print(f"unix_time: {unix_time}")
-        
         to_encode = data.copy()
         #print("ここまできた 2")
-        
-        username = data['sub']
-        permission = data['permission']
-        
+
+        username = data['sub']        
         to_encode.update({"sub": username})
+
+        permission = data['permission']
         to_encode.update({"permission": permission})
-        to_encode.update({"max-age": unix_time})
-        
+
+        expired_time = get_now() + timedelta(days=30)
+        utc_dt_str = convert_expired_time_to_expires(expired_time)
+
+        to_encode.update({"expires": utc_dt_str})
+
         #pprint(to_encode)
         #print("ここまできた 3")
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, 
                                  algorithm=ALGORITHM)
         #print("ここまできた 4")
-        return encoded_jwt, unix_time
+        return encoded_jwt, utc_dt_str
     
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -105,16 +89,17 @@ def check_cookie_token(request):
         return None
     else:
         print(f"token: {token}")
-        
-    max_age = request.cookies.get("max-age")    
-    if max_age is None:
-        print("max-age なし")
+
+    exp = request.cookies.get("exp")
+    if exp is None:
+        print("exp なし")
         #raise TokenExpiredException()
         return None
     else:
-        print(f"max_age: {max_age}")
+        print(f"exp: {exp}")
 
-    return token ,max_age
+    return token ,exp
+
 
 # Token期限切れ例外クラス
 class TokenExpiredException(HTTPException):

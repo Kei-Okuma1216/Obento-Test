@@ -1,9 +1,8 @@
 # models.py
 from dataclasses import Field
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from typing import Optional
-from utils import convert_max_age_to_dhms
 '''
 Orderクラス
 使用方法
@@ -27,7 +26,7 @@ class Order(BaseModel):
         order_id: int
         company_id: int
         username: str
-        shop_id: str
+        shop_name: str
         menu_id: int
         amount: int
         created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
@@ -42,18 +41,14 @@ class Order(BaseModel):
                 print(f"order_id: {self.created_at}, end_of_day: {end_of_day}")
                 return end_of_day
 
-'''
-class Orders(RootModel[list[Order]]):
-    def custom_method(self):
-        print(f"This is a custom method with root: {self.root}")
 
-        # Ordersのインスタンスを作成
-        orders = Orders(root=[order1, order2])
-        # カスタムメソッドを呼び出し
-        orders.custom_method()
+class Orders(RootModel[list[Order]]):
+    def sort_by_desc(self):
+        print(f"*****This is a custom method with root: {self.root}")
         
-        This is a custom method with root: [<Order order_id=1, company_id=123, ...>, <Order order_id=2, company_id=124, ...>]
-'''
+
+        
+
 
 class Payload(BaseModel):
     sub: str
@@ -111,7 +106,7 @@ class User(BaseModel):
     token: Optional[str] = None
     exp: Optional[str] = None
     company_id: Optional[int] = None
-    shop_id: Optional[str] = Field(default=1)
+    shop_name: Optional[str] = Field(default=1)
     menu_id: Optional[int] = None
     permission: Optional[int] = Field(default=1)
     is_modified: Optional[bool] = Field(default=False)
@@ -145,8 +140,8 @@ class User(BaseModel):
     def get_company_id(self) -> int:
             return self.company_id
 
-    def get_shop_id(self) -> str:
-            return self.shop_id
+    def get_shop_name(self) -> str:
+            return self.shop_name
     
     def get_menu_id(self) -> int:
             return self.menu_id
@@ -191,12 +186,12 @@ class User(BaseModel):
     def set_max_age(self, max_age: str):
         self.exp = max_age
         
-    def get_max_age_str(self) -> str:
-        return convert_max_age_to_dhms(self.exp)
+    #def get_max_age_str(self) -> str:
+    #    return convert_max_age_to_dhms(self.exp)
         
-    def print_max_age_str(self) -> str:
-        day, hour, minute, second = convert_max_age_to_dhms(self.exp)
-        print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
+    #def print_max_age_str(self) -> str:
+    #    day, hour, minute, second = convert_max_age_to_dhms(self.exp)
+    #    print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
 
         
 

@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import json
 import pprint
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
@@ -12,11 +11,11 @@ import urllib.parse
 
 import jwt
 
-from local_jwt_module import JST, SECRET_KEY, TokenExpiredException, get_max_age, get_new_token, check_cookie_token, get_now
+from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
 from sqlite_database import init_database, insert_new_user, insert_order, select_today_orders2, select_user, update_user
-from models import Order, Payload, User
-from utils import convert_max_age_to_dhms, getout_max_age, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
+from models import User
+from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -52,6 +51,7 @@ async def root(request: Request, response: Response):
 
         return HTMLResponse(message)
 
+
     # token チェックの結果を取得
     token_result = check_cookie_token(request)
     print(f"token_result: {token_result}")
@@ -65,16 +65,18 @@ async def root(request: Request, response: Response):
     if not isinstance(token_result, tuple):
         return token_result
     else:
-        token, max_age = token_result
-    
+        token, exp = token_result
+
     try:
-        if compare_expire_date(max_age) is None:
+        if compare_expire_date(exp):
             return redirect_login(request, "tokenの有効期限が切れています。再登録をしてください。")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        print(f"jwt.decode: {payload}")
+        #print(f"jwt.decode: {payload}")
         username = payload['sub']
         permission = payload['permission']
+        #expire = payload['exp']
+        print(f"exp: {exp}")
         print("token is not expired.")
 
         # 毎回tokenを作り直す
@@ -84,12 +86,12 @@ async def root(request: Request, response: Response):
             "sub": username,
             "permission": permission,
         }
-        access_token, max_age = get_new_token(data)
+        access_token, exp = get_new_token(data)
         new_data = {
             "sub": username,
-            "max-age": max_age,
-            "token": access_token,
             "permission": permission,
+            "exp": exp,
+            "token": access_token
         }
 
         set_all_cookies(response, new_data)
@@ -130,7 +132,7 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
         #print(f"name: {user.name}")
 
         if user is None:
-            print(f"username: {user.username}")
+            #print(f"username: {user.username}")
             await insert_new_user(username, password, 'name')
             user = await select_user(username)
 
@@ -141,12 +143,13 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
             "sub": user.get_username(),
             "permission": user.get_permission()
         }
-        access_token, max_age = get_new_token(data)
-        user.set_token(access_token)
-
-        print(f"max_age: {max_age}")
-        user.set_max_age(max_age)
+        access_token, utc_dt_str = get_new_token(data)
         
+        user.set_token(access_token)
+        #print(f"access_token: {access_token}")
+        user.set_exp(utc_dt_str)
+        #print(f"expires: {utc_dt_str}")
+
         return user
 
     except HTTPException as e:
@@ -165,8 +168,9 @@ async def login_post(request: Request, response: Response,
         #form = await request.form()
         username = form_data.username
         password = form_data.password
-        
-        user = await authenticate_user(request, username, password) #, form.get('name'))
+
+        user = await authenticate_user(request, username, password) 
+        #, form.get('name'))
 
         #print(f"user: {user}")
         if user is None:
@@ -181,28 +185,26 @@ async def login_post(request: Request, response: Response,
 
         redirect_url = {1: "/order_complete", 2: "/today", 3: "/admin"}.get(permission, "/error")        
         #print(f"redirect_url: {redirect_url}")
-            
+
         response = RedirectResponse(
             url=redirect_url, status_code=303)
-        
-        print("ここまできた 1")
+
+        #print("ここまできた 1")
         data = {
             'sub': user.get_username(),
             'token': user.get_token(),
-            'max-age': user.get_exp(),
+            'exp': user.get_exp(),
             'permission': user.get_permission()
         }
-        '''
         print(f" 'sub': {user.get_username()}")
         print(f" 'token': {user.get_token()}")
-        print(f" 'max-age': {user.get_exp()}")
+        print(f" 'exp': {user.get_exp()}")
         print(f" 'permission': {user.get_permission()}")
-        '''
 
 
         set_all_cookies(response, data)
 
-        user.print_max_age_str()
+        #user.print_max_age_str()
         
         # トークンのsave
         username = user.get_username()
@@ -229,8 +231,8 @@ async def regist_complete(request: Request, response: Response,
                     hx_request: Optional[str] = Header(None)): 
     try:
         cookies = get_all_cookies(request)
-        if "sub" not in cookies:
-            return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
+        if not cookies:
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         username = cookies['sub']
 
@@ -244,18 +246,20 @@ async def regist_complete(request: Request, response: Response,
         await insert_order(
             user.company_id,
             user.username,
-            user.shop_id,
+            user.shop_name,
             user.menu_id,
             amount=1)
 
-        orders = await select_today_orders2(user.shop_id, -7, user.username)
-
-        # 日時で逆順
-        orders.sort(key=lambda x: x.created_at, reverse=True)
+        orders = await select_today_orders2(user.shop_name, -7, user.username)
 
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
+
+        #orders.sort()
+
+        # 日時で逆順
+        orders.sort(key=lambda x: x.created_at, reverse=True)
 
         context = {'request': request, 'orders': orders}
 
@@ -264,23 +268,19 @@ async def regist_complete(request: Request, response: Response,
             return templates.TemplateResponse("table.html", context)
 
         last_order_date = orders[0].created_at
-        #print(f"orders[0].created_at: {orders[0].created_at}")
         prevent_order_twice(response, last_order_date)
-        #print("ここまできた 1")
-        #print("ここまできた 2")   
+
         context = {'request': request, 'orders': orders}
         template_response = templates.TemplateResponse("order_complete.html", context)
-        #print(response.headers())
-        #print("ここまできた 3")
         template_response.headers["Set-Cookie"] = response.headers.get("Set-Cookie")
-        
+
         #print("1.Cookie Value")
         #print(template_response.headers["Set-Cookie"])
         #print("2. max_age value")
         header = template_response.headers["Set-Cookie"]
-        max_age = getout_max_age(header)
-        print(f"max_age: {max_age}")
-        
+        exp_value = get_exp_value(header)
+        print(f"exp_value: {exp_value}")
+
 
         return template_response
 
@@ -296,7 +296,7 @@ async def regist_complete(request: Request, response: Response,
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
     delete_all_cookies(response)
-    
+
     return response
 
 # お店の権限チェック
@@ -317,38 +317,42 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
     
     try:
         check_store_permission(request)
+
         cookies = get_all_cookies(request)
-        #username = cookies['sub']
+        if not cookies:
+            print('cookie userなし')
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
         
         # 昨日の全注文
         orders = await select_today_orders2('shop01')
         
-        # ordersリストをin-placeで降順にソート
-        orders.sort(key=lambda x: x.created_at, reverse=True)
-        
         if orders is None:
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
-        else:
-            print(f"ordersあり")
-            # ソート結果を確認
-            #for order in orders:
-                #print(order)
+        
+        print(f"ordersあり")
+        # ソート結果を確認
+        #for order in orders:
+            #print(order)
+
+        # ordersリストをin-placeで降順にソート
+        orders.sort(key=lambda x: x.created_at, reverse=True)
     
         context = {'request': request, 'orders': orders}
         if hx_request:
             return templates.TemplateResponse(
                 "order_table.html",context)
-            
+
         template_response = templates.TemplateResponse(
             "store_orders_today.html", context)
+
         # Set-CookieヘッダーがNoneでないことを確認
         set_cookie_header = response.headers.get("Set-Cookie")
         if set_cookie_header is not None:
             template_response.headers["Set-Cookie"] = set_cookie_header
 
         return template_response
-    
+
     except Exception as e:
         print(f"/shop_today_order Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
@@ -360,10 +364,10 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
 async def order_json(request: Request, days_ago: str = Query(None)): 
     try:
         cookies = get_all_cookies(request)
-        if "sub" not in cookies:
+        if not cookies:
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-        
+
         # 注文追加
         user = await select_user(cookies['sub'])
 
@@ -378,10 +382,10 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         # 履歴取得
         if days_ago is None:
             print("全履歴を取得する") 
-            orders = await select_today_orders2(user.shop_id)
+            orders = await select_today_orders2(user.shop_name)
         elif days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit()):
             print(f"{days_ago} 日前までの履歴を取得する")
-            orders = await select_today_orders2(user.shop_id, days_ago)
+            orders = await select_today_orders2(user.shop_name, days_ago)
         else:
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
 
