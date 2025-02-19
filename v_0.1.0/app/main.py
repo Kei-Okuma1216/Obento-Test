@@ -16,7 +16,7 @@ from local_jwt_module import JST, SECRET_KEY, TokenExpiredException, get_max_age
 
 from sqlite_database import init_database, insert_new_user, insert_order, select_today_orders2, select_user, update_user
 from models import Order, Payload, User
-from utils import getout_max_age, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
+from utils import convert_max_age_to_dhms, getout_max_age, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -168,7 +168,7 @@ async def login_post(request: Request, response: Response,
         
         user = await authenticate_user(request, username, password) #, form.get('name'))
 
-        print(f"user: {user}")
+        #print(f"user: {user}")
         if user is None:
             # User新規登録する
             #insert_new_user(form_data.username, form_data.password)
@@ -185,16 +185,25 @@ async def login_post(request: Request, response: Response,
         response = RedirectResponse(
             url=redirect_url, status_code=303)
         
-        #print("ここまできた 1")
+        print("ここまできた 1")
         data = {
             'sub': user.get_username(),
             'token': user.get_token(),
             'max-age': user.get_exp(),
             'permission': user.get_permission()
         }
+        '''
+        print(f" 'sub': {user.get_username()}")
+        print(f" 'token': {user.get_token()}")
+        print(f" 'max-age': {user.get_exp()}")
+        print(f" 'permission': {user.get_permission()}")
+        '''
+
 
         set_all_cookies(response, data)
 
+        user.print_max_age_str()
+        
         # トークンのsave
         username = user.get_username()
         await update_user(username, "token", user.get_token())

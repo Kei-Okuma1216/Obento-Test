@@ -76,22 +76,23 @@ def get_today_str(offset: int = 0, date_format: str = None):
 def set_all_cookies(response: Response, data: Dict[str, str]):
     try:
         # これを試してみる↓
-        #future_time = datetime.datetime.utcnow() + datetime.timedelta(days=30)
+        UTC = timezone.utc
+        future_time = datetime.now(UTC) + timedelta(days=30)
+        expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
         
         username = data['sub']
         token = data['token']
-        exp = data['max-age']
+        #exp = data['max-age']
         permission = data['permission']
         
-        response.set_cookie(key="token", value=token, expires=exp)
-        #response.set_cookie(key="exp", value=exp, expires=exp)
-        response.set_cookie(key="sub", value=username, expires=exp)
-        response.set_cookie(key="permission", value=permission, expires=exp)
+        response.set_cookie(key="token", value=token, expires=expires)
+        response.set_cookie(key="sub", value=username, expires=expires)
+        response.set_cookie(key="permission", value=permission, expires=expires)
         
         print("set all cookies")
         print(f" UserName: {username}")
         print(f" Token: {token}")
-        print(f" Max-Age: {exp}")
+        print(f" Expires: {expires}")
         print(f" Permission: {permission}")
         
     except KeyError as e:
@@ -107,7 +108,7 @@ def get_all_cookies(request: Request) -> Dict[str, str]:
         
         if username is None:
             print("")
-            #print("cookies['sub']が存在しません")
+            print("cookies['sub']が存在しません")
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
         else:      
             print("")  
@@ -217,9 +218,23 @@ def getout_max_age(set_cookie_header):
     # max-ageが見つからなかった場合
     return None
 
-def convert_to_max_age(max_age : int):
-    days = max_age / (60*60*24)
-    nokori =  days * (60*60*24)
-    nokori = nokori % (60*60)
-    hours = nokori / 60*60
-    
+'''max-age変換
+ 例えば、3600秒 (1時間)
+ max_age = 3600
+ days, hours, minutes, seconds = convert_max_age_to_dhms(max_age)
+ print(f"{days}日 {hours}時間 {minutes}分 {seconds}秒")
+'''
+def convert_max_age_to_dhms(max_age : int, add_date: datetime = None):    
+    if add_date:
+        add_max_age = convert_dhms_to_max_age(add_date.day, add_date.hour, add_date.minute, add_date.second)
+        max_age = max_age + add_max_age
+    days = max_age // 86400
+    hours = (max_age % 86400) // 3600
+    minutes = (max_age % 3600) // 60
+    seconds = max_age % 60
+    return days, hours, minutes, seconds
+ 
+def convert_dhms_to_max_age(days: int, hours: int, minutes: int, seconds: int) -> int:
+    max_age = days * 86400 + hours * 3600 + minutes * 60 + seconds
+    return max_age
+

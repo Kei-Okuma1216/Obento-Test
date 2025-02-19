@@ -3,7 +3,7 @@ from dataclasses import Field
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 from typing import Optional
-
+from utils import convert_max_age_to_dhms
 '''
 Orderクラス
 使用方法
@@ -140,9 +140,7 @@ class User(BaseModel):
             return self.token
 
     def get_exp(self) -> int:
-        exp = self.exp
-        
-        return exp
+        return self.exp
         
     def get_company_id(self) -> int:
             return self.company_id
@@ -180,6 +178,10 @@ class User(BaseModel):
         self.datetime_str = dt.strftime("%Y-%m-%d %H:%M")
         return self if self.dt else "No date set"
 
+    def set_is_modified(self):
+        self.is_modified = True 
+
+
     def set_token(self,token: str):
         self.token = token
 
@@ -189,9 +191,14 @@ class User(BaseModel):
     def set_max_age(self, max_age: str):
         self.exp = max_age
         
-    def set_is_modified(self):
-        self.is_modified = True       
+    def get_max_age_str(self) -> str:
+        return convert_max_age_to_dhms(self.exp)
+        
+    def print_max_age_str(self) -> str:
+        day, hour, minute, second = convert_max_age_to_dhms(self.exp)
+        print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
 
+        
 
 
 
