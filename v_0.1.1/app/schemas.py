@@ -24,7 +24,7 @@ Orderクラス
 '''
 class Order(BaseModel):
         order_id: int
-        company_id: int
+        company_name: str
         username: str
         shop_name: str
         menu_id: int

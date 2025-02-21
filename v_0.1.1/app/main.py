@@ -13,7 +13,7 @@ import jwt
 
 from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
-from sqlite_database import init_database, insert_new_user, insert_order, select_shop_order, select_user, update_user
+from sqlite_database import init_database, insert_new_user, insert_order, select_shop_order, select_user, show_all_orders, update_user
 from schemas import User
 #from .schemas.schemas import User
 from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
@@ -76,7 +76,7 @@ async def root(request: Request, response: Response):
         #print(f"jwt.decode: {payload}")
         username = payload['sub']
         permission = payload['permission']
-        #expire = payload['exp']
+        exp = payload['exp']
         print(f"exp: {exp}")
         print("token is not expired.")
 
@@ -254,7 +254,7 @@ async def regist_complete(request: Request, response: Response,
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
         #orders.sort()
-
+        show_all_orders()
         # 日時で逆順
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
