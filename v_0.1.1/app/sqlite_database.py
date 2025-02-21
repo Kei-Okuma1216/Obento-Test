@@ -291,6 +291,7 @@ async def create_orders_table():
             await conn.close()
 
 # 選択
+@deprecated
 @log_decorator
 async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Optional[List[Order]]:
     conn = None
@@ -319,7 +320,7 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
             sqlstr = f"SELECT * FROM Orders WHERE shop_name = '{shop_name}' AND created_at BETWEEN '{start_day} 00:00:00' AND '{today} 23:59:59';"
 
         print(f"sqlstr: {sqlstr}")
-        
+
         await cursor.execute(sqlstr)
         rows = await cursor.fetchall()
         #print(f"rows: {rows}")
@@ -328,7 +329,7 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
             return None
         else:
             orders = appendOrder(rows)
-            
+
             orderlist = []
             for o in orders:
                 #print("ここまで start")
@@ -378,6 +379,7 @@ async def select_all_orders()-> Optional[dict]:
 
 
 # 選択
+@deprecated
 @log_decorator
 async def select_order(username: str)-> Optional[dict]:
     try:
@@ -413,7 +415,7 @@ def appendOrder(rows) -> List[dict]:
     for row in rows:
         orders.append({
             "order_id": int(row[0]),
-            "company_id": int(row[1]),
+            "company_name": row[1],
             "username": row[2],
             "shop_name": row[3],
             "menu_id": int(row[4]),
@@ -434,8 +436,8 @@ def appendOrder(rows) -> List[dict]:
 # 選択（ユーザーとお弁当屋）
 #@log_decorator
 async def select_shop_order(shopid: str,
-                               days_ago_str: str = None,
-                               username: str = None)-> Optional[List[Order]]:
+                            days_ago_str: str = None,
+                            username: str = None)-> Optional[List[Order]]:
     conn = None
     try:
         #print(f"shopid: {shopid}, days_ago: {days_ago_str}, username: {username}")
@@ -443,21 +445,27 @@ async def select_shop_order(shopid: str,
         cursor = await conn.cursor()
 
         # ベースクエリ
-        sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
-        if days_ago_str is None:
-            sqlstr += ""
-        else:
+        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
+        # company_idをCompany:nameに変更した
+        sqlstr = f'''SELECT O.order_id, C.name AS company_name, O.username, O.shop_name, O.menu_id, O.amount, O.created_at, O.canceled FROM Orders O'''
+        sqlstr = sqlstr + ''' INNER JOIN Company C ON O.company_id = C.company_id'''
+        sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
+
+        # 期間が指定されている場合、条件を追加
+        if days_ago_str:
             days_ago = int(days_ago_str)
             start_day = get_today_str(days_ago, "YMD")
-            today = get_today_str(0, "YMD") # 13時が締め切り
-            sqlstr += f''' AND (created_at BETWEEN '{start_day} 00:00:00' AND '{today} 23:59:59')'''
-            print(f"start day: {start_day}")
-            print(f"today: {today}")
+            end_day = get_today_str(0, "YMD") # 13時が締め切り
+
+            sqlstr += f''' AND (O.created_at BETWEEN '{start_day} 00:00:00' AND '{end_day} 23:59:59')'''
+            #print(f"start day: {start_day}")
+            #print(f"today: {end_day}")
+
         # ユーザーIDが指定されている場合、条件を追加
         if username is None or username == '':
             sqlstr += ""
         else:
-            sqlstr += f" AND (username = '{username}')"
+            sqlstr += f" AND (O.username = '{username}')"
         
         #print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
@@ -475,7 +483,7 @@ async def select_shop_order(shopid: str,
             
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
-            print(f"orders.count(): {len(orders)}")
+            #print(f"orders.count(): {len(orders)}")
             orderlist = []
             for o in orders:
                 #print("ここまで start")
