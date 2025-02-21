@@ -166,7 +166,7 @@ async def insert_shop(username, password, shop_name):
             INSERT INTO User (
                 username, password, name, token, exp, company_id, shop_name, menu_id, permission)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 2))
+            ''', (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 10))
         await conn.commit()
     except Exception as e:
         print(f"insert_shop Error: {e}")
@@ -434,7 +434,7 @@ def appendOrder(rows) -> List[dict]:
     return orders
 
 # 選択（ユーザーとお弁当屋）
-#@log_decorator
+@log_decorator
 async def select_shop_order(shopid: str,
                             days_ago_str: str = None,
                             username: str = None)-> Optional[List[Order]]:
@@ -518,6 +518,95 @@ async def select_shop_order(shopid: str,
     finally:
         if conn:
             await conn.close()
+
+# 選択（ユーザーとお弁当屋）
+@log_decorator
+async def select_company_order(shopid: str,
+                            days_ago_str: str = None,
+                            username: str = None)-> Optional[List[Order]]:
+    conn = None
+    try:
+        #print(f"shopid: {shopid}, days_ago: {days_ago_str}, username: {username}")
+        conn = await get_connection()
+        cursor = await conn.cursor()
+
+        # ベースクエリ
+        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
+        # company_idをCompany:nameに変更した
+        sqlstr = f'''
+        SELECT 
+         O.order_id,
+         C.name AS company_name,
+         O.username, 
+         O.shop_name, 
+         M.name AS menu_name, 
+         O.amount, 
+         O.created_at, 
+         O.canceled 
+        FROM
+         Orders O
+         INNER JOIN Company C ON O.company_id = C.company_id 
+         INNER JOIN Menu M ON O.menu_id = M.menu_id 
+        WHERE
+         (O.shop_name = '{shopid}')
+        '''
+        #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
+
+        # 期間が指定されている場合、条件を追加
+        if days_ago_str:
+            days_ago = int(days_ago_str)
+            start_day = get_today_str(days_ago, "YMD")
+            end_day = get_today_str(0, "YMD") # 13時が締め切り
+
+            sqlstr += f''' AND (O.created_at BETWEEN '{start_day} 00:00:00' AND '{end_day} 23:59:59')'''
+            #print(f"start day: {start_day}")
+            #print(f"today: {end_day}")
+
+        # ユーザーIDが指定されている場合、条件を追加
+        if username is None or username == '':
+            sqlstr += ""
+        else:
+            sqlstr += f" AND (O.username = '{username}')"
+        
+        print(f"sqlstr: {sqlstr}")
+        result = await cursor.execute(sqlstr)
+        rows = await result.fetchall()
+        #print("ここまで 1")
+        #print("rows: " + str(rows))
+        
+        if rows is None:
+            warnings.warn("No order found with the given shopid")
+            return None
+        else:
+            #print("ここまで 2")
+            #print(f"rows: {rows}")
+            orders = appendOrder(rows)
+            
+            # ここからList<Order>クラスにキャストする
+            #print(f"ordersの型: {str(type(orders))}")
+            #print(f"orders.count(): {len(orders)}")
+            orderlist = []
+            for o in orders:
+                #print("ここまで start")
+                #print(f"list: {o}")
+                json_data = json.dumps(o, ensure_ascii=False)
+                #print(f"json_data: {json_data}")
+                dict_data = json.loads(json_data)  # JSON文字列を辞書に変換
+                orderlist.append(Order(**dict_data))
+                #print(orderlist)
+                #print("ここまで end")
+        #print(f" orderlist: {orderlist}")
+        return orderlist
+
+    except Exception as e:
+        print(f"select_shop_order Error: {e}")
+        return None
+    finally:
+        if conn:
+            await conn.close()
+
+
+
 
 # 選択（ユーザーとお弁当屋）
 @log_decorator
@@ -827,6 +916,13 @@ async def init_database():
         await insert_user("user2", "user2", "大隈 慶2",company_id=1, shop_name="shop01", menu_id=1)
         # 3
         await insert_shop("shop01", "shop01", "お店shop01")
+        # 4
+        await insert_user("master", "master", "master",company_id=1, shop_name="shop01", menu_id=1)
+        await update_user("master", "permission", 2)
+        # 5
+        await insert_user("admin", "admin", "admin",company_id=1, shop_name="shop01", menu_id=1)
+        await update_user("admin", "permission", 99)
+        
         
         await create_company_table()
         # 1

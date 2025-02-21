@@ -13,7 +13,7 @@ import jwt
 
 from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
-from sqlite_database import init_database, insert_new_user, insert_order, select_shop_order, select_user, show_all_orders, update_user
+from sqlite_database import init_database, insert_new_user, insert_order, select_company_order, select_shop_order, select_user, show_all_orders, update_user
 from schemas import User
 #from .schemas.schemas import User
 from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
@@ -183,7 +183,7 @@ async def login_post(request: Request, response: Response,
         # リダイレクト前
         permission = user.get_permission()
 
-        redirect_url = {1: "/order_complete", 2: "/today", 3: "/admin"}.get(permission, "/error")    
+        redirect_url = {1: "/order_complete", 2: "/manager", 10: "/today", 99: "/admin"}.get(permission, "/error")
         #print(f"redirect_url: {redirect_url}")
 
         response = RedirectResponse(
@@ -436,6 +436,52 @@ def admin(request: Request):
     
     return templates.TemplateResponse(
         "admin.html", {"request": request})
+
+# 会社お弁当担当者画面
+@app.get("/manager", response_class=HTMLResponse)
+@log_decorator
+async def manager_view(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
+    try:
+        #check_store_permission(request)
+
+        cookies = get_all_cookies(request)
+        if not cookies:
+            print('cookie userなし')
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+        # 昨日の全注文
+        orders = await select_company_order('shop01')
+        
+        if orders is None:
+            print('ordersなし')
+            return HTMLResponse("<html><p>注文は0件です</p></html>")
+        
+        print(f"ordersあり")
+        # ソート結果を確認
+        #for order in orders:
+            #print(order)
+
+        # ordersリストをin-placeで降順にソート
+        orders.sort(key=lambda x: x.created_at, reverse=True)
+    
+        context = {'request': request, 'orders': orders}
+        if hx_request:
+            return templates.TemplateResponse(
+                "table.html",context)
+
+        template_response = templates.TemplateResponse(
+            "store_orders_today.html", context)
+
+        # Set-CookieヘッダーがNoneでないことを確認
+        set_cookie_header = response.headers.get("Set-Cookie")
+        if set_cookie_header is not None:
+            template_response.headers["Set-Cookie"] = set_cookie_header
+
+        return template_response
+
+    except Exception as e:
+        print(f"/manager_view Error: {str(e)}")
+        return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ
