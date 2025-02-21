@@ -418,7 +418,7 @@ def appendOrder(rows) -> List[dict]:
             "company_name": row[1],
             "username": row[2],
             "shop_name": row[3],
-            "menu_id": int(row[4]),
+            "menu_name": row[4],
             "amount": int(row[5]),
             "created_at": row[6],
             "canceled": bool(row[7])
@@ -447,9 +447,24 @@ async def select_shop_order(shopid: str,
         # ベースクエリ
         #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
         # company_idをCompany:nameに変更した
-        sqlstr = f'''SELECT O.order_id, C.name AS company_name, O.username, O.shop_name, O.menu_id, O.amount, O.created_at, O.canceled FROM Orders O'''
-        sqlstr = sqlstr + ''' INNER JOIN Company C ON O.company_id = C.company_id'''
-        sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
+        sqlstr = f'''
+        SELECT 
+         O.order_id,
+         C.name AS company_name,
+         O.username, 
+         O.shop_name, 
+         M.name AS menu_name, 
+         O.amount, 
+         O.created_at, 
+         O.canceled 
+        FROM
+         Orders O
+         INNER JOIN Company C ON O.company_id = C.company_id 
+         INNER JOIN Menu M ON O.menu_id = M.menu_id 
+        WHERE
+         (O.shop_name = '{shopid}')
+        '''
+        #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
 
         # 期間が指定されている場合、条件を追加
         if days_ago_str:
@@ -467,7 +482,7 @@ async def select_shop_order(shopid: str,
         else:
             sqlstr += f" AND (O.username = '{username}')"
         
-        #print(f"sqlstr: {sqlstr}")
+        print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
         #print("ここまで 1")
@@ -495,7 +510,6 @@ async def select_shop_order(shopid: str,
                 #print(orderlist)
                 #print("ここまで end")
         #print(f" orderlist: {orderlist}")
-        
         return orderlist
 
     except Exception as e:
