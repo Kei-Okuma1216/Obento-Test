@@ -24,6 +24,9 @@ ALGORITHM = "HS256"
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
+from fastapi.staticfiles import StaticFiles
+
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
@@ -254,7 +257,7 @@ async def regist_complete(request: Request, response: Response,
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
         #orders.sort()
-        show_all_orders()
+        await show_all_orders()
         # 日時で逆順
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
@@ -338,7 +341,7 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         context = {'request': request, 'orders': orders}
         if hx_request:
             return templates.TemplateResponse(
-                "order_table.html",context)
+                "table.html",context)
 
         template_response = templates.TemplateResponse(
             "store_orders_today.html", context)
