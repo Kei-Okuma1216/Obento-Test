@@ -27,7 +27,7 @@ class Order(BaseModel):
         company_name: str
         username: str
         shop_name: str
-        menu_id: int
+        menu_name: str
         amount: int
         created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
         canceled: Optional[bool] = Field(default=False)
