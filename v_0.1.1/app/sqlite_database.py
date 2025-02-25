@@ -519,7 +519,7 @@ async def select_shop_order(shopid: str,
         if conn:
             await conn.close()
 
-# 選択（ユーザーとお弁当屋）
+# 選択（会社別）
 @log_decorator
 async def select_company_order(company_id: int,
                             days_ago_str: str = None,
@@ -531,8 +531,6 @@ async def select_company_order(company_id: int,
         cursor = await conn.cursor()
 
         # ベースクエリ
-        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
-        # company_idをCompany:nameに変更した
         sqlstr = f'''
         SELECT 
          O.order_id,
@@ -550,7 +548,6 @@ async def select_company_order(company_id: int,
         WHERE
          (O.company_id = {company_id})
         '''
-        #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
 
         # 期間が指定されている場合、条件を追加
         if days_ago_str:
@@ -568,23 +565,23 @@ async def select_company_order(company_id: int,
         else:
             sqlstr += f" AND (O.username = '{username}')"
         '''
-        print(f"sqlstr: {sqlstr}")
+        #print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
-        print("ここまで 1")
+        #print("ここまで 1")
         #print("rows: " + str(rows))
 
         if rows is None:
             warnings.warn("No order found with the given shopid")
             return None
         else:
-            print("ここまで 2")
+            #print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
             
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
-            print(f"orders.count(): {len(orders)}")
+            #print(f"orders.count(): {len(orders)}")
             orderlist = []
             for o in orders:
                 #print("ここまで start")
@@ -604,9 +601,6 @@ async def select_company_order(company_id: int,
     finally:
         if conn:
             await conn.close()
-
-
-
 
 # 選択（ユーザーとお弁当屋）
 @log_decorator
@@ -658,8 +652,8 @@ async def show_all_orders():
         cursor = await conn.cursor()
         await cursor.execute('SELECT * FROM Orders')
         rows = await cursor.fetchall()
-        #for row in rows:
-        #    pprint(row)
+        for row in rows:
+            pprint(row)
     finally:
         await conn.close()
 
@@ -951,7 +945,7 @@ async def init_database():
         await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
         
         
-        await show_all_orders()
+        #await show_all_orders()
 
         
         print("データベースファイル 'sample.db' が正常に作成されました。")

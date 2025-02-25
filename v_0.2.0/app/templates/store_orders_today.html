@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>注文一覧</title>
+    </head>
+    <body>
+        <h1>本日の注文一覧</h1>
+        <h2></h2>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>番号</th>
+                    <th>会社</th>
+                    <th>名前</th>
+                    <th>メニュー名</th>
+                    <th>注文数</th>
+                    <th>注文時刻</th>
+                    <th>キャンセルの有無</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% include 'table.html' %}
+            </tbody>
+        </table>
+    </body>
+</html>
