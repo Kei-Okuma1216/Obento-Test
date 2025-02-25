@@ -80,7 +80,7 @@ async def root(request: Request, response: Response):
         username = payload['sub']
         permission = payload['permission']
         exp = payload['exp']
-        print(f"exp: {exp}")
+        #print(f"exp: {exp}")
         print("token is not expired.")
 
         # 毎回tokenを作り直す
@@ -116,7 +116,7 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request, message: Optional[str] = ""):
     try:
-        print("/login")
+        #print("/login")
         redirect_login(request, "ようこそ")
 
     except Exception as e:
@@ -340,7 +340,6 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
             #print(order)
         return await order_table_view(request, response, orders, "store_orders_today.html")
 
-        #await order_table_view(request, response, orders, "store_orders_today.html")
         '''
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
@@ -492,6 +491,12 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         print(f"ordersあり")
+        # ソート結果を確認
+        #for order in orders:
+            #print(order)
+        return await order_table_view(request, response, orders, "manager_orders_today.html")
+        
+        
         # ソート結果を確認
         #for order in orders:
             #print(order)
