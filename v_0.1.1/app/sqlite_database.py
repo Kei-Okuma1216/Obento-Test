@@ -521,7 +521,7 @@ async def select_shop_order(shopid: str,
 
 # 選択（ユーザーとお弁当屋）
 @log_decorator
-async def select_company_order(shopid: str,
+async def select_company_order(company_id: int,
                             days_ago_str: str = None,
                             username: str = None)-> Optional[List[Order]]:
     conn = None
@@ -544,11 +544,11 @@ async def select_company_order(shopid: str,
          O.created_at, 
          O.canceled 
         FROM
-         Orders O
+         Orders O 
          INNER JOIN Company C ON O.company_id = C.company_id 
          INNER JOIN Menu M ON O.menu_id = M.menu_id 
         WHERE
-         (O.shop_name = '{shopid}')
+         (O.company_id = {company_id})
         '''
         #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
 
@@ -563,28 +563,28 @@ async def select_company_order(shopid: str,
             #print(f"today: {end_day}")
 
         # ユーザーIDが指定されている場合、条件を追加
-        if username is None or username == '':
+        '''if username is None or username == '':
             sqlstr += ""
         else:
             sqlstr += f" AND (O.username = '{username}')"
-        
+        '''
         print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
-        #print("ここまで 1")
+        print("ここまで 1")
         #print("rows: " + str(rows))
-        
+
         if rows is None:
             warnings.warn("No order found with the given shopid")
             return None
         else:
-            #print("ここまで 2")
+            print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
             
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
-            #print(f"orders.count(): {len(orders)}")
+            print(f"orders.count(): {len(orders)}")
             orderlist = []
             for o in orders:
                 #print("ここまで start")
@@ -599,7 +599,7 @@ async def select_company_order(shopid: str,
         return orderlist
 
     except Exception as e:
-        print(f"select_shop_order Error: {e}")
+        print(f"select_company_order Error: {e}")
         return None
     finally:
         if conn:
@@ -658,8 +658,8 @@ async def show_all_orders():
         cursor = await conn.cursor()
         await cursor.execute('SELECT * FROM Orders')
         rows = await cursor.fetchall()
-        for row in rows:
-            pprint(row)
+        #for row in rows:
+        #    pprint(row)
     finally:
         await conn.close()
 
