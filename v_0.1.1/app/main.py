@@ -334,7 +334,10 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         # ソート結果を確認
         #for order in orders:
             #print(order)
+        return await order_table_view(request, response, orders, "store_orders_today.html")
 
+        #await order_table_view(request, response, orders, "store_orders_today.html")
+        '''
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
     
@@ -352,10 +355,38 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
             template_response.headers["Set-Cookie"] = set_cookie_header
 
         return template_response
-
+'''
     except Exception as e:
         print(f"/shop_today_order Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
+
+# 注文一覧テーブル表示
+@log_decorator
+async def order_table_view(request: Request, response: Response, orders, redirect_url: str, hx_request: Optional[str] = Header(None)):
+    #"store_orders_today.html"
+    try:        
+        # ordersリストをin-placeで降順にソート
+        orders.sort(key=lambda x: x.created_at, reverse=True)
+        #print("ここまできた 1")
+        context = {'request': request, 'orders': orders}
+        #if hx_request:
+        #    return templates.TemplateResponse(
+        #        "table.html",context)
+        templates.TemplateResponse("table.html",context)
+        #print("ここまできた 2")
+        template_response = templates.TemplateResponse(
+            redirect_url, context)
+        #print("ここまできた 3")
+        # Set-CookieヘッダーがNoneでないことを確認
+        set_cookie_header = response.headers.get("Set-Cookie")
+        #print("ここまできた 4")
+        if set_cookie_header is not None:
+            template_response.headers["Set-Cookie"] = set_cookie_header
+        #print("ここまできた 5")
+        return template_response
+    except Exception as e:
+        print(f"/order_table_view Error: {str(e)}")
+        return JSONResponse({"message": "エラーが発生しました"}, status_code=404)
 
 # 注文情報を取得する
 # 例 /order_json?days_ago=-5
@@ -429,7 +460,7 @@ def check_admin_permission(request: Request):
 # 管理者画面
 @app.get("/admin", response_class=HTMLResponse)
 @log_decorator
-def admin(request: Request):    
+def admin_view(request: Request):    
     
     # 権限チェック
     check_admin_permission(request)
@@ -451,11 +482,11 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
 
         # 昨日の全注文
         orders = await select_company_order('shop01')
-        
+
         if orders is None:
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
-        
+
         print(f"ordersあり")
         # ソート結果を確認
         #for order in orders:
@@ -463,7 +494,7 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
 
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
-    
+
         context = {'request': request, 'orders': orders}
         if hx_request:
             return templates.TemplateResponse(
