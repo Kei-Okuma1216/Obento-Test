@@ -14,7 +14,8 @@ import jwt
 from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
 from sqlite_database import init_database, insert_new_user, insert_order, select_today_orders2, select_user, update_user
-from models import User
+from schemas import User
+#from .schemas.schemas import User
 from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
 # tracemallocを有効にする
 tracemalloc.start()
