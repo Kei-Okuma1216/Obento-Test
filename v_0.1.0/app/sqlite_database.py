@@ -5,7 +5,9 @@ from typing import List, Optional
 import sqlite3
 import warnings
 from utils import deprecated, log_decorator, get_today_str 
-from models import Order, User
+#from models import Order, User
+from schemas import Order, User
+#from .schemas.schemas import Order, User
 import aiosqlite
 
 # ログ用の設定
@@ -453,7 +455,7 @@ async def select_today_orders2(shopid: str,
             print(f"start day: {start_day}")
             print(f"today: {today}")
         # ユーザーIDが指定されている場合、条件を追加
-        if username is None or username is '':
+        if username is None or username == '':
             sqlstr += ""
         else:
             sqlstr += f" AND (username = '{username}')"
