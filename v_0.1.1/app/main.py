@@ -258,6 +258,10 @@ async def regist_complete(request: Request, response: Response,
 
         #orders.sort()
         await show_all_orders()
+        
+        return await order_table_view(request, response, orders, "order_complete.html")
+
+                
         # 日時で逆順
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
@@ -481,7 +485,7 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         # 昨日の全注文
-        orders = await select_company_order('shop01')
+        orders = await select_company_order(1)
 
         if orders is None:
             print('ordersなし')
