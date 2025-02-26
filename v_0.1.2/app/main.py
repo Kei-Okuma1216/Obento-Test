@@ -24,12 +24,13 @@ ALGORITHM = "HS256"
 
 from router import router
 from admin import admin_router
+#from shop import shop_router
+
 
 app = FastAPI()
 app.include_router(router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
-
-
+#app.include_router(shop_router, prefix="/shops")
 
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
@@ -288,7 +289,7 @@ async def clear_cookie(response: Response):
     return response
 
 # お店の権限チェック
-#@log_decorator
+@log_decorator
 def check_store_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"check_store_permission: {permission}")
@@ -410,14 +411,14 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         orders = []
         print(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
-
+'''
 # 管理者の権限チェック
 def check_admin_permission(request: Request):
     permission = request.cookies.get("permission")
     print(f"permission: {permission}")
     if permission != "99":
         raise HTTPException(status_code=403, detail="Not Authorized")
-'''
+
 # 管理者画面
 @app.get("/admin", response_class=HTMLResponse)
 @log_decorator
