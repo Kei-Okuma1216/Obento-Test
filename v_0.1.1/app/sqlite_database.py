@@ -23,7 +23,7 @@ db_name_str = "example.db"
 # コネクション取得
 async def get_connection(): 
     # return await sqlite3.connect('example.db') 
-    return await aiosqlite.connect('example.db')
+    return await aiosqlite.connect('example.db', isolation_level=None)
      #conn = sqlite3.connect({{db_name_str}}) 
      
 
@@ -72,7 +72,7 @@ async def create_user_table():
 @log_decorator
 async def select_user(username: str)-> Optional[User]:
     try:
-        #print(f"username: {username}")
+        print(f"username: {username}")
         conn = await get_connection()
         
         async with conn.cursor() as cursor:
@@ -519,7 +519,7 @@ async def select_shop_order(shopid: str,
         if conn:
             await conn.close()
 
-# 選択（会社別）
+# 選択（ユーザーとお弁当屋）
 @log_decorator
 async def select_company_order(company_id: int,
                             days_ago_str: str = None,
@@ -531,6 +531,8 @@ async def select_company_order(company_id: int,
         cursor = await conn.cursor()
 
         # ベースクエリ
+        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
+        # company_idをCompany:nameに変更した
         sqlstr = f'''
         SELECT 
          O.order_id,
@@ -548,6 +550,7 @@ async def select_company_order(company_id: int,
         WHERE
          (O.company_id = {company_id})
         '''
+        #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
 
         # 期間が指定されている場合、条件を追加
         if days_ago_str:
@@ -565,17 +568,17 @@ async def select_company_order(company_id: int,
         else:
             sqlstr += f" AND (O.username = '{username}')"
         '''
-        #print(f"sqlstr: {sqlstr}")
+        print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
-        #print("ここまで 1")
+        print("ここまで 1")
         #print("rows: " + str(rows))
 
         if rows is None:
             warnings.warn("No order found with the given shopid")
             return None
         else:
-            #print("ここまで 2")
+            print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
             
@@ -601,6 +604,9 @@ async def select_company_order(company_id: int,
     finally:
         if conn:
             await conn.close()
+
+
+
 
 # 選択（ユーザーとお弁当屋）
 @log_decorator
@@ -652,8 +658,8 @@ async def show_all_orders():
         cursor = await conn.cursor()
         await cursor.execute('SELECT * FROM Orders')
         rows = await cursor.fetchall()
-        for row in rows:
-            pprint(row)
+        #for row in rows:
+        #    pprint(row)
     finally:
         await conn.close()
 
@@ -945,7 +951,7 @@ async def init_database():
         await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
         
         
-        #await show_all_orders()
+        await show_all_orders()
 
         
         print("データベースファイル 'sample.db' が正常に作成されました。")
