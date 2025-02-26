@@ -85,7 +85,7 @@ async def root(request: Request, response: Response):
 
         # 毎回tokenを作り直す
         response = RedirectResponse(url="/order_complete", status_code=303)
-        
+
         data = {
             "sub": username,
             "permission": permission,
@@ -116,7 +116,6 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request, message: Optional[str] = ""):
     try:
-        print("/login")
         redirect_login(request, "ようこそ")
 
     except Exception as e:
