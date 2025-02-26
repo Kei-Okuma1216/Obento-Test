@@ -33,7 +33,7 @@ def sign_message(private_key, message: str, date: date):
     
     # メッセージに日付を追加 
     combined_message = message + str(date)
-
+    
     # 署名を生成
     signature = private_key.sign(
         combined_message.encode(),
