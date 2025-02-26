@@ -17,6 +17,8 @@ from sqlite_database import init_database, insert_new_user, insert_order, select
 from schemas import User
 #from .schemas.schemas import User
 from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
+
+from services.order_view import order_table_view
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -24,13 +26,10 @@ ALGORITHM = "HS256"
 
 from router import router
 from admin import admin_router
-#from shop import shop_router
-
-
 app = FastAPI()
+
 app.include_router(router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
-#app.include_router(shop_router, prefix="/shops")
 
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
@@ -289,7 +288,7 @@ async def clear_cookie(response: Response):
     return response
 
 # お店の権限チェック
-@log_decorator
+#@log_decorator
 def check_store_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"check_store_permission: {permission}")
@@ -329,6 +328,7 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         print(f"/shop_today_order Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 
+'''
 # 注文一覧テーブル表示
 @log_decorator
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str, hx_request: Optional[str] = Header(None)):
@@ -356,10 +356,10 @@ async def order_table_view(request: Request, response: Response, orders, redirec
     except Exception as e:
         print(f"/order_table_view Error: {str(e)}")
         return JSONResponse({"message": "エラーが発生しました"}, status_code=404)
-
+'''
 # 注文情報を取得する
-# 例 /order_json?days_ago=-5
-@app.get("/order_json",response_class=HTMLResponse) 
+# 例 https://127.0.0.1:8000/order_json?days_ago=-5
+@app.get("/today/order_json",response_class=HTMLResponse) 
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query(None)): 
     try:
@@ -411,25 +411,9 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         orders = []
         print(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
-'''
-# 管理者の権限チェック
-def check_admin_permission(request: Request):
-    permission = request.cookies.get("permission")
-    print(f"permission: {permission}")
-    if permission != "99":
-        raise HTTPException(status_code=403, detail="Not Authorized")
 
-# 管理者画面
-@app.get("/admin", response_class=HTMLResponse)
-@log_decorator
-def admin_view(request: Request):    
-    
-    # 権限チェック
-    check_admin_permission(request)
-    
-    return templates.TemplateResponse(
-        "admin.html", {"request": request})
-'''
+
+
 # 会社お弁当担当者画面
 @app.get("/manager", response_class=HTMLResponse)
 @log_decorator

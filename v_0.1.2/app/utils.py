@@ -8,6 +8,8 @@ from typing import Dict, Optional
 import warnings
 
 
+
+
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
 def log_decorator(func):
