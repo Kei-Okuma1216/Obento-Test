@@ -20,9 +20,15 @@ view_router = APIRouter(
 # 注文一覧テーブル表示
 @log_decorator
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str, hx_request: Optional[str] = Header(None)):
-    try:        
+    try:
+        #print(f"ordersあり")
+   
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
+
+        # ソート結果を確認
+        #for order in orders:
+            #print(order)
 
         #print("ここまできた 1")
         context = {'request': request, 'orders': orders}
