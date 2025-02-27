@@ -19,6 +19,7 @@ def check_admin_permission(request: Request):
         raise HTTPException(status_code=403, detail="Not Authorized")
 
 # 管理者画面
+# 注意：エンドポイントにprefix:adminはつけない
 @admin_router.get("/today", response_class=HTMLResponse)
 @log_decorator
 def admin_view(request: Request):    

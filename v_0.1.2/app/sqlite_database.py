@@ -917,8 +917,8 @@ async def init_database():
         # 3
         await insert_shop("shop01", "shop01", "お店shop01")
         # 4
-        await insert_user("master", "master", "master",company_id=1, shop_name="shop01", menu_id=1)
-        await update_user("master", "permission", 2)
+        await insert_user("manager", "manager", "manager",company_id=1, shop_name="shop01", menu_id=1)
+        await update_user("manager", "permission", 2)
         # 5
         await insert_user("admin", "admin", "admin",company_id=1, shop_name="shop01", menu_id=1)
         await update_user("admin", "permission", 99)

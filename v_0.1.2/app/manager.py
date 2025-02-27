@@ -22,7 +22,8 @@ def check_manager_permission(request: Request):
         raise HTTPException(status_code=403, detail="Not Authorized")
 
 # 会社お弁当担当者画面
-@manager_router.get("/manager", response_class=HTMLResponse)
+# 注意：エンドポイントにprefix:managerはつけない
+@manager_router.get("/today", response_class=HTMLResponse)
 @log_decorator
 async def manager_view(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
     try:

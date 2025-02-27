@@ -1,6 +1,6 @@
 # 店舗の権限チェック
 from typing import Optional
-from fastapi import HTTPException, Request
+from fastapi import HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
@@ -24,7 +24,7 @@ def check_store_permission(request: Request):
     #print(f"check_store_permission: {permission}")
     if permission is None:
         raise HTTPException(status_code=403, detail="Permission Data is not Contained")
-    if permission == "1":
+    if permission == [10,99]:
         raise HTTPException(status_code=403, detail="Not Authorized")
 
 # お弁当屋の注文確認
@@ -47,12 +47,9 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         if orders is None:
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
-        
-        print(f"ordersあり")
-        # ソート結果を確認
-        #for order in orders:
-            #print(order)
-        return await order_table_view(request, response, orders, "store_orders_today.html")
+
+        main_view = "store_orders_today.html"
+        return await order_table_view(request, response, orders, main_view)
 
     except Exception as e:
         print(f"/shop_today_order Error: {str(e)}")
