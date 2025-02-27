@@ -14,12 +14,13 @@ from pydantic import BaseModel
 
 from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
-from sqlite_database import init_database, insert_new_user, insert_order, select_company_order, select_shop_order, select_user, show_all_orders, update_user
+from sqlite_database import init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 from schemas import User
 #from .schemas.schemas import User
-from utils import get_exp_value, stop_twice_order, compare_expire_date, delete_all_cookies, get_all_cookies, log_decorator, prevent_order_twice, set_all_cookies
+from utils import stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 
 from services.order_view import order_table_view
+
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -29,12 +30,14 @@ from router import router
 from admin import admin_router
 from manager import manager_router
 from shop import shop_router
+#from user import user_router
 app = FastAPI()
 
 app.include_router(router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
+#app.include_router(user_router, prefix="/users")
 
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
@@ -137,7 +140,7 @@ async def login_get(request: Request, message: Optional[str] = ""):
         encoded_message = urllib.parse.quote("ログインページが表示できません")
         redirect_url = f"/login.html?message={encoded_message}"
         response = RedirectResponse(url=redirect_url, status_code=303)
-        
+
         return response
 # -----------------------------------------------------
 # ログイン認証
@@ -290,16 +293,27 @@ async def clear_cookie(response: Response):
     delete_all_cookies(response)
 
     return response
-'''
-# お店の権限チェック
-#@log_decorator
-def check_store_permission(request: Request):
-    permission = request.cookies.get("permission")
-    #print(f"check_store_permission: {permission}")
-    if permission is None:
-        raise HTTPException(status_code=403, detail="Permission Data is not Contained")
-    if permission == 1:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+
+from typing import List
+
+class CancelUpdate(BaseModel):
+    updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
+
+@app.post("/update_cancel_status")
+@log_decorator
+async def update_cancel_status(update: CancelUpdate):
+    results = []
+    for change in update.updates:
+        order_id = change["order_id"]
+        canceled = change["canceled"]
+        print(f"更新 order_id: {order_id}, canceled: {canceled}")
+        
+        # ここに SQL の UPDATE 文を実行するコードを入れる
+        # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
+        await update_order(order_id, canceled)
+        results.append({"order_id": order_id, "canceled": canceled, "success": True})
+    
+    return {"results": results}
 '''
 class CancelUpdate(BaseModel):
     order_id: int
@@ -307,16 +321,20 @@ class CancelUpdate(BaseModel):
     orders: dict  # orders をエンドポイントから渡す
 
 @app.post("/update_cancel_status")
+@log_decorator
 async def update_cancel_status(update: CancelUpdate):
     order_id = update.order_id
+    print(f"更新 order_id: {order_id}")
+    print(f"更新 canceled: {update.canceled}")
     orders_data = update.orders  # クライアントから渡された orders を取得
-    
+
+    print(f"更新 orders_data: {orders_data}")
     if order_id in orders_data:
         orders_data[order_id]["canceled"] = update.canceled
         return {"success": True, "order_id": order_id, "canceled": update.canceled}
 
     return {"success": False, "error": "注文が見つかりません"}
-
+'''
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ

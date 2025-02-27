@@ -295,8 +295,11 @@ def check_permission(request: Request, allowed_permissions: Optional[List[int]] 
     permission = request.cookies.get("permission")
     #print(f"check_store_permission: {permission}")
     if permission is None:
+        #allowed_permissions = [99]
         raise HTTPException(status_code=403, detail="Permission Data is not Contained")
     if permission == 99:
-        print("permission == 99")
-    elif permission not in allowed_permissions:
+        print(f"permission: {permission}")
+    elif permission in allowed_permissions:
+        print(f"permission: {permission}")
+    else:
         raise HTTPException(status_code=403, detail="Not Authorized")

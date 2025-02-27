@@ -37,8 +37,8 @@ def check_store_permission(request: Request):
 async def shop_today_order(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
     
     try:
-        check_permission(request, [10,99])
-        #check_store_permission(request)
+        #check_permission(request, [10,99])
+        check_store_permission(request)
 
         cookies = get_all_cookies(request)
         if not cookies:
@@ -99,8 +99,8 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
         #print("ここまできた 3")
-        for order in orders:
-            print(order.model_dump_json())
+        #for order in orders:
+        #    print(order.model_dump_json())
 
         #print("ここまできた 4")
  
