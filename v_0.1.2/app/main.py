@@ -86,7 +86,8 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            return redirect_login(request, "tokenの有効期限が切れています。再登録をしてください。")
+            message = "トークンの有効期限が切れています。再登録をしてください。"
+            return redirect_login(request, message)
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         #print(f"jwt.decode: {payload}")
@@ -211,10 +212,10 @@ async def login_post(request: Request, response: Response,
             'exp': user.get_exp(),
             'permission': user.get_permission()
         }
-        print(f" 'sub': {user.get_username()}")
-        print(f" 'token': {user.get_token()}")
-        print(f" 'exp': {user.get_exp()}")
-        print(f" 'permission': {user.get_permission()}")
+        #print(f" 'sub': {user.get_username()}")
+        #print(f" 'token': {user.get_token()}")
+        #print(f" 'exp': {user.get_exp()}")
+        #print(f" 'permission': {user.get_permission()}")
 
 
         set_all_cookies(response, data)
@@ -249,15 +250,13 @@ async def regist_complete(request: Request, response: Response,
         if not cookies:
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        username = cookies['sub']
-
         # 注文追加
-        user = await select_user(username)
+        user = await select_user(cookies['sub'])
 
         if user is None:
             print(f"user:{user} 取得に失敗しました")
             return HTMLResponse("<html><p>user 取得に失敗しました</p></html>")
-    
+
         await insert_order(
             user.company_id,
             user.username,
@@ -272,7 +271,7 @@ async def regist_complete(request: Request, response: Response,
             print("No orders found or error occurred.")
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
-        await show_all_orders()
+        #await show_all_orders()
 
         main_view = "order_complete.html"
         return await order_table_view(request, response, orders, main_view)
@@ -291,7 +290,7 @@ async def clear_cookie(response: Response):
     delete_all_cookies(response)
 
     return response
-
+'''
 # お店の権限チェック
 #@log_decorator
 def check_store_permission(request: Request):
@@ -299,94 +298,9 @@ def check_store_permission(request: Request):
     #print(f"check_store_permission: {permission}")
     if permission is None:
         raise HTTPException(status_code=403, detail="Permission Data is not Contained")
-    if permission == "1":
+    if permission == 1:
         raise HTTPException(status_code=403, detail="Not Authorized")
-
 '''
-# お弁当屋の注文確認
-@app.post("/today", response_class=HTMLResponse, tags=["order"])
-@app.get("/today", response_class=HTMLResponse, tags=["order"])
-@log_decorator
-async def shop_today_order(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
-    
-    try:
-        check_store_permission(request)
-
-        cookies = get_all_cookies(request)
-        if not cookies:
-            print('cookie userなし')
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-        
-        # 昨日の全注文
-        orders = await select_shop_order('shop01')
-        
-        if orders is None:
-            print('ordersなし')
-            return HTMLResponse("<html><p>注文は0件です</p></html>")
-
-        main_view = "store_orders_today.html"
-        return await order_table_view(request, response, orders, main_view)
-
-    except Exception as e:
-        print(f"/shop_today_order Error: {str(e)}")
-        return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
-'''
-# 注文情報を取得する
-# 例 https://127.0.0.1:8000/today/order_json?days_ago=-5
-@app.get("/today/order_json",response_class=HTMLResponse) 
-@log_decorator
-async def order_json(request: Request, days_ago: str = Query(None)): 
-    try:
-        cookies = get_all_cookies(request)
-        if not cookies:
-            #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-
-        # 注文追加
-        user = await select_user(cookies['sub'])
-
-        if user is None:
-            print(f"user:{user} 取得に失敗しました")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-
-        if days_ago is not None:
-            print(f"days_ago: {int(days_ago)}")
-
-        #print(f"days_ago: {days_ago}")
-        # 履歴取得
-        if days_ago is None:
-            print("全履歴を取得する") 
-            orders = await select_shop_order(user.shop_name)
-        elif days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit()):
-            print(f"{days_ago} 日前までの履歴を取得する")
-            orders = await select_shop_order(user.shop_name, days_ago)
-        else:
-            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
-
-        if not orders:
-            print("No orders found or error occurred.")
-            return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
-
-        # 日時で逆順
-        orders.sort(key=lambda x: x.created_at, reverse=True)
-
-        #print("ここまできた 3")
-        for order in orders:
-            print(order.model_dump_json())
-
-        #print("ここまできた 4")
- 
-        orders_dict = [order.model_dump() for order in orders]
-        orders_json = json.dumps(orders_dict, default=str)  # ← datetime を文字列に変換
-
-        return JSONResponse(content=json.loads(orders_json))  # JSON をパースしてレスポンス
-    
-    except Exception as e:
-        orders = []
-        print(f"/order_json Error: {str(e)}")
-        return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
-
-
 class CancelUpdate(BaseModel):
     order_id: int
     canceled: bool
@@ -402,6 +316,7 @@ async def update_cancel_status(update: CancelUpdate):
         return {"success": True, "order_id": order_id, "canceled": update.canceled}
 
     return {"success": False, "error": "注文が見つかりません"}
+
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ

@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import HTTPException, Header, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from utils import get_all_cookies, log_decorator
+from utils import check_permission, get_all_cookies, log_decorator
 from sqlite_database import select_company_order
 from services.order_view import order_table_view
 
@@ -31,9 +31,12 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
         if not cookies:
             print('cookie userなし')
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-        permission = cookies.get('permission')
-        if permission not in [2,99]:
-            raise HTTPException(status_code=403, detail="Not Authorized")
+
+        check_permission(request, [2,99])
+
+        #permission = cookies.get('permission')
+        #if permission not in [2,99]:
+            #raise HTTPException(status_code=403, detail="Not Authorized")
 
         # 昨日の全注文
         orders = await select_company_order(1)

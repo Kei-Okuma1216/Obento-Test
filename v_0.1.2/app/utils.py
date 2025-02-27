@@ -1,14 +1,11 @@
 # utils.py
 from datetime import datetime, timezone, timedelta
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response
 from functools import wraps
 import functools
 import inspect
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 import warnings
-
-
-
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
@@ -291,3 +288,15 @@ def convert_expired_time_to_expires(expired_time: datetime) -> str:
     expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
     
     return expires
+
+# 権限チェック
+@log_decorator
+def check_permission(request: Request, allowed_permissions: Optional[List[int]] = None):
+    permission = request.cookies.get("permission")
+    #print(f"check_store_permission: {permission}")
+    if permission is None:
+        raise HTTPException(status_code=403, detail="Permission Data is not Contained")
+    if permission == 99:
+        print("permission == 99")
+    elif permission not in allowed_permissions:
+        raise HTTPException(status_code=403, detail="Not Authorized")
