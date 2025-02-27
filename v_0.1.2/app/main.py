@@ -10,6 +10,7 @@ from typing import Optional
 import urllib.parse
 
 import jwt
+from pydantic import BaseModel
 
 from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
 
@@ -26,10 +27,12 @@ ALGORITHM = "HS256"
 
 from router import router
 from admin import admin_router
+from manager import manager_router
 app = FastAPI()
 
 app.include_router(router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
+app.include_router(manager_router, prefix="/manager")
 
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
@@ -317,11 +320,7 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         if orders is None:
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
-        
-        print(f"ordersあり")
-        # ソート結果を確認
-        #for order in orders:
-            #print(order)
+
         return await order_table_view(request, response, orders, "store_orders_today.html")
 
     except Exception as e:
@@ -358,7 +357,7 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         return JSONResponse({"message": "エラーが発生しました"}, status_code=404)
 '''
 # 注文情報を取得する
-# 例 https://127.0.0.1:8000/order_json?days_ago=-5
+# 例 https://127.0.0.1:8000/today/order_json?days_ago=-5
 @app.get("/today/order_json",response_class=HTMLResponse) 
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query(None)): 
@@ -413,7 +412,23 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
 
+class CancelUpdate(BaseModel):
+    order_id: int
+    canceled: bool
+    orders: dict  # orders をエンドポイントから渡す
 
+@app.post("/update_cancel_status")
+async def update_cancel_status(update: CancelUpdate):
+    order_id = update.order_id
+    orders_data = update.orders  # クライアントから渡された orders を取得
+    
+    if order_id in orders_data:
+        orders_data[order_id]["canceled"] = update.canceled
+
+        return {"success": True, "order_id": order_id, "canceled": update.canceled}
+    return {"success": False, "error": "注文が見つかりません"}
+
+'''
 # 会社お弁当担当者画面
 @app.get("/manager", response_class=HTMLResponse)
 @log_decorator
@@ -445,6 +460,8 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
     except Exception as e:
         print(f"/manager_view Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
+'''
+
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ

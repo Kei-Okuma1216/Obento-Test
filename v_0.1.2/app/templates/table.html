@@ -20,9 +20,91 @@
     <td>{{ order.menu_name }}</td>
     <td>{{ order.amount }}</td>
     <td>{{ order.created_at }}</td>
-    <td>{{ order.canceled }}</td>
+    <td>
+        <input type="checkbox" class="cancel-checkbox" data-order-id="{{ order.order_id }}"
+            {% if order.canceled %} checked {% endif %}>
+    </td>
+    <!--<td>{{ order.canceled }}</td>-->
 </tr>
 {% endfor %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        function getOrdersFromTable() {
+            let orders = {};
+            document.querySelectorAll("tbody tr").forEach(row => {
+                let orderId = row.cells[0].textContent.trim();
+                let canceledCheckbox = row.querySelector(".cancel-checkbox");
+                if (orderId) {
+                    orders[orderId] = {
+                        order_id: parseInt(orderId, 10),
+                        canceled: canceledCheckbox.checked
+                    };
+                }
+            });
+            return orders;
+        }
+    
+        document.querySelectorAll(".cancel-checkbox").forEach(function (checkbox) {
+            checkbox.addEventListener("change", function () {
+                const orderId = this.dataset.orderId;
+                const canceled = this.checked;  // True or False
+                const orders = getOrdersFromTable();  // テーブル内の orders を取得
+    
+                fetch("/update_cancel_status", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        canceled: canceled,
+                        orders: orders  // 取得した orders を送信
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log("更新成功:", data);
+                    } else {
+                        alert("更新に失敗しました");
+                    }
+                })
+                .catch(error => console.error("エラー:", error));
+            });
+        });
+    });
+    </script>
+    
+<!--<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll(".cancel-checkbox").forEach(function (checkbox) {
+            checkbox.addEventListener("change", function () {
+                const orderId = this.dataset.orderId;
+                const canceled = this.checked;  // True or False
+    
+                fetch("/update_cancel_status", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        canceled: canceled
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log("更新成功:", data);
+                    } else {
+                        alert("更新に失敗しました");
+                    }
+                })
+                .catch(error => console.error("エラー:", error));
+            });
+        });
+    });
+</script>-->
 <!--
     "order_id": row[0],
     "company_id": row[1],
