@@ -28,11 +28,13 @@ ALGORITHM = "HS256"
 from router import router
 from admin import admin_router
 from manager import manager_router
+from shop import shop_router
 app = FastAPI()
 
 app.include_router(router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
+app.include_router(shop_router, prefix="/shops")
 
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
@@ -193,7 +195,8 @@ async def login_post(request: Request, response: Response,
         # リダイレクト前
         permission = user.get_permission()
 
-        redirect_url = {1: "/order_complete", 2: "/manager", 10: "/today", 99: "/admin/today"}.get(permission, "/error")
+        # prefix込みでリダイレクト
+        redirect_url = {1: "/order_complete", 2: "/manager/today", 10: "/shops/today", 99: "/admin/today"}.get(permission, "/error")
         print("******")
         print(f"redirect_url: {redirect_url}")
         print("******")
@@ -262,18 +265,17 @@ async def regist_complete(request: Request, response: Response,
             user.menu_id,
             amount=1)
 
-        orders = await select_shop_order(user.shop_name, -7, user.username)
+        orders = await select_shop_order(
+            user.shop_name, -7, user.username)
 
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
-        #orders.sort()
         await show_all_orders()
-        
-        return await order_table_view(request, response, orders, "order_complete.html")
 
-
+        main_view = "order_complete.html"
+        return await order_table_view(request, response, orders, main_view)
 
     except Exception as e:
         orders = []
@@ -300,6 +302,7 @@ def check_store_permission(request: Request):
     if permission == "1":
         raise HTTPException(status_code=403, detail="Not Authorized")
 
+'''
 # お弁当屋の注文確認
 @app.post("/today", response_class=HTMLResponse, tags=["order"])
 @app.get("/today", response_class=HTMLResponse, tags=["order"])
@@ -321,40 +324,12 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
-        return await order_table_view(request, response, orders, "store_orders_today.html")
+        main_view = "store_orders_today.html"
+        return await order_table_view(request, response, orders, main_view)
 
     except Exception as e:
         print(f"/shop_today_order Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
-
-'''
-# 注文一覧テーブル表示
-@log_decorator
-async def order_table_view(request: Request, response: Response, orders, redirect_url: str, hx_request: Optional[str] = Header(None)):
-    #"store_orders_today.html"
-    try:        
-        # ordersリストをin-placeで降順にソート
-        orders.sort(key=lambda x: x.created_at, reverse=True)
-        #print("ここまできた 1")
-        context = {'request': request, 'orders': orders}
-        #if hx_request:
-        #    return templates.TemplateResponse(
-        #        "table.html",context)
-        templates.TemplateResponse("table.html",context)
-        #print("ここまできた 2")
-        template_response = templates.TemplateResponse(
-            redirect_url, context)
-        #print("ここまできた 3")
-        # Set-CookieヘッダーがNoneでないことを確認
-        set_cookie_header = response.headers.get("Set-Cookie")
-        #print("ここまできた 4")
-        if set_cookie_header is not None:
-            template_response.headers["Set-Cookie"] = set_cookie_header
-        #print("ここまできた 5")
-        return template_response
-    except Exception as e:
-        print(f"/order_table_view Error: {str(e)}")
-        return JSONResponse({"message": "エラーが発生しました"}, status_code=404)
 '''
 # 注文情報を取得する
 # 例 https://127.0.0.1:8000/today/order_json?days_ago=-5
@@ -424,44 +399,9 @@ async def update_cancel_status(update: CancelUpdate):
     
     if order_id in orders_data:
         orders_data[order_id]["canceled"] = update.canceled
-
         return {"success": True, "order_id": order_id, "canceled": update.canceled}
+
     return {"success": False, "error": "注文が見つかりません"}
-
-'''
-# 会社お弁当担当者画面
-@app.get("/manager", response_class=HTMLResponse)
-@log_decorator
-async def manager_view(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
-    try:
-        cookies = get_all_cookies(request)
-        if not cookies:
-            print('cookie userなし')
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
-        permission = cookies.get('permission')
-        if permission != 2:
-            raise HTTPException(status_code=403, detail="Not Authorized")
-
-        # 昨日の全注文
-        orders = await select_company_order(1)
-
-        if orders is None:
-            print('ordersなし')
-            return HTMLResponse("<html><p>注文は0件です</p></html>")
-
-        print(f"ordersあり")
-        # ソート結果を確認
-        #for order in orders:
-            #print(order)
-
-        return await order_table_view(request, response, orders, "manager_orders_today.html")
-
-
-    except Exception as e:
-        print(f"/manager_view Error: {str(e)}")
-        return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
-'''
-
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ

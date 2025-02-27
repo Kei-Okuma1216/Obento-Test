@@ -29,12 +29,9 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         # ソート結果を確認
         #for order in orders:
             #print(order)
-
         #print("ここまできた 1")
         context = {'request': request, 'orders': orders}
-        #if hx_request:
-        #    return templates.TemplateResponse(
-        #        "table.html",context)
+
         templates.TemplateResponse("table.html",context)
         #print("ここまできた 2")
         template_response = templates.TemplateResponse(
