@@ -482,7 +482,7 @@ async def select_shop_order(shopid: str,
         else:
             sqlstr += f" AND (O.username = '{username}')"
         
-        print(f"sqlstr: {sqlstr}")
+        #print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
         #print("ここまで 1")
@@ -684,6 +684,23 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         if not conn:
             await conn.close()
 
+# 更新
+@log_decorator
+async def update_order(order_id, canceled):
+    try:
+        conn = await get_connection()
+        async with conn.cursor() as cursor:
+            query = f"UPDATE Orders SET canceled = {canceled} WHERE order_id = {order_id}"
+            await cursor.execute(query)
+            await conn.commit()  # 非同期の `commit()`
+    except Exception as e:
+        print(f"update_order Error: {e}")
+    finally:
+        if conn:
+            await conn.close()
+    return
+
+            
 # 選択
 @log_decorator
 async def select_company(company_id: str):
