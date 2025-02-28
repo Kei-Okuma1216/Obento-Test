@@ -26,9 +26,9 @@ tracemalloc.start()
 
 ALGORITHM = "HS256"
 
-from router import router
-from admin import admin_router
-from manager import manager_router
+from services.router import router
+from services.admin import admin_router
+from services.manager import manager_router
 from shop import shop_router
 #from routers.user import user_router
 app = FastAPI()
