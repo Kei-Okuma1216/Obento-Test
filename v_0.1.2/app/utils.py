@@ -178,19 +178,20 @@ def compare_expire_date(exp_unix_str: str) -> bool:
 
 # 二重注文の禁止
 # 設定
-#@log_decorator
+@log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
     end_of_day = get_end_of_today() 
-    #print(f"end_of_day: {end_of_day}")
     end_time = get_max_age(end_of_day)
-    #print(f"max_time: {end_time}")
     current = datetime.now(JST)
-    #print(f"now: {current}")
     current_time = get_max_age(current)
-    #print(f"current_time: {end_time}")
     future_time = end_time - current_time
-    #print(f"future_time: {end_time}")
     
+    print(f"end_of_day: {end_of_day}")
+    print(f"max_time: {end_time}")
+    print(f"now: {current}")
+    print(f"current_time: {end_time}")
+    print(f"future_time: {end_time}")
+
     response.set_cookie(
         key="last_order_date", value=last_order_date, max_age=future_time)
     print("# 期限を本日の23:59:59にした")
@@ -211,10 +212,10 @@ def get_max_age(dt: datetime) -> int:
     return unix_time
 
 # チェックする
-#@log_decorator
+@log_decorator
 def stop_twice_order(request: Request):
     last_order = request.cookies.get("last_order_date")
-    #print(f"last_order: {last_order}")
+    print(f"last_order: {last_order}")
     if last_order != None:
         return True # 注文処理をやめる
     else:
