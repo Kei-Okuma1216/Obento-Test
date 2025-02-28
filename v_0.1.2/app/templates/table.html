@@ -59,7 +59,7 @@
 
                 // 各注文について、初期状態と現在の状態が異なる場合に差分を記録
                 for (let orderId in endOrders) {
-                    if (startOrders[orderId].canceled !== endOrders[orderId].canceled) {
+                    if (startOrders[orderId] === undefined || startOrders[orderId].canceled !== endOrders[orderId].canceled) {
                         changes.push({
                             order_id: endOrders[orderId].order_id,
                             canceled: endOrders[orderId].canceled

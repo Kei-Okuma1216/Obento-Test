@@ -280,6 +280,7 @@ async def create_orders_table():
             menu_id INTEGER,
             amount INTEGER,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT DEFAULT "",
             canceled INTEGER DEFAULT 0
             )
         ''')
@@ -448,7 +449,7 @@ async def select_shop_order(shopid: str,
         #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
         # company_idをCompany:nameに変更した
         sqlstr = f'''
-        SELECT 
+SELECT 
          O.order_id,
          C.name AS company_name,
          O.username, 
@@ -690,7 +691,11 @@ async def update_order(order_id, canceled):
     try:
         conn = await get_connection()
         async with conn.cursor() as cursor:
-            query = f"UPDATE Orders SET canceled = {canceled} WHERE order_id = {order_id}"
+            #query = f"UPDATE Orders SET canceled = {canceled} WHERE order_id = {order_id}"
+            current_time = get_today_str()
+            #print(f"current_time: {current_time}")
+            query = f"UPDATE Orders SET canceled = {canceled} , updated_at = '{current_time}' WHERE order_id = {order_id}"
+            #print(f"query: {query}")
             await cursor.execute(query)
             await conn.commit()  # 非同期の `commit()`
     except Exception as e:
