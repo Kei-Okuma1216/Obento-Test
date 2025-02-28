@@ -8,7 +8,7 @@ from fastapi import Header
 
 templates = Jinja2Templates(directory="templates")
 
-from main import order_table_view
+from app.services import order_table_view
 from sqlite_database import select_shop_order, select_user, insert_order
 from utils import get_all_cookies, log_decorator
 

@@ -17,7 +17,7 @@ from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, c
 from sqlite_database import init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 from schemas import User
 #from .schemas.schemas import User
-from utils import stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 
 from services.order_view import order_table_view
 
@@ -30,7 +30,7 @@ from router import router
 from admin import admin_router
 from manager import manager_router
 from shop import shop_router
-#from user import user_router
+#from routers.user import user_router
 app = FastAPI()
 
 app.include_router(router, prefix="/api")
@@ -164,7 +164,7 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
             "permission": user.get_permission()
         }
         access_token, utc_dt_str = get_new_token(data)
-        
+
         user.set_token(access_token)
         #print(f"access_token: {access_token}")
         user.set_exp(utc_dt_str)
@@ -204,7 +204,7 @@ async def login_post(request: Request, response: Response,
         print("******")
         print(f"redirect_url: {redirect_url}")
         print("******")
-        
+
         response = RedirectResponse(
             url=redirect_url, status_code=303)
 
@@ -224,7 +224,7 @@ async def login_post(request: Request, response: Response,
         set_all_cookies(response, data)
 
         #user.print_max_age_str()
-        
+
         # トークンのsave
         username = user.get_username()
         await update_user(username, "token", user.get_token())
@@ -275,7 +275,10 @@ async def regist_complete(request: Request, response: Response,
             return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
         #await show_all_orders()
-
+        order_count = len(orders) - 1
+        last_order_date = orders[order_count].created_at
+        prevent_order_twice(response, last_order_date)
+        
         main_view = "order_complete.html"
         return await order_table_view(request, response, orders, main_view)
 
@@ -307,7 +310,7 @@ async def update_cancel_status(update: CancelUpdate):
         order_id = change["order_id"]
         canceled = change["canceled"]
         print(f"更新 order_id: {order_id}, canceled: {canceled}")
-        
+
         # ここに SQL の UPDATE 文を実行するコードを入れる
         # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
         await update_order(order_id, canceled)
