@@ -277,6 +277,7 @@ async def regist_complete(request: Request, response: Response,
         #await show_all_orders()
         order_count = len(orders) - 1
         last_order_date = orders[order_count].created_at
+        #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
         
         main_view = "order_complete.html"
