@@ -49,6 +49,7 @@ def redirect_error(request: Request, message: str):
 '''
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
+    print("login")
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
 # 例外ハンドラーの設定
@@ -69,7 +70,7 @@ async def custom_exception_handler(request: Request, exc: CustomException):
 async def root(request: Request, response: Response):
 
     # テストデータ作成
-    await init_database()
+    #await init_database()
 
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
@@ -87,8 +88,9 @@ async def root(request: Request, response: Response):
         #raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
         print("token_result: ありません")
         message = "token の有効期限が切れています。再登録をしてください。"
-        redirect_login(request, message)
-        #return templates.TemplateResponse("login.html", {"request": request, "message": message})
+        print(message)
+        #redirect_login(request, message)
+        return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
     if not isinstance(token_result, tuple):
@@ -201,7 +203,7 @@ async def login_post(request: Request, response: Response,
         username = form_data.username
         password = form_data.password
 
-        user = await authenticate_user(request, username, password) 
+        user = await authenticate_user(username, password) 
         print(f"user: {user}")
         if user is None:
             raise CustomException(400, f"user:{user} 取得に失敗しました")
