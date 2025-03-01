@@ -1,8 +1,6 @@
 import asyncio
-import json
-import pprint
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse,  RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 import tracemalloc
@@ -12,12 +10,13 @@ import urllib.parse
 import jwt
 from pydantic import BaseModel
 
-from local_jwt_module import SECRET_KEY, TokenExpiredException, get_new_token, check_cookie_token
+from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
 
 from database.sqlite_database import init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 from schemas import User
 #from .schemas.schemas import User
-from utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils.exception import CustomException
 
 from services.order_view import order_table_view
 
@@ -44,16 +43,21 @@ from fastapi.staticfiles import StaticFiles
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# error.htmlにリダイレクト
+def redirect_error(request: Request, message: str):
+    return templates.TemplateResponse("error.html", {"request": request, "message": message})
+
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
 # 例外ハンドラーの設定
-@app.exception_handler(TokenExpiredException)
-async def token_expired_exception_handler(request: Request, exc: TokenExpiredException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.detail},
+@app.exception_handler(CustomException)
+async def custom_exception_handler(request: Request, exc: CustomException):
+    return templates.TemplateResponse(
+        "error.html",
+        {"request": request, "message": exc.detail},
+        status_code=exc.status_code
     )
 # -----------------------------------------------------
 # エントリポイント
@@ -97,8 +101,8 @@ async def root(request: Request, response: Response):
         username = payload['sub']
         permission = payload['permission']
         exp = payload['exp']
-        print(f"exp: {exp}")
-        print("token is not expired.")
+        #print(f"exp: {exp}")
+        #print("token is not expired.")
 
         # 毎回tokenを作り直す
         response = RedirectResponse(url="/order_complete", status_code=303)
@@ -251,14 +255,16 @@ async def regist_complete(request: Request, response: Response,
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            raise CustomException(400, "Cookieが取得できませんでした。")
+            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
-            print(f"user:{user} 取得に失敗しました")
-            return HTMLResponse("<html><p>user 取得に失敗しました</p></html>")
+            #print(f"user:{user} 取得に失敗しました")
+            raise CustomException(400, f"user:{user} 取得に失敗しました")
+            #return HTMLResponse("<html><p>user 取得に失敗しました</p></html>")
 
         await insert_order(
             user.company_id,
@@ -272,7 +278,8 @@ async def regist_complete(request: Request, response: Response,
 
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
-            return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
+            raise CustomException(404, "注文が見つかりません")
+            #return HTMLResponse("<html><p>注文が見つかりません。</p></html>")
 
         #await show_all_orders()
         order_count = len(orders) - 1
@@ -284,9 +291,10 @@ async def regist_complete(request: Request, response: Response,
         return await order_table_view(request, response, orders, main_view)
 
     except Exception as e:
-        orders = []
+        #orders = []
         print(f"/order_complete Error: {str(e)}")
-        return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
+        raise CustomException(500, f"予期せぬエラーが発生しました: {str(e)}")
+        #return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 
 
 # cookieを削除してログアウト

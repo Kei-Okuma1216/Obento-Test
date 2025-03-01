@@ -5,8 +5,7 @@ from fastapi.templating import Jinja2Templates
 
 
 templates = Jinja2Templates(directory="templates")
-from fastapi.staticfiles import StaticFiles
-from utils import log_decorator
+from utils.utils import log_decorator
 from fastapi import APIRouter
 
 admin_router = APIRouter()

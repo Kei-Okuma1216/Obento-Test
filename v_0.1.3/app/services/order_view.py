@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
-from utils import log_decorator 
+from utils.utils import log_decorator 
 
 from fastapi import APIRouter
 

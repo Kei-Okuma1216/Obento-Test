@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date, datetime, timedelta, timezone
 import jwt
 import os
-from utils import convert_expired_time_to_expires, get_max_age, get_now, log_decorator
+from utils.utils import convert_expired_time_to_expires, get_now, log_decorator
 
 ALGORITHM = "HS256"
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
