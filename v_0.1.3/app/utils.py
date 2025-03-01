@@ -185,13 +185,13 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
     current = datetime.now(JST)
     current_time = get_max_age(current)
     future_time = end_time - current_time
-    
+    '''
     print(f"end_of_day: {end_of_day}")
     print(f"max_time: {end_time}")
     print(f"now: {current}")
     print(f"current_time: {end_time}")
     print(f"future_time: {end_time}")
-
+    '''
     response.set_cookie(
         key="last_order_date", value=last_order_date, max_age=future_time)
     print("# 期限を本日の23:59:59にした")
