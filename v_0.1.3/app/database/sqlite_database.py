@@ -13,6 +13,7 @@ from pprint import pprint
 from typing import List, Optional
 import sqlite3
 import warnings
+from utils.exception import CustomException
 from utils.utils import deprecated, log_decorator, get_today_str 
 #from models import Order, User
 from schemas import Order, User
@@ -33,13 +34,10 @@ db_name_str = "example.db"
 async def get_connection(): 
     # return await sqlite3.connect('example.db') 
     return await aiosqlite.connect('example.db', isolation_level=None)
-     #conn = sqlite3.connect({{db_name_str}}) 
-     
+     #conn = sqlite3.connect({{db_name_str}})
 
 # コネクションを閉じる（実際のテストでは不要）
 #await conn.close()
-
-
 
 # Userテーブル
 # 作成
@@ -71,7 +69,8 @@ async def create_user_table():
         ''')
         await conn.commit()
     except Exception as e:
-        print(f"create_user_table Error: {e}")
+        #print(f"create_user_table Error: {e}")
+        raise CustomException(400, f"create_user_table Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -81,7 +80,7 @@ async def create_user_table():
 @log_decorator
 async def select_user(username: str)-> Optional[User]:
     try:
-        print(f"username: {username}")
+        #print(f"username: {username}")
         conn = await get_connection()
         
         async with conn.cursor() as cursor:
@@ -109,9 +108,15 @@ async def select_user(username: str)-> Optional[User]:
             is_modified=row[10],
             updated_at=row[11]
         )
+
+        #print(f"type: {str(type(user))}")
+        #print(f"name: {user.name}")
+        #print(f"user: {user}")
+
         return user
+    
     except Exception as e:
-        print(f"select_user Error: {e}")
+        print(f"select_user Error: {e}") # 例外不要ない場合はNoneを返す
         return None
     finally:
         if conn:
@@ -123,7 +128,8 @@ async def insert_new_user(username, password, name = ''):
     try:
         await insert_user(username, password, name, company_id=1, shop_name=default_shop_name, menu_id=1)
     except Exception as e:
-        print(f"insert_new_user Error: {e}")
+        raise CustomException(400, f"insert_new_user Error: {e}")
+        #print(f"insert_new_user Error: {e}")
 
 # 追加
 @log_decorator
@@ -152,21 +158,20 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
 
     except Exception as e:
         print(f"insert_user Error: {e}")
-        return None  # エラー時は None を返す
+        return None  # 例外不要エラー時は None を返す
     finally:
         if conn:
             await conn.close()
 
 # お弁当屋追加
+# 備考：username == shop_name とする
 @log_decorator
 async def insert_shop(username, password, shop_name):
     try:
-        # 備考：username == shop_name とする
         conn = await get_connection()
         result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
-        count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
-        # usernameの存在を確認
-        #await cursor.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
+
+        count = (await result.fetchone())[0] 
         if count > 0:
             print(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
         else:
@@ -196,7 +201,7 @@ async def update_user(username, key, value):
             await cursor.execute(query, (value, username))
             await conn.commit()  # 非同期の `commit()`
     except Exception as e:
-        print(f"update_user Error: {e}")
+        raise CustomException(400, f"update_user Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -237,9 +242,9 @@ async def create_company_table():
         )
         ''')
         await conn.commit()
-        print("companyテーブルができました")
+        #print("companyテーブルができました")
     except Exception as e:
-        print(f"create_company_table Error: {e}")
+        raise CustomException(400, f"create_company_table Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -264,7 +269,7 @@ async def insert_company(name, tel, shop_name):
         await conn.execute(sql_query, values)
         await conn.commit()
     except Exception as e:
-        print(f"insert_company Error: {e}")  # エラーメッセージを表示
+        raise CustomException(400, f"insert_company() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -295,7 +300,7 @@ async def create_orders_table():
         ''')
         await conn.commit()
     except Exception as e:
-        print(f"create_orders_table Error: {e}")
+        raise CustomException(400, f"create_orders_table Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -420,6 +425,7 @@ async def select_order(username: str)-> Optional[dict]:
             await conn.close()
 
 # Order辞書を返す
+@log_decorator
 def appendOrder(rows) -> List[dict]:
     orders = []
     for row in rows:
@@ -455,10 +461,9 @@ async def select_shop_order(shopid: str,
         cursor = await conn.cursor()
 
         # ベースクエリ
-        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
         # company_idをCompany:nameに変更した
         sqlstr = f'''
-SELECT 
+        SELECT 
          O.order_id,
          C.name AS company_name,
          O.username, 
@@ -578,17 +583,17 @@ async def select_company_order(company_id: int,
         else:
             sqlstr += f" AND (O.username = '{username}')"
         '''
-        print(f"sqlstr: {sqlstr}")
+        #print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
-        print("ここまで 1")
+        #print("ここまで 1")
         #print("rows: " + str(rows))
 
         if rows is None:
             warnings.warn("No order found with the given shopid")
             return None
         else:
-            print("ここまで 2")
+            #print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
             
@@ -615,9 +620,6 @@ async def select_company_order(company_id: int,
         if conn:
             await conn.close()
 
-
-
-
 # 選択（ユーザーとお弁当屋）
 @log_decorator
 @deprecated
@@ -639,12 +641,12 @@ async def select_today_orders(shopid: str, userid: str = None)-> Optional[dict]:
         if userid is not None:
             sqlstr += " AND (username = ?)"
             params.append(userid)
-        
+
         #print(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr,params)
         rows = await result.fetchall()
         #print("rows: " + str(rows))
-        
+
         if rows is None:
             warnings.warn("No order found with the given shopid")
         else:
@@ -668,8 +670,8 @@ async def show_all_orders():
         cursor = await conn.cursor()
         await cursor.execute('SELECT * FROM Orders')
         rows = await cursor.fetchall()
-        #for row in rows:
-        #    pprint(row)
+        for row in rows:
+            pprint(row)
     finally:
         await conn.close()
 
@@ -689,7 +691,7 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         await conn.commit()
         #print("注文追加成功")
     except Exception as e:
-        print(f"insert_order Error: {e}")
+        raise CustomException(400, f"insert_order() Error: {e}")
     finally:
         if not conn:
             await conn.close()
@@ -708,7 +710,7 @@ async def update_order(order_id, canceled):
             await cursor.execute(query)
             await conn.commit()  # 非同期の `commit()`
     except Exception as e:
-        print(f"update_order Error: {e}")
+        raise CustomException(400, f"update_order() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -725,9 +727,12 @@ async def select_company(company_id: str):
         params = [company_id]
         await cursor.execute(sql_query, params)
         row = cursor.fetchall()
+
         return row
+    
     except Exception as e:
-        print(f"select_company Error: {e}")
+        #print(f"select_company Error: {e}")
+        raise CustomException(400, f"select_company() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -738,10 +743,10 @@ async def select_company(company_id: str):
 async def create_menu_table():
     try:
         conn = await get_connection() 
-        if conn is None: 
-            print("データベース接続の確立に失敗しました。")
-            return    
-        #cursor = conn.cursor()
+        if conn is None:
+            raise CustomException(400, f"データベース接続の確立に失敗しました。conn: {conn}")
+            #print("データベース接続の確立に失敗しました。")
+            #return    
         await conn.execute('''
         CREATE TABLE Menu (
         menu_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -755,8 +760,10 @@ async def create_menu_table():
         )
         ''')
         await conn.commit()
+
     except Exception as e:
-        print(f"create_menu_table Error: {e}")
+        #print(f"create_menu_table Error: {e}")
+        raise CustomException(400, f"create_menu_table() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -768,10 +775,8 @@ async def create_menu_table():
 async def insert_menu(shop_name, name, price, description, picture_path = None):
     try:
         conn = await get_connection()
-        #cursor = conn.cursor()
 
-        created_at = get_today_str()
-        
+        created_at = get_today_str()        
         #print(f"menu_id: ""自動連番"", shop_name: {shop_name}, name: {name}, price: {price}, description: {description}, picture_path: {picture_path}, created_at: {created_at}")
         
         sql_query = '''
@@ -784,7 +789,7 @@ async def insert_menu(shop_name, name, price, description, picture_path = None):
         await conn.commit()
         #print("メニュー追加成功")
     except Exception as e:
-        print(f"insert_menu Error: {e}")
+        raise CustomException(400, f"insert_menu() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -793,7 +798,6 @@ async def insert_menu(shop_name, name, price, description, picture_path = None):
 @log_decorator
 async def select_menu(shop_name: str)-> Optional[dict]:
     try:
-        #print("shop_name: " + shop_name)
         conn = await get_connection()
         cursor = conn.cursor()
 
@@ -804,18 +808,32 @@ async def select_menu(shop_name: str)-> Optional[dict]:
         #print("rows: " + str(rows))
         if rows is None:
             warnings.warn("No menu found with the given shopid")
-        else:
-            items = appendMenu(rows)
-        return items
+            return None
+
+        #items = appendMenu(rows)
+        items = []
+        for row in rows:
+            items.append({
+                "menu_id": row[0],
+                "shop_name": row[1],
+                "name": row[2],
+                "price": row[3],
+                "description": row[4],
+                "picture_path": row[5],
+                "disabled": row[6],
+                "created_at": row[7]
+            })
+            print(f"menuのクラスは {str(type(items))}")
+            #return items
     
     except Exception as e:
-        print(f"select_menu Error: {e}")
-        return None
+        raise CustomException(400, f"select_menu() Error: {e}")
     finally:
         if conn:
             await conn.close()
 
 # 辞書を返す
+@deprecated
 def appendMenu(rows):
     items = []
     for row in rows:
@@ -861,7 +879,9 @@ async def reset_all_autoincrement():
         await conn.commit()
         '''
     except Exception as e:
-        print(f"reset_all_autoincrement Error: {e}")
+        #print(f"reset_all_autoincrement Error: {e}")
+        raise CustomException(400, f"reset_all_autoincrement() Error: {e}")
+
     finally:
         if conn:
             await conn.close()
@@ -879,7 +899,7 @@ async def drop_all_table():
         await conn.commit()  # コミットを一度だけ実行
         print("全テーブルのDrop完了")
     except Exception as e:
-        print(f"drop_all_table Error: {e}")
+        raise CustomException(400, f"drop_all_table() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -889,11 +909,17 @@ async def drop_all_table():
 # 削除
 @log_decorator
 async def delete_all_company():
-    conn = await get_connection()
-    cursor = conn.cursor()
-    await cursor.execute('DROP TABLE IF EXISTS Company')
-    await conn.commit()
-    await conn.close()
+    try:
+        conn = await get_connection()
+        cursor = conn.cursor()
+        await cursor.execute('DROP TABLE IF EXISTS Company')
+        await conn.commit()
+        await conn.close()
+    except Exception as e:
+        raise CustomException(400, f"delete_all_company() Error: {e}")
+    finally:
+        if conn:
+            await conn.close()
 
 
 @log_decorator
@@ -905,7 +931,7 @@ async def delete_all_orders():
         #await cursor.execute('DELETE FROM Orders')    
         await conn.commit()
     except Exception as e:
-        print(f"delete_all_orders Error: {e}")
+        raise CustomException(400, f"delete_all_orders() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -920,7 +946,7 @@ async def delete_all_user():
         await conn.commit()
         await conn.close()
     except Exception as e:    
-        print(f"delete_all_user Error: {e}")
+        raise CustomException(400, f"delete_all_user() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -928,11 +954,17 @@ async def delete_all_user():
 # 削除
 @log_decorator
 async def delete_all_menu():
-    conn = await get_connection()
-    cursor = conn.cursor()
-    await cursor.execute('DROP TABLE IF EXISTS Menu')
-    conn.commit()
-    await conn.close()
+    try:
+        conn = await get_connection()
+        cursor = conn.cursor()
+        await cursor.execute('DROP TABLE IF EXISTS Menu')
+        conn.commit()
+        await conn.close()
+    except Exception as e:    
+        raise CustomException(400, f"delete_all_user() Error: {e}")
+    finally:
+        if conn:
+            await conn.close()
 
 #@log_decorator
 async def init_database():
@@ -987,7 +1019,8 @@ async def init_database():
         
         print("データベースファイル 'sample.db' が正常に作成されました。")
     except sqlite3.Error as e: 
-         print(f"SQLiteエラー: {e}")
+        print(f"SQLiteエラー: {e}")
+        raise CustomException(400, f"SQLiteエラー: {e}")
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
         import traceback 

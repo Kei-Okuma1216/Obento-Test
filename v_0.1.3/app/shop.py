@@ -7,6 +7,8 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
 from fastapi import Header
 
+from utils.exception import CustomException
+
 templates = Jinja2Templates(directory="templates")
 
 from main import order_table_view
@@ -25,9 +27,11 @@ def check_store_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"check_store_permission: {permission}")
     if permission is None:
-        raise HTTPException(status_code=403, detail="Permission Data is not Contained")
+        raise CustomException(403, "Permission Data is not Contained")
+        #raise HTTPException(status_code=403, detail="Permission Data is not Contained")
     if permission == [10,99]:
-        raise HTTPException(status_code=403, detail="Not Authorized")
+        raise CustomException(403, "Not Authorized")
+        #raise HTTPException(status_code=403, detail="Not Authorized")
 
 # お弁当屋の注文確認
 # shops/todayになる
@@ -42,8 +46,9 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
 
         cookies = get_all_cookies(request)
         if not cookies:
-            print('cookie userなし')
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            #print('cookie userなし')
+            raise CustomException(400, "cookie よりユーザー情報が取得できませんでした。")
+            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
         
         # 昨日の全注文
         orders = await select_shop_order('shop01')
@@ -56,8 +61,9 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
         return await order_table_view(request, response, orders, main_view)
 
     except Exception as e:
-        print(f"/shop_today_order Error: {str(e)}")
-        return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
+        raise CustomException(400, f"/shop_today_order Error: {str(e)}")
+        #print(f"/shop_today_order Error: {str(e)}")
+        #return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 
 # 注文情報を取得する
 # 例 https://127.0.0.1:8000/today/order_json?days_ago=-5
@@ -68,14 +74,17 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         cookies = get_all_cookies(request)
         if not cookies:
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            raise CustomException(400, "cookie よりユーザー情報が取得できませんでした。")
+
 
         # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
-            print(f"user:{user} 取得に失敗しました")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            raise CustomException(400, "select_user よりユーザー情報が取得できませんでした。")
+            #print(f"user:{user} 取得に失敗しました")
+            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         if days_ago is not None:
             print(f"days_ago: {int(days_ago)}")
@@ -83,17 +92,19 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         #print(f"days_ago: {days_ago}")
         # 履歴取得
         if days_ago is None:
-            print("全履歴を取得する") 
+            #print("全履歴を取得する") 
             orders = await select_shop_order(user.shop_name)
         elif days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit()):
-            print(f"{days_ago} 日前までの履歴を取得する")
+            #print(f"{days_ago} 日前までの履歴を取得する")
             orders = await select_shop_order(user.shop_name, days_ago)
         else:
-            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+            raise CustomException(400, "days_ago の値が無効です")
+            #return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
 
         if not orders:
-            print("No orders found or error occurred.")
-            return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
+            raise CustomException(400, "len(orders)=0 注文が見つかりません。")
+            #print("No orders found or error occurred.")
+            #return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
 
         # 日時で逆順
         orders.sort(key=lambda x: x.created_at, reverse=True)
@@ -110,6 +121,7 @@ async def order_json(request: Request, days_ago: str = Query(None)):
         return JSONResponse(content=json.loads(orders_json))  # JSON をパースしてレスポンス
     
     except Exception as e:
-        orders = []
-        print(f"/order_json Error: {str(e)}")
-        return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+        raise CustomException(500, f"/order_json Error: {str(e)}")
+        #orders = []
+        #print(f"/order_json Error: {str(e)}")
+        #return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
