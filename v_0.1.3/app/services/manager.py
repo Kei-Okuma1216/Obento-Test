@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import HTTPException, Header, Request, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from utils import check_permission, get_all_cookies, log_decorator
+from utils.utils import check_permission, get_all_cookies, log_decorator
 from database.sqlite_database import select_company_order
 from services.order_view import order_table_view
 

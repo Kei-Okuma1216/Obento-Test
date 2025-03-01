@@ -13,7 +13,7 @@ from pprint import pprint
 from typing import List, Optional
 import sqlite3
 import warnings
-from utils import deprecated, log_decorator, get_today_str 
+from utils.utils import deprecated, log_decorator, get_today_str 
 #from models import Order, User
 from schemas import Order, User
 #from .schemas.schemas import Order, User

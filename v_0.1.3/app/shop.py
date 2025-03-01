@@ -11,7 +11,7 @@ templates = Jinja2Templates(directory="templates")
 
 from main import order_table_view
 from database.sqlite_database import select_shop_order, select_user
-from utils import deprecated, get_all_cookies, log_decorator
+from utils.utils import deprecated, get_all_cookies, log_decorator
 
 
 from fastapi import APIRouter
