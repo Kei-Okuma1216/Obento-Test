@@ -18,13 +18,20 @@ TOKEN_EXPIRE_DAYS = 30
 #logging.basicConfig(level=logging.INFO)
 
 
+import os
 
+def load_private_key(key_file: str):
+    key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), key_file))  # 絶対パスに変換
+    with open(key_path, "rb") as key_file:
+        return key_file.read()
+
+'''
 # 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str): 
     with open(key_file, "rb") as key_file:
         private_key = load_pem_private_key(key_file.read(), password=None) 
         return private_key 
-
+'''
 private_key = load_private_key("./my-local.key")
 
 
@@ -99,18 +106,6 @@ def check_cookie_token(request):
         print(f"exp: {exp}")
 
     return token ,exp
-
-
-# Token期限切れ例外クラス
-class TokenExpiredException(HTTPException):
-    def __init__(self):
-        super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
-
-# 認証不許可クラス
-class NotAuthorizedException(HTTPException):
-    def __init__(self):
-        super().__init__(status_code=status.HTTP_403_FORBIDDEN, detail="Not Authorized")
-
 
 
 # JWTトークンの生成
