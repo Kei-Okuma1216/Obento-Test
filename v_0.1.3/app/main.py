@@ -42,18 +42,21 @@ templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
-
+'''
 # error.htmlにリダイレクト
 def redirect_error(request: Request, message: str):
     return templates.TemplateResponse("error.html", {"request": request, "message": message})
-
+'''
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
     return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
 # 例外ハンドラーの設定
+# 実装例
+# raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
 @app.exception_handler(CustomException)
 async def custom_exception_handler(request: Request, exc: CustomException):
+    print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
     return templates.TemplateResponse(
         "error.html",
         {"request": request, "message": exc.detail},
@@ -66,11 +69,11 @@ async def custom_exception_handler(request: Request, exc: CustomException):
 async def root(request: Request, response: Response):
 
     # テストデータ作成
-    #await init_database()
+    await init_database()
 
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
-        
+
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='https://127.0.0.1:8000/clear'>Cookieを消去</a></html>"
 
         return HTMLResponse(message)
@@ -81,9 +84,11 @@ async def root(request: Request, response: Response):
     print(f"token_result: {token_result}")
 
     if token_result is None:
+        #raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
         print("token_result: ありません")
         message = "token の有効期限が切れています。再登録をしてください。"
-        return templates.TemplateResponse("login.html", {"request": request, "message": message})
+        redirect_login(request, message)
+        #return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
     if not isinstance(token_result, tuple):
@@ -93,8 +98,9 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            message = "トークンの有効期限が切れています。再登録をしてください。"
-            return redirect_login(request, message)
+            raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
+            #message = "トークンの有効期限が切れています。再登録をしてください。"
+            #return redirect_login(request, message)
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         #print(f"jwt.decode: {payload}")
@@ -124,12 +130,14 @@ async def root(request: Request, response: Response):
         return response
 
     except jwt.ExpiredSignatureError:
-        message = "トークンの有効期限が切れています。再登録をしてください。"
-        return redirect_login(request, message)
+        raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
+        #message = "トークンの有効期限が切れています。再登録をしてください。"
+        #return redirect_login(request, message)
 
     except jwt.InvalidTokenError:
-        message = "無効なトークンです"
-        return redirect_login(request, message)   
+        raise CustomException(400, "無効なトークンです")
+        #message = "無効なトークンです"
+        #return redirect_login(request, message)   
 
 
 # ログイン画面を表示するエンドポイント
@@ -139,27 +147,26 @@ async def login_get(request: Request, message: Optional[str] = ""):
     try:
         redirect_login(request, "ようこそ")
 
-    except Exception as e:
-        print(f"login_get Error: {str(e)}")
-        encoded_message = urllib.parse.quote("ログインページが表示できません")
-        redirect_url = f"/login.html?message={encoded_message}"
-        response = RedirectResponse(url=redirect_url, status_code=303)
+    except Exception as e:        
+        encoded_message = urllib.parse.quote(f"login_get Error:  {e.detail}")
+        raise CustomException(303, encoded_message)
+        #print(f"login_get Error: {str(e)}")
+        '''redirect_url = f"/login.html?message={encoded_message}"
+        response = RedirectResponse(url=redirect_url, status_code=303)'''
 
-        return response
 # -----------------------------------------------------
 # ログイン認証
 @log_decorator
-async def authenticate_user(request: Request, username, password) -> Optional[User]:
+async def authenticate_user(username, password) -> Optional[User]:
     try:
         user = await select_user(username)
-        #print(f"type: {str(type(user))}")
-        #print(f"name: {user.name}")
-        #print(f"user: {user}")
+
         if user is None:
             #print(f"username: {user.username}")
             await insert_new_user(username, password, 'name')
             user = await select_user(username)
 
+        #print(f"username: {user.username}")
         if user.get_password() != password:
             return None
 
@@ -177,11 +184,13 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
         return user
 
     except HTTPException as e:
-        print(f"/login HTTPエラー: {e.detail}")
-        return templates.TemplateResponse("login.html", {"request": request, "message": e.detail})
+        raise CustomException(400, f"authenticate_user() HTTPエラー: {e.detail}")
+        #print(f"authenticate_user() HTTPエラー: {e.detail}")
+        #return templates.TemplateResponse("login.html", {"request": request, "message": e.detail})
     except Exception as e:
-        print(f"認証エラー: {e}")
-        return templates.TemplateResponse("login.html", {"request": request, "message": "予期せぬエラーが発生しました。"})
+        raise CustomException(400, f"authenticate_user() 予期せぬエラーが発生しました。{e}")
+        #print(f"authenticate_user() 予期せぬエラー: {e}")
+        #return templates.TemplateResponse("login.html", {"request": request, "message": "予期せぬエラーが発生しました。"})
 
 # ログインPOST
 @app.post("/login", response_class=HTMLResponse)
@@ -189,14 +198,14 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
 async def login_post(request: Request, response: Response,
     form_data: OAuth2PasswordRequestForm = Depends()):
     try:
-        #form = await request.form()
         username = form_data.username
         password = form_data.password
 
         user = await authenticate_user(request, username, password) 
         print(f"user: {user}")
         if user is None:
-            raise HTTPException(status_code=400, detail="ログインに失敗しました。")
+            raise CustomException(400, f"user:{user} 取得に失敗しました")
+            #raise HTTPException(status_code=400, detail="ログインに失敗しました。")
 
         print("username と password一致")
 
@@ -205,9 +214,9 @@ async def login_post(request: Request, response: Response,
 
         # prefix込みでリダイレクト
         redirect_url = {1: "/order_complete", 2: "/manager/today", 10: "/shops/today", 99: "/admin/today"}.get(permission, "/error")
-        print("******")
+        #print("******")
         print(f"redirect_url: {redirect_url}")
-        print("******")
+        #print("******")
 
         response = RedirectResponse(
             url=redirect_url, status_code=303)
@@ -236,16 +245,19 @@ async def login_post(request: Request, response: Response,
 
         return response
     
-    except HTTPException as e:
-        print(f"/login_post HTTPエラー: {e.detail}")
+    except HTTPException as e:        
         encoded_message = urllib.parse.quote(e.detail)
-        return RedirectResponse(url=f"/login?message={encoded_message}", status_code=303)
+        raise CustomException(303, f"/login_post HTTPエラー: {encoded_message}")
+        #print(f"/login_post HTTPエラー: {e.detail}")
+        '''encoded_message = urllib.parse.quote(e.detail)
+        return RedirectResponse(url=f"/login?message={encoded_message}", status_code=303)'''
 
     except Exception as e:
-        print(f"/login 予期せぬエラー: {e}")
+        raise CustomException(500, f"/login 予期せぬエラーが発生しました: {str(e)}")
+        '''print(f"/login 予期せぬエラー: {e}")
         encoded_message = urllib.parse.quote("予期せぬエラーが発生しました。")
         return RedirectResponse(url=f"/login?message={encoded_message}", status_code=303)
-
+        '''
 
 # お弁当の注文完了　ユーザーのみ
 @app.get("/order_complete",response_class=HTMLResponse) 
@@ -326,27 +338,10 @@ async def update_cancel_status(update: CancelUpdate):
         results.append({"order_id": order_id, "canceled": canceled, "success": True})
     
     return {"results": results}
-'''
-class CancelUpdate(BaseModel):
-    order_id: int
-    canceled: bool
-    orders: dict  # orders をエンドポイントから渡す
 
-@app.post("/update_cancel_status")
-@log_decorator
-async def update_cancel_status(update: CancelUpdate):
-    order_id = update.order_id
-    print(f"更新 order_id: {order_id}")
-    print(f"更新 canceled: {update.canceled}")
-    orders_data = update.orders  # クライアントから渡された orders を取得
-
-    print(f"更新 orders_data: {orders_data}")
-    if order_id in orders_data:
-        orders_data[order_id]["canceled"] = update.canceled
-        return {"success": True, "order_id": order_id, "canceled": update.canceled}
-
-    return {"success": False, "error": "注文が見つかりません"}
-'''
+@app.get("/test_exception")
+async def test_exception():
+    raise CustomException(400, "これはテストエラーです")
 
     
 # ブラウザが要求するfaviconのエラーを防ぐ
