@@ -24,15 +24,39 @@ ssl_context = ssl.create_default_context()
 ssl_context.load_verify_locations(CERT_PATH)
 
 @pytest.mark.asyncio
-async def test_login_success():
+async def test_login_redirect():
     async with httpx.AsyncClient(base_url="https://127.0.0.1:8000", verify=ssl_context, follow_redirects=True) as client:
 
         # 1️⃣ Cookie なしで `/` にアクセス → `/login` にリダイレクトされるべき
         response = await client.get("/")
+        
+        # 🔥 デバッグ用にレスポンス詳細を表示
+        print("\n🔍 DEBUG: /login redirect")
+        print(f"Status Code: {response.status_code}")
+        print(f"Headers: {response.headers}")
+        print(f"Body: {response.text}")
+
+        
         assert response.status_code == 200  # `login.html` を受け取る
 
+
+@pytest.mark.asyncio
+async def test_login_success():
+    async with httpx.AsyncClient(base_url="https://127.0.0.1:8000", verify=ssl_context, follow_redirects=True) as client:
+        '''
+        # 1️⃣ Cookie なしで `/` にアクセス → `/login` にリダイレクトされるべき
+        response = await client.get("/")
+        assert response.status_code == 200  # `login.html` を受け取る
+        '''
         # 2️⃣ `/login` に正しい認証情報を送信
         response = await client.post("/login", data={"username": "user1", "password": "user1"})
+        
+        # 🔥 デバッグ用にレスポンス詳細を表示
+        print("\n🔍 DEBUG: /login response")
+        print(f"Status Code: {response.status_code}")
+        print(f"Headers: {response.headers}")
+        print(f"Body: {response.text}")
+        
         assert response.status_code == 303  # リダイレクトが発生
         assert "set-cookie" in response.headers  # Cookie が設定されているか確認
 

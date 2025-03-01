@@ -1,4 +1,5 @@
 import asyncio
+import os
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -42,11 +43,9 @@ templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
-'''
-# error.htmlにリダイレクト
-def redirect_error(request: Request, message: str):
-    return templates.TemplateResponse("error.html", {"request": request, "message": message})
-'''
+
+endpoint = 'https://127.0.0.1:8000'
+
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
     print("login")
@@ -74,22 +73,19 @@ async def root(request: Request, response: Response):
 
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
-
-        message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='https://127.0.0.1:8000/clear'>Cookieを消去</a></html>"
+        message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
 
         return HTMLResponse(message)
 
 
     # token チェックの結果を取得
     token_result = check_cookie_token(request)
-    print(f"token_result: {token_result}")
+    #print(f"token_result: {token_result}")
 
     if token_result is None:
         #raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
-        print("token_result: ありません")
-        message = "token の有効期限が切れています。再登録をしてください。"
-        print(message)
-        #redirect_login(request, message)
+        #print("token_result: ありません")
+        message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
 
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
@@ -100,7 +96,7 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
+            raise CustomException(400, f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
             #message = "トークンの有効期限が切れています。再登録をしてください。"
             #return redirect_login(request, message)
 
@@ -135,7 +131,6 @@ async def root(request: Request, response: Response):
         raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
         #message = "トークンの有効期限が切れています。再登録をしてください。"
         #return redirect_login(request, message)
-
     except jwt.InvalidTokenError:
         raise CustomException(400, "無効なトークンです")
         #message = "無効なトークンです"
@@ -357,8 +352,10 @@ def favicon():
  
 # Mount the directory where favicon.ico is located 
 # faviconのマウント
+#app.mount("/static", StaticFiles(directory="static"), name="static")
 from fastapi.staticfiles import StaticFiles
-app.mount("/static", StaticFiles(directory="static"), name="static")
+static_path = os.path.join(os.path.dirname(__file__), "static")  # 絶対パスに変換
+app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # 他のモジュールでの誤使用を防ぐ
 '''if __name__ == "__main__":
