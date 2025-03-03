@@ -13,12 +13,12 @@ import aiosqlite
 # ログ用の設定
 logging.basicConfig(level=logging.INFO)
 
-default_shop_name = "shop01"
-
 # データベース初期化
 # インメモリデータベースを作成
 #conn = sqlite3.connect(':memory:')
 db_name_str = "example.db"
+default_shop_name = "shop01"
+
 
 # コネクション取得
 async def get_connection():
@@ -38,8 +38,6 @@ async def create_user_table():
         conn = await get_connection()
         if conn is None: 
             raise DatabaseConnectionException(detail=str(e))
-        #cursor = conn.cursor()
-        #await cursor.execute('''
         sqlstr = '''
         CREATE TABLE IF NOT EXISTS User (
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -106,8 +104,6 @@ async def select_user(username: str)-> Optional[User]:
     
     except Exception as e:
         raise SQLException(sqlStr, f"select_user() Error: {e}")
-        #print(f"select_user Error: {e}") # 例外不要ない場合はNoneを返す
-        #return None
     finally:
         if conn:
             await conn.close()
@@ -125,9 +121,7 @@ async def insert_new_user(username, password, name = ''):
 async def insert_user(username, password, name, company_id, shop_name, menu_id):
     try:
         conn = await get_connection()
-        #cursor = conn.cursor()       
-        # usernameの存在を確認
-         # usernameの存在を確認（fetchone() を直接取得）
+
         result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
         count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
         
@@ -148,8 +142,6 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
 
     except Exception as e:
         raise SQLException(sqlstr, f"insert_user() Error: {e}")
-        #print(f"insert_user Error: {e}")
-        #return None  # 例外不要エラー時は None を返す
     finally:
         if conn:
             await conn.close()
@@ -194,7 +186,6 @@ async def update_user(username, key, value):
     finally:
         if conn:
             await conn.close()
-    return
 
 # 全件確認
 @log_decorator
@@ -340,12 +331,10 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
                 #print(f"json_data: {json_data}")
                 dict_data = json.loads(json_data)  # JSON文字列を辞書に変換
                 orderlist.append(Order(**dict_data))
-                
+
         return orderlist            
-    
+
     except Exception as e:
-        #print(f"select_all_orders2 Error: {e}")
-        #return None
         raise SQLException(sqlstr, f"select_all_orders2() Error: {e}")
     finally:
         if conn:
@@ -513,7 +502,7 @@ async def select_shop_order(shopid: str,
                 #print(orderlist)
                 #print("ここまで end")
         #print(f" orderlist: {orderlist}")
-        return orderlist
+        return orderlist #, len(orderlist)
 
     except Exception as e:
         SQLException(500, f"select_shop_order() Error: {e}")

@@ -10,6 +10,7 @@ import urllib.parse
 
 import jwt
 from pydantic import BaseModel
+from starlette import status
 
 from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
 
@@ -107,7 +108,6 @@ async def root(request: Request, response: Response):
         #print(f"exp: {exp}")
         #print("token is not expired.")
 
-        # 毎回tokenを作り直す
         response = RedirectResponse(url="/order_complete", status_code=303)
 
         data = {
@@ -188,6 +188,7 @@ async def login_post(response: Response,
         user = await authenticate_user(username, password) 
         #print(f"user: {user}")
         if user is None:
+            # status.HTTP_303_SEE_OTHER 
             raise CustomException(303, f"user:{user} 取得に失敗しました")
 
         #print("username と password一致")
@@ -267,6 +268,7 @@ async def regist_complete(request: Request, response: Response,
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
+        #print(f"order_count: {order_count}")
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
             raise CustomException(404, "注文が見つかりません")

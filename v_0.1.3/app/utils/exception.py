@@ -26,13 +26,11 @@ class CookieException(CustomException):
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
 
 # SQLエラー例外クラス
-# 例
-# raise SQLException(sql_statement=query, detail=str(e))
+# 例 raise SQLException(sql_statement=query, detail=str(e))
 class SQLException(CustomException):
     def __init__(self, sql_statement: str, detail: str = "An error occurred with the SQL operation"):
-        #super().__init__(status_code=status.#HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
-        full_detail = f"{detail}: SQL statement = {sql_statement}"
         print(f"🚨 SQLException 発生！ SQL文: {sql_statement}")  # SQL文をログに出力
+        full_detail = f"{detail}: SQL statement = {sql_statement}"
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=full_detail)
 
 # データベース接続エラー例外クラス
@@ -41,3 +39,11 @@ class DatabaseConnectionException(CustomException):
     def __init__(self, detail: str = "Failed to connect to the database"):
         print("データベース接続の確立に失敗しました。")
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=detail)
+
+'''
+カスタム例外 (CustomException) の raise および catch をテストするには、以下の2つの点をチェックすればOKです。
+
+1. レスポンスのステータスコードが exc.status_code になっているか
+2. レスポンスの内容が error.html のテンプレートで正しくレンダリングされているか
+
+'''
