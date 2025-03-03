@@ -58,6 +58,7 @@ async def test_login_success():
         print(f"Body: {response.text}")
         
         assert response.status_code == 303  # リダイレクトが発生
+        # 303 see other
         assert "set-cookie" in response.headers  # Cookie が設定されているか確認
 
         # 3️⃣ Cookie ありで `/` に再アクセス → `/order_complete` にリダイレクトされるべき
