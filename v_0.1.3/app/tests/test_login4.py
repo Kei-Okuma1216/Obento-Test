@@ -55,12 +55,7 @@ async def test_login_success():
         '''
         # 2️⃣ `/login` に正しい認証情報を送信
         response = await client.post("/login", data={"username": "user1", "password": "user1"})
-        
-        # 🔥 デバッグ用にレスポンス詳細を表示
-        print("\n🔍 DEBUG: /login response")
-        print(f"Status Code: {response.status_code}")
-        print(f"Headers: {response.headers}")
-        print(f"Body: {response.text}")
+
         
         assert response.status_code == 200  # リダイレクトが発生
         # 303 see other
