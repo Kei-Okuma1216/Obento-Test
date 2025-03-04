@@ -17,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 # インメモリデータベースを作成
 #conn = sqlite3.connect(':memory:')
 db_name_str = "example.db"
-default_shop_name = "shop01"
+
 
 
 # コネクション取得
@@ -152,7 +152,9 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
 async def insert_shop(username, password, shop_name):
     try:
         conn = await get_connection()
-        result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
+        sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
+        result = await conn.execute(sqlstr, (username,))
+        #result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
 
         count = (await result.fetchone())[0] 
         if count > 0:
@@ -487,7 +489,7 @@ async def select_shop_order(shopid: str,
             #print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
-            
+
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
             #print(f"orders.count(): {len(orders)}")
@@ -592,7 +594,7 @@ async def select_company_order(company_id: int,
         return orderlist
 
     except Exception as e:
-        SQLException(500, f"select_company_order() Error: {e}")
+        SQLException(sqlstr, f"select_company_order() Error: {e}")
         #print(f"select_company_order Error: {e}")
         #return None
     finally:
@@ -635,9 +637,7 @@ async def select_today_orders(shopid: str, userid: str = None)-> Optional[dict]:
         return orders
 
     except Exception as e:
-        #print(f"select_today_orders Error: {e}")
-        SQLException(500, f"select_today_orders() Error: {e}")
-        #return None
+        SQLException(sqlstr, f"select_today_orders() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -661,17 +661,17 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
     conn = None
     try:
         conn = await get_connection()
-        sql_query = '''
+        sqlstr = '''
         INSERT INTO Orders (company_id, username, shop_name, menu_id, amount, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         '''
         created_at = get_today_str()
         values = (company_id, username, shop_name, menu_id, amount, created_at)
-        await conn.execute(sql_query, values)
+        await conn.execute(sqlstr, values)
         await conn.commit()
         #print("注文追加成功")
     except Exception as e:
-        raise SQLException(500, f"insert_order() Error: {e}")
+        raise SQLException(sqlstr, f"insert_order() Error: {e}")
     finally:
         if not conn:
             await conn.close()
@@ -684,12 +684,12 @@ async def update_order(order_id, canceled):
         async with conn.cursor() as cursor:
             current_time = get_today_str()
             #print(f"current_time: {current_time}")
-            query = f"UPDATE Orders SET canceled = {canceled} , updated_at = '{current_time}' WHERE order_id = {order_id}"
-            #print(f"query: {query}")
-            await cursor.execute(query)
+            sqlstr = f"UPDATE Orders SET canceled = {canceled} , updated_at = '{current_time}' WHERE order_id = {order_id}"
+            #print(f"query: {sql_query}")
+            await cursor.execute(sqlstr)
             await conn.commit()  # 非同期の `commit()`
     except Exception as e:
-        raise SQLException(400, f"update_order() Error: {e}")
+        raise SQLException(sqlstr, f"update_order() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -701,15 +701,15 @@ async def select_company(company_id: str):
     try:
         conn = await get_connection()
         cursor = conn.cursor()
-        sql_query = 'SELECT * FROM Company WHERE company_id = ?'
+        sqlstr = 'SELECT * FROM Company WHERE company_id = ?'
         params = [company_id]
-        await cursor.execute(sql_query, params)
+        await cursor.execute(sqlstr, params)
         row = cursor.fetchall()
 
         return row
     
     except Exception as e:
-        raise SQLException(400, f"select_company() Error: {e}")
+        raise SQLException(sqlstr, f"select_company() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -722,9 +722,7 @@ async def create_menu_table():
         conn = await get_connection() 
         if conn is None:
             raise CustomException(400, f"データベース接続の確立に失敗しました。conn: {conn}")
-            #print("データベース接続の確立に失敗しました。")
-            #return    
-        await conn.execute('''
+        sqlstr = '''
         CREATE TABLE Menu (
         menu_id INTEGER PRIMARY KEY AUTOINCREMENT,
         shop_name TEXT,
@@ -735,11 +733,12 @@ async def create_menu_table():
         disabled INTEGER DEFAULT 0,
         created_at TEXT
         )
-        ''')
+        '''
+        await conn.execute(sqlstr)
         await conn.commit()
 
     except Exception as e:
-        raise SQLException(500, f"create_menu_table() Error: {e}")
+        raise SQLException(sqlstr, f"create_menu_table() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -755,17 +754,17 @@ async def insert_menu(shop_name, name, price, description, picture_path = None):
         created_at = get_today_str()        
         #print(f"menu_id: ""自動連番"", shop_name: {shop_name}, name: {name}, price: {price}, description: {description}, picture_path: {picture_path}, created_at: {created_at}")
         
-        sql_query = '''
+        sqlstr = '''
         INSERT INTO Menu (shop_name, name, price, description, picture_path, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         '''
         values = (shop_name, name, price, description, picture_path, created_at)
-        await conn.execute(sql_query, values)
+        await conn.execute(sqlstr, values)
 
         await conn.commit()
         #print("メニュー追加成功")
     except Exception as e:
-        raise SQLException(sql_query, detail=f"insert_menu() Error: {e}")
+        raise SQLException(sqlstr, detail=f"insert_menu() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -804,7 +803,6 @@ async def select_menu(shop_name: str)-> Optional[dict]:
     
     except Exception as e:
         raise SQLException(sqlstr, detail=f"select_menu() Error: {e}")
-        #raise CustomException(400, f"select_menu() Error: {e}")
     finally:
         if conn:
             await conn.close()
@@ -857,8 +855,6 @@ async def reset_all_autoincrement():
         await conn.commit()
         '''
     except Exception as e:
-        #print(f"reset_all_autoincrement Error: {e}")
-        #raise CustomException(400, f"reset_all_autoincrement() Error: {e}")
         raise SQLException(sqlstr, detail=f"reset_all_autoincrement() Error: {e}")        
 
     finally:
@@ -898,7 +894,6 @@ async def delete_all_company():
         await conn.commit()
         await conn.close()
     except Exception as e:
-        #raise CustomException(400, f"delete_all_company() Error: {e}")
         raise SQLException(sqlstr, detail=f"delete_all_company() Error: {e}")
     finally:
         if conn:
@@ -915,7 +910,6 @@ async def delete_all_orders():
         #await cursor.execute('DELETE FROM Orders')    
         await conn.commit()
     except Exception as e:
-        #raise CustomException(400, f"delete_all_orders() Error: {e}")
         raise SQLException(sqlstr, detail=f"delete_all_orders() Error: {e}")
     finally:
         if conn:
@@ -931,8 +925,7 @@ async def delete_all_user():
         await cursor.execute(sqlstr)
         await conn.commit()
         await conn.close()
-    except Exception as e:    
-        #raise CustomException(400, f"delete_all_user() Error: {e}")
+    except Exception as e:
         raise SQLException(sqlstr, f"delete_all_user() Error: {e}")
     finally:
         if conn:
@@ -956,6 +949,7 @@ async def delete_all_menu():
 
 #@log_decorator
 async def init_database():
+    default_shop_name = "shop01"
     try:
         await reset_all_autoincrement()
         await drop_all_table()
