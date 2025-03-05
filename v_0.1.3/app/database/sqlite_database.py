@@ -33,8 +33,6 @@ async def get_connection():
     try:
         return await aiosqlite.connect(DB_PATH, isolation_level=None)
         #return await aiosqlite.connect(db_name_str, isolation_level=None)
-    except SQLException as e:
-        raise
     except Exception as e:
         raise DatabaseConnectionException(detail=str(e))
 

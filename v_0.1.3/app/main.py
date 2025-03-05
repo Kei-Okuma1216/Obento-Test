@@ -6,7 +6,6 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.templating import Jinja2Templates
 import tracemalloc
 from typing import Optional
-import urllib.parse
 
 import jwt
 from pydantic import BaseModel
@@ -16,7 +15,6 @@ from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 from schemas.schemas import User
-#from .schemas.schemas import User
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 from utils.exception import CustomException
 
@@ -49,8 +47,13 @@ endpoint = 'https://127.0.0.1:8000'
 
 # login.htmlに戻る
 def redirect_login(request: Request, message: str):
-    print("login")
-    return templates.TemplateResponse("login.html", {"request": request, "message": message})
+    try:
+        print("login")
+        return templates.TemplateResponse("login.html", {"request": request, "message": message})
+    except HTTPException as e:
+        raise
+    except Exception as e:
+        raise CustomException(status.HTTP_404_NOT_FOUND, f"redirect_login() Error:  {e.detail}")
 
 # 例外ハンドラーの設定
 # 実装例
@@ -127,10 +130,10 @@ async def root(request: Request, response: Response):
         return response
 
     except jwt.ExpiredSignatureError:
-        raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
+        raise CustomException(status.HTTP_400_BAD_REQUEST, "トークンの有効期限が切れています。再登録をしてください。")
 
     except jwt.InvalidTokenError:
-        raise CustomException(400, "無効なトークンです")
+        raise CustomException(status.HTTP_400_BAD_REQUEST, "無効なトークンです")
 
 
 # ログイン画面を表示するエンドポイント
@@ -142,7 +145,7 @@ async def login_get(request: Request):
         redirect_login(request, "ようこそ")
 
     except Exception as e:
-        raise CustomException(303, f"login_get() Error:  {e.detail}")
+        raise CustomException(status.HTTP_404_NOT_FOUND, f"login_get() Error:  {e.detail}")
 
 # -----------------------------------------------------
 # ログイン認証
@@ -190,7 +193,6 @@ async def login_post(response: Response,
         user = await authenticate_user(username, password) 
         #print(f"user: {user}")
         if user is None:
-            # status.HTTP_303_SEE_OTHER 
             raise CustomException(status.HTTP_404_NOT_FOUND, f"user:{user} 取得に失敗しました")
 
         #print("username と password一致")
@@ -233,10 +235,10 @@ async def login_post(response: Response,
 
         return response
     
-    except HTTPException as e:        
-        encoded_message = urllib.parse.quote(e.detail)
-        raise CustomException(303, f"/login HTTPエラー: {encoded_message}")
-
+    except SQLException as e:
+        raise
+    except HTTPException as e:
+        raise
     except Exception as e:
         raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"/login_post() 予期せぬエラーが発生しました: {str(e)}")
 
@@ -284,6 +286,8 @@ async def regist_complete(request: Request, response: Response,
 
     except SQLException as e:
         raise
+    except HTTPException as e:
+        raise
     except Exception as e:
         print(f"/order_complete Error: {str(e)}")
         raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
@@ -306,18 +310,22 @@ class CancelUpdate(BaseModel):
 @app.post("/update_cancel_status")
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
-    results = []
-    for change in update.updates:
-        order_id = change["order_id"]
-        canceled = change["canceled"]
-        print(f"更新 order_id: {order_id}, canceled: {canceled}")
+    try:
+        results = []
+        for change in update.updates:
+            order_id = change["order_id"]
+            canceled = change["canceled"]
+            print(f"更新 order_id: {order_id}, canceled: {canceled}")
 
-        # ここに SQL の UPDATE 文を実行するコードを入れる
-        # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
-        await update_order(order_id, canceled)
-        results.append({"order_id": order_id, "canceled": canceled, "success": True})
-    
-    return {"results": results}
+            # ここに SQL の UPDATE 文を実行するコードを入れる
+            # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
+            await update_order(order_id, canceled)
+            results.append({"order_id": order_id, "canceled": canceled, "success": True})
+        
+        return {"results": results}
+    except Exception as e:
+        print(f"/update_cancel_status Error: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
 
 # 例外テスト
 @app.get("/test_exception")
