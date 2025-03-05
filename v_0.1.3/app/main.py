@@ -14,8 +14,8 @@ from starlette import status
 
 from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
 
-from database.sqlite_database import init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
-from schemas import User
+from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
+from schemas.schemas import User
 #from .schemas.schemas import User
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 from utils.exception import CustomException
@@ -173,8 +173,10 @@ async def authenticate_user(username, password) -> Optional[User]:
         #print(f"user: {user}")
         return user
 
+    except SQLException as e:
+        raise
     except Exception as e:
-        raise CustomException(400, f"authenticate_user() 予期せぬエラーが発生しました。{e.detail}")
+        raise CustomException(status.HTTP_405_METHOD_NOT_ALLOWED, f"authenticate_user() 予期せぬエラーが発生しました。{e.detail}")
 
 # ログインPOST
 @app.post("/login", response_class=HTMLResponse)
@@ -189,7 +191,7 @@ async def login_post(response: Response,
         #print(f"user: {user}")
         if user is None:
             # status.HTTP_303_SEE_OTHER 
-            raise CustomException(303, f"user:{user} 取得に失敗しました")
+            raise CustomException(status.HTTP_404_NOT_FOUND, f"user:{user} 取得に失敗しました")
 
         #print("username と password一致")
 
@@ -202,9 +204,7 @@ async def login_post(response: Response,
             2: "/manager/today",
             10: "/shops/today",
             99: "/admin/today"}.get(permission, "/error")
-        #print("******")
         print(f"redirect_url: {redirect_url}")
-        #print("******")
 
         response = RedirectResponse(
             url=redirect_url, status_code=303)
@@ -238,7 +238,7 @@ async def login_post(response: Response,
         raise CustomException(303, f"/login HTTPエラー: {encoded_message}")
 
     except Exception as e:
-        raise CustomException(500, f"/login_post() 予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"/login_post() 予期せぬエラーが発生しました: {str(e)}")
 
 
 # お弁当の注文完了　ユーザーのみ
@@ -249,14 +249,14 @@ async def regist_complete(request: Request, response: Response,
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(400, "Cookieが取得できませんでした。")
+            raise CustomException(status.HTTP_400_BAD_REQUEST, "Cookieが取得できませんでした。")
 
         # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
             #print(f"user:{user} 取得に失敗しました")
-            raise CustomException(400, f"user:{user} 取得に失敗しました")
+            raise CustomException(status.HTTP_400_BAD_REQUEST, f"user:{user} 取得に失敗しました")
 
         await insert_order(
             user.company_id,
@@ -271,7 +271,7 @@ async def regist_complete(request: Request, response: Response,
         #print(f"order_count: {order_count}")
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
-            raise CustomException(404, "注文が見つかりません")
+            raise CustomException(status.HTTP_400_BAD_REQUEST, "注文が見つかりません")
 
         #await show_all_orders()
         order_count = len(orders) - 1
@@ -282,9 +282,11 @@ async def regist_complete(request: Request, response: Response,
         main_view = "order_complete.html"
         return await order_table_view(request, response, orders, main_view)
 
+    except SQLException as e:
+        raise
     except Exception as e:
         print(f"/order_complete Error: {str(e)}")
-        raise CustomException(500, f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # cookieを削除してログアウト
@@ -324,14 +326,15 @@ async def test_exception():
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ブラウザが要求するfaviconのエラーを防ぐ
-# https://github.com/fastapi/fastapi/discussions/11385
-favicon_path = './static/favicon.ico'  # Adjust path to file
+
 
 # Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
-     return FileResponse(favicon_path)
+    # ブラウザが要求するfaviconのエラーを防ぐ
+    # https://github.com/fastapi/fastapi/discussions/11385
+    favicon_path = './static/favicon.ico'  # Adjust path to file
+    return FileResponse(favicon_path)
  
 # Mount the directory where favicon.ico is located 
 # faviconのマウント
