@@ -1,13 +1,11 @@
 # 管理者の権限チェック
-from fastapi import HTTPException, Request
+from fastapi import Request, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-
-
-templates = Jinja2Templates(directory="templates")
 from utils.exception import CustomException
 from utils.utils import log_decorator
-from fastapi import APIRouter
+
+templates = Jinja2Templates(directory="templates")
 
 admin_router = APIRouter()
 
@@ -16,8 +14,7 @@ def check_admin_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission != "99":
-        raise CustomException(403, f"Not Authorized permission={permission}")
-        #raise HTTPException(status_code=403, detail="Not Authorized")
+        raise CustomException(status.HTTP_401_UNAUTHORIZED, f"Not Authorized permission={permission}")
 
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
@@ -30,3 +27,8 @@ def admin_view(request: Request):
     
     return templates.TemplateResponse(
         "admin.html", {"request": request})
+
+# 例外テスト
+@admin_router.get("/test_exception")
+async def test_exception():
+    raise CustomException(400, "これはテストエラーです")

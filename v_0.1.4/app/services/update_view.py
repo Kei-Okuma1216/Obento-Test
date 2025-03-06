@@ -1,6 +1,6 @@
 from typing import List
 from pydantic import BaseModel
-from sqlite_database import update_order
+from database.sqlite_database import update_order
 from utils import log_decorator
 
 class CancelUpdate(BaseModel):

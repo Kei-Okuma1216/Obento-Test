@@ -3,27 +3,27 @@ import os
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.templating import Jinja2Templates
 import tracemalloc
-from typing import Optional
-
 import jwt
 from pydantic import BaseModel
 from starlette import status
+from typing import Optional
 
-from local_jwt_module import SECRET_KEY, get_new_token, check_cookie_token
+from keys.local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
-from schemas.schemas import User
+
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 from utils.exception import CustomException
+
+from schemas.schemas import User
 
 from services.order_view import order_table_view
 
 # tracemallocを有効にする
 tracemalloc.start()
 
-ALGORITHM = "HS256"
+#ALGORITHM = "HS256"
 
 from services.router import router
 from services.admin import admin_router
@@ -38,6 +38,7 @@ app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 #app.include_router(user_router, prefix="/users")
 
+from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
@@ -67,6 +68,10 @@ async def custom_exception_handler(
         {"request": request, "message": exc.detail},
         status_code=exc.status_code
     )
+    '''    return JSONResponse(
+        status_code=exc.status_code,
+        content={"message": exc.detail}
+    )'''
 # -----------------------------------------------------
 # エントリポイント
 @app.get("/", response_class=HTMLResponse)
@@ -327,14 +332,15 @@ async def update_cancel_status(update: CancelUpdate):
         print(f"/update_cancel_status Error: {str(e)}")
         raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
 
+'''
 # 例外テスト
 @app.get("/test_exception")
 async def test_exception():
     raise CustomException(400, "これはテストエラーです")
-
+'''
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
+C:\Windows\System32\cmd.exe /k "cd /d C:\Obento-Test\v_0.1.4\app & .\env\Scripts\activate & uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=app/keys/my-local.key --ssl-certfile=app/keys/my-local.crt"
 
 # Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
