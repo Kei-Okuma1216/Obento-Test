@@ -27,8 +27,25 @@ def admin_view(request: Request):
     
     return templates.TemplateResponse(
         "admin.html", {"request": request})
+'''
+# 注意：ここに移動するとJSONのみ表示になる
+# 例外ハンドラーの設定
+# 実装例
+# raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
+@admin_router.exception_handler(CustomException)
+async def custom_exception_handler(
+    request: Request, exc: CustomException):
+    print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    """カスタム例外をキャッチして、HTML にエラーを表示"""
+    return templates.TemplateResponse(
+        "error.html",  # templates/error.html を表示
+        {"request": request, "message": exc.detail["message"], "status_code": exc.status_code},
+        status_code=exc.status_code
+    )
 
 # 例外テスト
+# 備考：例外ハンドラとこれをmain.py以外に移動すると、JSON表示のみになる。
 @admin_router.get("/test_exception")
 async def test_exception():
     raise CustomException(400, "test_exception()", "これはテストエラーです")
+'''

@@ -19,7 +19,10 @@ def check_manager_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission in [2,99]:
-        raise CustomException(status.HTTP_403_FORBIDDEN,"check_manager_permission()", f"Not Authorized permission={permission}")
+        raise CustomException(
+            status.HTTP_403_FORBIDDEN,
+            "check_manager_permission()",
+            f"Not Authorized permission={permission}")
 
 
 # 会社お弁当担当者画面
@@ -30,7 +33,10 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "manager_view()", "Cookieが取得できませんでした。")
+            raise CustomException(
+                status.HTTP_400_BAD_REQUEST,
+                "manager_view()",
+                "Cookieが取得できませんでした。")
             #print('cookie userなし')
             #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
@@ -52,5 +58,8 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
         return await order_table_view(request, response, orders, target_url)
 
     except Exception as e:
-        raise CustomException(status.HTTP_400_BAD_REQUEST, f"/manager_view", f"Error: {str(e)}")
+        raise CustomException(
+            status.HTTP_400_BAD_REQUEST,
+            "/manager_view",
+            f"Error: {str(e)}")
 

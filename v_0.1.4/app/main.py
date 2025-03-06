@@ -52,30 +52,11 @@ def redirect_login(request: Request, message: str):
     except HTTPException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_404_NOT_FOUND, f"redirect_login()", f"Error: {e.detail}")
+        raise CustomException(
+            status.HTTP_404_NOT_FOUND,
+            "redirect_login()",
+            f"Error: {e.detail}")
 
-# 例外ハンドラーの設定
-# 実装例
-# raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
-@app.exception_handler(CustomException)
-async def custom_exception_handler(
-    request: Request, exc: CustomException):
-    print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
-    """カスタム例外をキャッチして、HTML にエラーを表示"""
-    return templates.TemplateResponse(
-        "error.html",  # templates/error.html を表示
-        {"request": request, "message": exc.detail["message"], "status_code": exc.status_code},
-        status_code=exc.status_code
-    )
-    '''return templates.TemplateResponse(
-        "error.html",
-        {"request": request, "message": exc.detail},
-        status_code=exc.status_code
-    )
-        return JSONResponse(
-        status_code=exc.status_code,
-        content={"message": exc.detail}
-    )'''
 # -----------------------------------------------------
 # エントリポイント
 @app.get("/", response_class=HTMLResponse)
@@ -138,10 +119,16 @@ async def root(request: Request, response: Response):
         return response
 
     except jwt.ExpiredSignatureError:
-        raise CustomException(status.HTTP_400_BAD_REQUEST, "root()", "トークンの有効期限が切れています。再登録をしてください。")
+        raise CustomException(
+            status.HTTP_400_BAD_REQUEST,
+            "root()",
+            "トークンの有効期限が切れています。再登録をしてください。")
 
     except jwt.InvalidTokenError:
-        raise CustomException(status.HTTP_400_BAD_REQUEST, "root()", "無効なトークンです")
+        raise CustomException(
+            status.HTTP_400_BAD_REQUEST,
+            "root()",
+            "無効なトークンです")
 
 
 # ログイン画面を表示するエンドポイント
@@ -153,7 +140,10 @@ async def login_get(request: Request):
         redirect_login(request, "ようこそ")
 
     except Exception as e:
-        raise CustomException(status.HTTP_404_NOT_FOUND, f"login_get()", f"Error:  {e.detail}")
+        raise CustomException(
+            status.HTTP_404_NOT_FOUND,
+            "login_get()",
+            f"Error:  {e.detail}")
 
 # -----------------------------------------------------
 # ログイン認証
@@ -187,7 +177,10 @@ async def authenticate_user(username, password) -> Optional[User]:
     except SQLException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_405_METHOD_NOT_ALLOWED, f"authenticate_user()", f"予期せぬエラーが発生しました。{e.detail}")
+        raise CustomException(
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+            f"authenticate_user()",
+            f"予期せぬエラーが発生しました。{e.detail}")
 
 # ログインPOST
 @app.post("/login", response_class=HTMLResponse)
@@ -201,7 +194,10 @@ async def login_post(response: Response,
         user = await authenticate_user(username, password) 
         #print(f"user: {user}")
         if user is None:
-            raise CustomException(status.HTTP_404_NOT_FOUND, "login_post()", f"user:{user} 取得に失敗しました")
+            raise CustomException(
+                status.HTTP_404_NOT_FOUND,
+                "login_post()",
+                f"user:{user} 取得に失敗しました")
 
         #print("username と password一致")
 
@@ -248,7 +244,10 @@ async def login_post(response: Response,
     except HTTPException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"/login_post()", f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "/login_post()",
+            f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # お弁当の注文完了　ユーザーのみ
@@ -265,7 +264,10 @@ async def regist_complete(request: Request, response: Response):
 
         if user is None:
             #print(f"user:{user} 取得に失敗しました")
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "regist_complete()", f"user:{user} 取得に失敗しました")
+            raise CustomException(
+                status.HTTP_400_BAD_REQUEST,
+                "regist_complete()",
+                f"user:{user} 取得に失敗しました")
 
         await insert_order(
             user.company_id,
@@ -280,7 +282,10 @@ async def regist_complete(request: Request, response: Response):
         #print(f"order_count: {order_count}")
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
-            raise CustomException(status.HTTP_400_BAD_REQUEST,"regist_complete()", "注文が見つかりません")
+            raise CustomException(
+                status.HTTP_400_BAD_REQUEST,
+                "regist_complete()",
+                "注文が見つかりません")
 
         #await show_all_orders()
         order_count = len(orders) - 1
@@ -297,7 +302,10 @@ async def regist_complete(request: Request, response: Response):
         raise
     except Exception as e:
         print(f"/order_complete Error: {str(e)}")
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, "regist_complete()", f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "regist_complete()",
+            f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # cookieを削除してログアウト
@@ -332,12 +340,29 @@ async def update_cancel_status(update: CancelUpdate):
         return {"results": results}
     except Exception as e:
         print(f"/update_cancel_status Error: {str(e)}")
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_cancel_status()", f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "update_cancel_status()",
+            f"予期せぬエラーが発生しました: {str(e)}")
+
+# 例外ハンドラーの設定
+# 実装例
+# raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
+@app.exception_handler(CustomException)
+async def custom_exception_handler(
+    request: Request, exc: CustomException):
+    print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    """カスタム例外をキャッチして、HTML にエラーを表示"""
+    return templates.TemplateResponse(
+        "error.html",  # templates/error.html を表示
+        {"request": request, "message": exc.detail["message"], "status_code": exc.status_code},
+        status_code=exc.status_code
+    )
 
 # 例外テスト
 @app.get("/test_exception")
 async def test_exception():
-    raise CustomException(400, "test_exception()", "これはテストエラーです")
+    raise CustomException(
+        400, "test_exception()", "これはテストエラーです")
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 # Ensure favicon.ico is accessible

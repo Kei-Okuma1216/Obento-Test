@@ -6,6 +6,7 @@ import functools
 import inspect
 from typing import Dict, List, Optional
 import warnings
+from utils.exception import CustomException
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
@@ -113,7 +114,10 @@ def set_all_cookies(response: Response, user: Dict):
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        raise CustomException(
+            status_code=400,
+            method_name="set_all_cookies()", message=str(e))
+
 
 #@log_decorator
 def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
@@ -140,7 +144,9 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        raise CustomException(
+            status_code=400,
+            method_name="get_all_cookies()", message=str(e))
 
 @log_decorator
 def delete_all_cookies(response: Response):
@@ -291,6 +297,7 @@ def convert_expired_time_to_expires(expired_time: datetime) -> str:
     return expires
 
 # 権限チェック
+@deprecated
 @log_decorator
 def check_permission(request: Request, allowed_permissions: Optional[List[int]] = None):
     permission = request.cookies.get("permission")
