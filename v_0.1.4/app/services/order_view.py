@@ -1,12 +1,10 @@
 # 管理者の権限チェック
-from fastapi import HTTPException, Header, Request, Response
+from fastapi import HTTPException, APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
-
 templates = Jinja2Templates(directory="templates")
 from utils.utils import log_decorator 
 
-from fastapi import APIRouter
 
 view_router = APIRouter(
     prefix="/orders",
@@ -43,11 +41,14 @@ async def order_table_view(request: Request, response: Response, orders, redirec
             template_response.headers["Set-Cookie"] = set_cookie_header
         #print("ここまできた 5")
         return template_response
+
     except HTTPException as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
         print(f"/order_table_view Error: {str(e)}")
-        return JSONResponse({"message": "エラーが発生しました"}, status_code=404)
+        return JSONResponse({"message": "エラーが発生しました"},
+                            e.status_code)
+
 '''
 # 注文情報を取得する
 # 例 /order_json?days_ago=-5

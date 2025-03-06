@@ -3,7 +3,6 @@ from typing import Union
 from fastapi import HTTPException, status
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from datetime import date, datetime, timedelta, timezone
 import jwt
 import os
@@ -14,17 +13,17 @@ SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d
 TOKEN_EXPIRE_MINUTES = 15
 TOKEN_EXPIRE_DAYS = 30
 
+CERT_FILE = "app/keys/my-local.crt"
+KEY_FILE = "app/keys/my-local.key"
+
 # ログ用の設定
 #logging.basicConfig(level=logging.INFO)
 
-
-import os
-
+# 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str):
     key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), key_file))  # 絶対パスに変換
     with open(key_path, "rb") as key_file:
         return key_file.read()
-
 '''
 # 秘密鍵my-local.keyをファイルから読む
 def load_private_key(key_file: str): 
@@ -32,15 +31,17 @@ def load_private_key(key_file: str):
         private_key = load_pem_private_key(key_file.read(), password=None) 
         return private_key 
 '''
+
 private_key = load_private_key("./my-local.key")
+#private_key = load_private_key(KEY_FILE)
 
 
 # 秘密鍵を元に署名を生成する関数:
 def sign_message(private_key, message: str, date: date):
-    
+
     # メッセージに日付を追加 
     combined_message = message + str(date)
-    
+
     # 署名を生成
     signature = private_key.sign(
         combined_message.encode(),

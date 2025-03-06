@@ -1,17 +1,16 @@
-# 管理者の権限チェック
-from typing import Optional
-from fastapi import HTTPException, Header, Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
+# manager.py
+from fastapi import Header, Request, Response, APIRouter, status
+from fastapi.responses import HTMLResponse
 
 from utils.exception import CustomException
-from utils.utils import check_permission, get_all_cookies, log_decorator
+from utils.utils import get_all_cookies, log_decorator
 from database.sqlite_database import select_company_order
 from services.order_view import order_table_view
+from typing import Optional
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
-from fastapi import APIRouter
 
 manager_router = APIRouter()
 
@@ -20,8 +19,8 @@ def check_manager_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission in [2,99]:
-        raise CustomException(403, f"Not Authorized permission={permission}")
-        #raise HTTPException(status_code=403, detail="Not Authorized")
+        raise CustomException(status.HTTP_403_FORBIDDEN, f"Not Authorized permission={permission}")
+
 
 # 会社お弁当担当者画面
 # 注意：エンドポイントにprefix:managerはつけない
@@ -31,7 +30,7 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(400, "Cookieが取得できませんでした。")
+            raise CustomException(status.HTTP_400_BAD_REQUEST, "Cookieが取得できませんでした。")
             #print('cookie userなし')
             #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
@@ -47,11 +46,13 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
         if orders is None:
             print('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
+            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        return await order_table_view(request, response, orders, "manager_orders_today.html")
+        target_url = "manager_orders_today.html"
+        return await order_table_view(request, response, orders, target_url)
 
     except Exception as e:
-        raise CustomException(400, f"/manager_view Error: {str(e)}")
+        raise CustomException(status.HTTP_400_BAD_REQUEST, f"/manager_view Error: {str(e)}")
         #print(f"/manager_view Error: {str(e)}")
         #return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 

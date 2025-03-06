@@ -1,24 +1,19 @@
 # 店舗の権限チェック
-import json
-from typing import Optional
-from fastapi import Query, Request, Response, status
+from fastapi import Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
-from fastapi import Header
+import json
 
+from database.sqlite_database import SQLException, select_shop_order, select_user
+from utils.utils import deprecated, get_all_cookies, log_decorator
 from utils.exception import CustomException
+from main import order_table_view
 
 templates = Jinja2Templates(directory="templates")
 
-from main import order_table_view
-from database.sqlite_database import SQLException, select_shop_order, select_user
-from utils.utils import deprecated, get_all_cookies, log_decorator
-
-
-from fastapi import APIRouter
-
 shop_router = APIRouter()
+
 
 # お店の権限チェック
 @deprecated
