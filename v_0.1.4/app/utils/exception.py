@@ -5,10 +5,17 @@ from starlette import status
 encoded_message = urllib.parse.quote(f"login_get() Error:  {e.detail}")
 '''     
 class CustomException(HTTPException):
-    def __init__(self, status_code: int, detail: str):
+    def __init__(self, status_code: int, method_name: str,message: str):
+        print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
+
+        super().__init__(status_code=status_code, detail={
+            "method_name": method_name,
+            "message": message
+            })
+    '''def __init__(self, status_code: int, detail: str):
         print(f"🚨 CustomException 発生！ status_code={status_code}, message={detail}")  # 追加
         super().__init__(status_code=status_code, detail=detail)
-
+    '''
 
 # Token期限切れ例外クラス
 class TokenExpiredException(CustomException):
