@@ -3,6 +3,7 @@ from fastapi import HTTPException, APIRouter, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
+from database.sqlite_database import CustomException
 from utils.utils import log_decorator 
 
 
@@ -14,7 +15,6 @@ view_router = APIRouter(
 
 # 注文一覧テーブル表示
 @log_decorator
-#async def order_table_view(request: Request, response: Response, orders, redirect_url: str, hx_request: Optional[str] = Header(None)):
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str):
     try:
         #print(f"ordersあり")
@@ -45,9 +45,10 @@ async def order_table_view(request: Request, response: Response, orders, redirec
     except HTTPException as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
-        print(f"/order_table_view Error: {str(e)}")
-        return JSONResponse({"message": "エラーが発生しました"},
-                            e.status_code)
+        raise CustomException(status.HTTP_400_BAD_REQUEST, f"/order_table_view()", f"Error: {str(e)}")
+        #print(f"/order_table_view Error: {str(e)}")
+        #return JSONResponse({"message": "エラーが発生しました"},
+        #                    e.status_code)
 
 '''
 # 注文情報を取得する

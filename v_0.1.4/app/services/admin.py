@@ -14,7 +14,7 @@ def check_admin_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission != "99":
-        raise CustomException(status.HTTP_401_UNAUTHORIZED, f"Not Authorized permission={permission}")
+        raise CustomException(status.HTTP_401_UNAUTHORIZED, "check_admin_permission()", f"Not Authorized permission={permission}")
 
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
@@ -31,4 +31,4 @@ def admin_view(request: Request):
 # 例外テスト
 @admin_router.get("/test_exception")
 async def test_exception():
-    raise CustomException(400, "これはテストエラーです")
+    raise CustomException(400, "test_exception()", "これはテストエラーです")

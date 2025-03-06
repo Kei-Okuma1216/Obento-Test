@@ -54,7 +54,7 @@ def redirect_login(request: Request, message: str):
     except HTTPException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_404_NOT_FOUND, f"redirect_login() Error:  {e.detail}")
+        raise CustomException(status.HTTP_404_NOT_FOUND, f"redirect_login()", f"Error: {e.detail}")
 
 # 例外ハンドラーの設定
 # 実装例
@@ -63,12 +63,18 @@ def redirect_login(request: Request, message: str):
 async def custom_exception_handler(
     request: Request, exc: CustomException):
     print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    """カスタム例外をキャッチして、HTML にエラーを表示"""
     return templates.TemplateResponse(
+        "error.html",  # templates/error.html を表示
+        {"request": request, "message": exc.detail["message"], "status_code": exc.status_code},
+        status_code=exc.status_code
+    )
+    '''return templates.TemplateResponse(
         "error.html",
         {"request": request, "message": exc.detail},
         status_code=exc.status_code
     )
-    '''    return JSONResponse(
+        return JSONResponse(
         status_code=exc.status_code,
         content={"message": exc.detail}
     )'''
@@ -84,7 +90,6 @@ async def root(request: Request, response: Response):
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
-
         return HTMLResponse(message)
 
 
@@ -106,7 +111,7 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            raise CustomException(400, f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
+            raise CustomException(400, f"root()", f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         #print(f"jwt.decode: {payload}")
@@ -135,10 +140,10 @@ async def root(request: Request, response: Response):
         return response
 
     except jwt.ExpiredSignatureError:
-        raise CustomException(status.HTTP_400_BAD_REQUEST, "トークンの有効期限が切れています。再登録をしてください。")
+        raise CustomException(status.HTTP_400_BAD_REQUEST, "root()", "トークンの有効期限が切れています。再登録をしてください。")
 
     except jwt.InvalidTokenError:
-        raise CustomException(status.HTTP_400_BAD_REQUEST, "無効なトークンです")
+        raise CustomException(status.HTTP_400_BAD_REQUEST, "root()", "無効なトークンです")
 
 
 # ログイン画面を表示するエンドポイント
@@ -150,7 +155,7 @@ async def login_get(request: Request):
         redirect_login(request, "ようこそ")
 
     except Exception as e:
-        raise CustomException(status.HTTP_404_NOT_FOUND, f"login_get() Error:  {e.detail}")
+        raise CustomException(status.HTTP_404_NOT_FOUND, f"login_get()", f"Error:  {e.detail}")
 
 # -----------------------------------------------------
 # ログイン認証
@@ -184,7 +189,7 @@ async def authenticate_user(username, password) -> Optional[User]:
     except SQLException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_405_METHOD_NOT_ALLOWED, f"authenticate_user() 予期せぬエラーが発生しました。{e.detail}")
+        raise CustomException(status.HTTP_405_METHOD_NOT_ALLOWED, f"authenticate_user()", f"予期せぬエラーが発生しました。{e.detail}")
 
 # ログインPOST
 @app.post("/login", response_class=HTMLResponse)
@@ -198,7 +203,7 @@ async def login_post(response: Response,
         user = await authenticate_user(username, password) 
         #print(f"user: {user}")
         if user is None:
-            raise CustomException(status.HTTP_404_NOT_FOUND, f"user:{user} 取得に失敗しました")
+            raise CustomException(status.HTTP_404_NOT_FOUND, "login_post()", f"user:{user} 取得に失敗しました")
 
         #print("username と password一致")
 
@@ -211,7 +216,7 @@ async def login_post(response: Response,
             2: "/manager/today",
             10: "/shops/today",
             99: "/admin/today"}.get(permission, "/error")
-        print(f"redirect_url: {redirect_url}")
+        #print(f"redirect_url: {redirect_url}")
 
         response = RedirectResponse(
             url=redirect_url, status_code=303)
@@ -245,25 +250,24 @@ async def login_post(response: Response,
     except HTTPException as e:
         raise
     except Exception as e:
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"/login_post() 予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"/login_post()", f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # お弁当の注文完了　ユーザーのみ
 @app.get("/order_complete",response_class=HTMLResponse) 
 @log_decorator
-async def regist_complete(request: Request, response: Response,
-                    hx_request: Optional[str] = Header(None)): 
+async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "Cookieが取得できませんでした。")
+            raise CustomException(status.HTTP_400_BAD_REQUEST,"regist_complete()", "Cookieが取得できませんでした。")
 
         # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
             #print(f"user:{user} 取得に失敗しました")
-            raise CustomException(status.HTTP_400_BAD_REQUEST, f"user:{user} 取得に失敗しました")
+            raise CustomException(status.HTTP_400_BAD_REQUEST, "regist_complete()", f"user:{user} 取得に失敗しました")
 
         await insert_order(
             user.company_id,
@@ -278,7 +282,7 @@ async def regist_complete(request: Request, response: Response,
         #print(f"order_count: {order_count}")
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "注文が見つかりません")
+            raise CustomException(status.HTTP_400_BAD_REQUEST,"regist_complete()", "注文が見つかりません")
 
         #await show_all_orders()
         order_count = len(orders) - 1
@@ -295,7 +299,7 @@ async def regist_complete(request: Request, response: Response,
         raise
     except Exception as e:
         print(f"/order_complete Error: {str(e)}")
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, "regist_complete()", f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # cookieを削除してログアウト
@@ -330,17 +334,11 @@ async def update_cancel_status(update: CancelUpdate):
         return {"results": results}
     except Exception as e:
         print(f"/update_cancel_status Error: {str(e)}")
-        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_cancel_status()", f"予期せぬエラーが発生しました: {str(e)}")
 
-'''
-# 例外テスト
-@app.get("/test_exception")
-async def test_exception():
-    raise CustomException(400, "これはテストエラーです")
-'''
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 
-C:\Windows\System32\cmd.exe /k "cd /d C:\Obento-Test\v_0.1.4\app & .\env\Scripts\activate & uvicorn main:app --host 127.0.0.1 --port 8000 --ssl-keyfile=app/keys/my-local.key --ssl-certfile=app/keys/my-local.crt"
+
 
 # Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
