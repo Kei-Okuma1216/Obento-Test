@@ -23,6 +23,9 @@ from services.order_view import order_table_view
 # tracemallocを有効にする
 tracemalloc.start()
 
+import logging
+from log_config import logger  # 先ほどのログ設定をインポート
+
 from services.router import router
 from services.admin import admin_router
 from services.manager import manager_router
@@ -63,6 +66,7 @@ def redirect_login(request: Request, message: str):
 @log_decorator
 async def root(request: Request, response: Response):
 
+    logger.info("ルートエンドポイントにアクセスされました")
     # テストデータ作成
     #await init_database()
 
@@ -361,6 +365,7 @@ async def custom_exception_handler(
 # 例外テスト
 @app.get("/test_exception")
 async def test_exception():
+    logger.error("エラーが発生しました！")
     raise CustomException(
         400, "test_exception()", "これはテストエラーです")
 
