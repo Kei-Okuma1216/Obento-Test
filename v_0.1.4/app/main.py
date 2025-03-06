@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from starlette import status
 from typing import Optional
 
-from keys.local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token
+from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 
@@ -22,8 +22,6 @@ from services.order_view import order_table_view
 
 # tracemallocを有効にする
 tracemalloc.start()
-
-#ALGORITHM = "HS256"
 
 from services.router import router
 from services.admin import admin_router
@@ -336,10 +334,12 @@ async def update_cancel_status(update: CancelUpdate):
         print(f"/update_cancel_status Error: {str(e)}")
         raise CustomException(status.HTTP_500_INTERNAL_SERVER_ERROR, "update_cancel_status()", f"予期せぬエラーが発生しました: {str(e)}")
 
+# 例外テスト
+@app.get("/test_exception")
+async def test_exception():
+    raise CustomException(400, "test_exception()", "これはテストエラーです")
+
 #app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-
 # Ensure favicon.ico is accessible
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
