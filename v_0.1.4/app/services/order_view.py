@@ -20,7 +20,8 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         #print(f"ordersあり")
    
         # ordersリストをin-placeで降順にソート
-        orders.sort(key=lambda x: x.created_at, reverse=True)
+        #orders.sort(key=lambda x: x.created_at, reverse=True)
+        orders.sort(key=lambda x: x.order_id, reverse=True)
 
         # ソート結果を確認
         #for order in orders:
