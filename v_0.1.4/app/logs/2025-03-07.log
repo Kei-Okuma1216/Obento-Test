@@ -399,3 +399,95 @@ TypeError: TokenExpiredException.__init__() takes 2 positional arguments but 4 w
 2025-03-07 14:27:49 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJtYW5hZ2VyIiwicGVybWlzc2lvbiI6MiwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDU6Mjc6NDkuNTQxMTY1WiJ9.Mvqd5Q6JjbpGshjy3k-JP2hDcgC6vefpvFEop8gpVYY
 2025-03-07 14:27:49 - DEBUG - login_post() - 'exp': 2025-04-06T05:27:49.541165Z
 2025-03-07 14:27:49 - DEBUG - login_post() - 'permission': 2
+2025-03-07 14:46:28 - INFO - Started server process [8972]
+2025-03-07 14:46:28 - INFO - Waiting for application startup.
+2025-03-07 14:46:28 - INFO - Application startup complete.
+2025-03-07 14:46:28 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 14:46:29 - INFO - root() - ルートにアクセスしました
+2025-03-07 14:46:29 - DEBUG - token_result: ありません
+2025-03-07 14:46:47 - DEBUG - username: user1
+2025-03-07 14:46:47 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTA2VDA1OjQ2OjQ3Ljc2MzQ3NFoifQ.ZgOT02UzygU3f_7DZmf8c6QL5lV-qM9TA2pdHYFwbmY
+2025-03-07 14:46:47 - DEBUG - expires: 2025-04-06T05:46:47.763474Z
+2025-03-07 14:46:47 - DEBUG - user: user_id=1 username='user1' password='user1' name='大隈 慶1' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTA2VDA1OjQ2OjQ3Ljc2MzQ3NFoifQ.ZgOT02UzygU3f_7DZmf8c6QL5lV-qM9TA2pdHYFwbmY' exp='2025-04-06T05:46:47.763474Z' company_id=1 shop_name='shop01' menu_id=1 permission=1 is_modified=False updated_at=None
+2025-03-07 14:46:47 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-07 14:46:47 - DEBUG - user: user_id=1 username='user1' password='user1' name='大隈 慶1' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTA2VDA1OjQ2OjQ3Ljc2MzQ3NFoifQ.ZgOT02UzygU3f_7DZmf8c6QL5lV-qM9TA2pdHYFwbmY' exp='2025-04-06T05:46:47.763474Z' company_id=1 shop_name='shop01' menu_id=1 permission=1 is_modified=False updated_at=None
+2025-03-07 14:46:47 - DEBUG - username と password一致
+2025-03-07 14:46:47 - DEBUG - redirect_url: /order_complete
+2025-03-07 14:46:47 - DEBUG - login_post() - 'sub': user1
+2025-03-07 14:46:47 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTA2VDA1OjQ2OjQ3Ljc2MzQ3NFoifQ.ZgOT02UzygU3f_7DZmf8c6QL5lV-qM9TA2pdHYFwbmY
+2025-03-07 14:46:47 - DEBUG - login_post() - 'exp': 2025-04-06T05:46:47.763474Z
+2025-03-07 14:46:47 - DEBUG - login_post() - 'permission': 1
+2025-03-07 14:46:47 - DEBUG - orders: [Order(order_id=1, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 20), canceled=False), Order(order_id=7, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 27), canceled=False), Order(order_id=8, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 31), canceled=False), Order(order_id=9, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 12, 1), canceled=False), Order(order_id=10, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 13, 34), canceled=False), Order(order_id=11, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 7), canceled=False), Order(order_id=12, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 9), canceled=False), Order(order_id=13, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 14), canceled=False), Order(order_id=14, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 21), canceled=False), Order(order_id=15, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 25), canceled=False), Order(order_id=16, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 46), canceled=False)]
+2025-03-07 14:57:57 - INFO - root() - ルートにアクセスしました
+2025-03-07 14:57:57 - INFO - stop_twice_order() - きょう２度目の注文を阻止
+2025-03-07 14:57:59 - INFO - root() - ルートにアクセスしました
+2025-03-07 14:57:59 - DEBUG - token_result: ありません
+2025-03-07 14:58:08 - DEBUG - username: shop01
+2025-03-07 14:58:08 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDU6NTg6MDguNDQ3NDM4WiJ9.9lhCvR-8NC55IEgrB-JakJVffBbNP6XVxYJ3f1qmnws
+2025-03-07 14:58:08 - DEBUG - expires: 2025-04-06T05:58:08.447438Z
+2025-03-07 14:58:08 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDU6NTg6MDguNDQ3NDM4WiJ9.9lhCvR-8NC55IEgrB-JakJVffBbNP6XVxYJ3f1qmnws' exp='2025-04-06T05:58:08.447438Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 14:58:08 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-07 14:58:08 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDU6NTg6MDguNDQ3NDM4WiJ9.9lhCvR-8NC55IEgrB-JakJVffBbNP6XVxYJ3f1qmnws' exp='2025-04-06T05:58:08.447438Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 14:58:08 - DEBUG - username と password一致
+2025-03-07 14:58:08 - DEBUG - redirect_url: /shops/me
+2025-03-07 14:58:08 - DEBUG - login_post() - 'sub': shop01
+2025-03-07 14:58:08 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDU6NTg6MDguNDQ3NDM4WiJ9.9lhCvR-8NC55IEgrB-JakJVffBbNP6XVxYJ3f1qmnws
+2025-03-07 14:58:08 - DEBUG - login_post() - 'exp': 2025-04-06T05:58:08.447438Z
+2025-03-07 14:58:08 - DEBUG - login_post() - 'permission': 10
+2025-03-07 15:05:54 - INFO - Started server process [1448]
+2025-03-07 15:05:54 - INFO - Waiting for application startup.
+2025-03-07 15:05:54 - INFO - Application startup complete.
+2025-03-07 15:05:54 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 15:05:55 - INFO - root() - ルートにアクセスしました
+2025-03-07 15:05:55 - DEBUG - token_result: None
+2025-03-07 15:05:55 - DEBUG - token_result: ありません
+2025-03-07 15:06:02 - DEBUG - username: shop01
+2025-03-07 15:06:02 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDY6MDIuNTgzNzE4WiJ9.z4bH5c9xFTqWwlXVRQoUHibKXpzmXEjiu0SNW2-dhRE
+2025-03-07 15:06:02 - DEBUG - expires: 2025-04-06T06:06:02.583718Z
+2025-03-07 15:06:02 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDY6MDIuNTgzNzE4WiJ9.z4bH5c9xFTqWwlXVRQoUHibKXpzmXEjiu0SNW2-dhRE' exp='2025-04-06T06:06:02.583718Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:06:02 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-07 15:06:02 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDY6MDIuNTgzNzE4WiJ9.z4bH5c9xFTqWwlXVRQoUHibKXpzmXEjiu0SNW2-dhRE' exp='2025-04-06T06:06:02.583718Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:06:02 - DEBUG - username と password一致
+2025-03-07 15:06:02 - DEBUG - redirect_url: /shops/me
+2025-03-07 15:06:02 - DEBUG - login_post() - 'sub': shop01
+2025-03-07 15:06:02 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDY6MDIuNTgzNzE4WiJ9.z4bH5c9xFTqWwlXVRQoUHibKXpzmXEjiu0SNW2-dhRE
+2025-03-07 15:06:02 - DEBUG - login_post() - 'exp': 2025-04-06T06:06:02.583718Z
+2025-03-07 15:06:02 - DEBUG - login_post() - 'permission': 10
+2025-03-07 15:07:11 - INFO - Started server process [8380]
+2025-03-07 15:07:11 - INFO - Waiting for application startup.
+2025-03-07 15:07:11 - INFO - Application startup complete.
+2025-03-07 15:07:11 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 15:07:13 - INFO - root() - ルートにアクセスしました
+2025-03-07 15:07:13 - DEBUG - token_result: None
+2025-03-07 15:07:13 - DEBUG - token_result: ありません
+2025-03-07 15:07:20 - DEBUG - username: shop01
+2025-03-07 15:07:20 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDc6MjAuNjQ2NzUzWiJ9.vzWFN2gU6fxJzbEnLrf74B4JGNmdpcaLdxGfGQ_zfXA
+2025-03-07 15:07:20 - DEBUG - expires: 2025-04-06T06:07:20.646753Z
+2025-03-07 15:07:20 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDc6MjAuNjQ2NzUzWiJ9.vzWFN2gU6fxJzbEnLrf74B4JGNmdpcaLdxGfGQ_zfXA' exp='2025-04-06T06:07:20.646753Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:07:20 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-07 15:07:20 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDc6MjAuNjQ2NzUzWiJ9.vzWFN2gU6fxJzbEnLrf74B4JGNmdpcaLdxGfGQ_zfXA' exp='2025-04-06T06:07:20.646753Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:07:20 - DEBUG - username と password一致
+2025-03-07 15:07:20 - DEBUG - redirect_url: /shops/me
+2025-03-07 15:07:20 - DEBUG - login_post() - 'sub': shop01
+2025-03-07 15:07:20 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MDc6MjAuNjQ2NzUzWiJ9.vzWFN2gU6fxJzbEnLrf74B4JGNmdpcaLdxGfGQ_zfXA
+2025-03-07 15:07:20 - DEBUG - login_post() - 'exp': 2025-04-06T06:07:20.646753Z
+2025-03-07 15:07:20 - DEBUG - login_post() - 'permission': 10
+2025-03-07 15:10:20 - INFO - Started server process [376]
+2025-03-07 15:10:20 - INFO - Waiting for application startup.
+2025-03-07 15:10:20 - INFO - Application startup complete.
+2025-03-07 15:10:20 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 15:10:22 - INFO - root() - ルートにアクセスしました
+2025-03-07 15:10:22 - DEBUG - token_result: None
+2025-03-07 15:10:22 - DEBUG - token_result: ありません
+2025-03-07 15:10:29 - DEBUG - username: shop01
+2025-03-07 15:10:29 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MTA6MjkuMDI0NTk5WiJ9.sjlUK6HCTZygQXNkb91C5PGFB2-Sk19KWOXz2Yk5TeM
+2025-03-07 15:10:29 - DEBUG - expires: 2025-04-06T06:10:29.024599Z
+2025-03-07 15:10:29 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MTA6MjkuMDI0NTk5WiJ9.sjlUK6HCTZygQXNkb91C5PGFB2-Sk19KWOXz2Yk5TeM' exp='2025-04-06T06:10:29.024599Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:10:29 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-07 15:10:29 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MTA6MjkuMDI0NTk5WiJ9.sjlUK6HCTZygQXNkb91C5PGFB2-Sk19KWOXz2Yk5TeM' exp='2025-04-06T06:10:29.024599Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-07 15:10:29 - DEBUG - username と password一致
+2025-03-07 15:10:29 - DEBUG - redirect_url: /shops/me
+2025-03-07 15:10:29 - DEBUG - login_post() - 'sub': shop01
+2025-03-07 15:10:29 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDZUMDY6MTA6MjkuMDI0NTk5WiJ9.sjlUK6HCTZygQXNkb91C5PGFB2-Sk19KWOXz2Yk5TeM
+2025-03-07 15:10:29 - DEBUG - login_post() - 'exp': 2025-04-06T06:10:29.024599Z
+2025-03-07 15:10:29 - DEBUG - login_post() - 'permission': 10

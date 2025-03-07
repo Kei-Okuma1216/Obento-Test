@@ -34,22 +34,30 @@ def set_logger_levels(logger, levels):
 
 # デフォルトではINFOとWARNINGを設定
 #set_logger_levels(logger, ["INFO", "WARNING"])
+# すべてのログレベルを有効化
 set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 
+
 # ハンドラー（1日ごとに新しいログファイルを作成）
-handler = TimedRotatingFileHandler(
+file_handler = TimedRotatingFileHandler(
     log_filename, when="midnight", interval=1, encoding="utf-8", backupCount=7
 )
-handler.suffix = "%Y-%m-%d"  # ログファイルの名前に日付をつける
+file_handler.suffix = "%Y-%m-%d"  # ログファイルの名前に日付をつける
+
+# ② **コンソールハンドラー**
+console_handler = logging.StreamHandler()  # 追加
+console_handler.setLevel(logging.DEBUG)  # コンソールにはすべてのログを出力
 
 # フォーマット設定
 formatter = logging.Formatter(
     "%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S"
 )
-handler.setFormatter(formatter)
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)  # コンソールのログも同じフォーマット
 
 # ロガーにハンドラーを追加
-logger.addHandler(handler)
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)  # 追加
 # -----------------------------------------------------
 '''ログ
 1. ログレベル

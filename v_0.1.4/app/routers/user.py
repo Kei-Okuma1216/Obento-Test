@@ -8,8 +8,8 @@ from fastapi import Header
 
 templates = Jinja2Templates(directory="templates")
 
-from app.services import order_table_view
-from sqlite_database import select_shop_order, select_user, insert_order
+from services import order_table_view
+from database.sqlite_database import select_shop_order, select_user, insert_order
 from utils import get_all_cookies, log_decorator
 
 
@@ -21,8 +21,7 @@ user_router = APIRouter()
 # users/todayになる
 @user_router.get("/order_complete",response_class=HTMLResponse, tags=["users"]) 
 @log_decorator
-async def regist_complete(request: Request, response: Response,
-                    hx_request: Optional[str] = Header(None)): 
+async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
         if not cookies:
