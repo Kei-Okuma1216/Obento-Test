@@ -24,8 +24,8 @@ user_router = APIRouter()
 async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
-        if not cookies:
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+        '''if not cookies:
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)'''
 
         # 注文追加
         user = await select_user(cookies['sub'])

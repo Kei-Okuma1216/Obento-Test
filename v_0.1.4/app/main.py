@@ -275,8 +275,6 @@ async def login_post(response: Response,
 async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
-        if not cookies:
-            raise CookieException(method_name="regist_complete()")
 
         # 注文追加
         user = await select_user(cookies['sub'])
