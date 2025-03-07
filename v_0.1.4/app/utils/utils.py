@@ -128,11 +128,22 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         token = request.cookies.get("token")
         exp = request.cookies.get("exp")
         permission = request.cookies.get("permission")
+        
+        # いずれかが None の場合は例外を発生
+        ''' 実装しない。理由：初回アクセスはCookieがないから
+            if None in (username, token, exp, permission):
+            raise CookieException(
+                method_name="get_all_cookies",
+                detail="必須のクッキーが不足しています")'''
+
+        # permission は整数に変換
+        permission = int(permission)
+        
         data = {
             "sub": username,
             "token": token,
             "exp": exp,
-            "permission": int(permission)
+            "permission": permission
         }
         logger.debug(f"get_all_cookies() - sub: {username}")
         logger.debug(f"get_all_cookies() - token: {token}")
@@ -143,10 +154,12 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
 
     except KeyError as e:
         print(f"Missing key: {e}")
-    except Exception as e:
+    except ValueError:
         raise CookieException(
-            method_name="get_all_cookies()",
-            message=str(e))
+            method_name="get_all_cookies",
+            detail="permission の値が不正です")
+    except Exception as e:
+        raise
 
 @log_decorator
 def delete_all_cookies(response: Response):
