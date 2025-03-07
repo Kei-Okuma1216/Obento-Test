@@ -14,7 +14,7 @@ from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
-from utils.exception import CustomException, TokenExpiredException
+from utils.exception import CookieException, CustomException, TokenExpiredException
 
 from schemas.schemas import User
 
@@ -25,14 +25,14 @@ tracemalloc.start()
 
 from log_config import logger  # 先ほどのログ設定をインポート
 
-from services.router import router
-from services.admin import admin_router
-from services.manager import manager_router
-from shop import shop_router
+from routers.router import sample_router
+from routers.admin import admin_router
+from routers.manager import manager_router
+from routers.shop import shop_router
 #from routers.user import user_router
 app = FastAPI()
 
-app.include_router(router, prefix="/api")
+app.include_router(sample_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
@@ -47,9 +47,11 @@ from fastapi.staticfiles import StaticFiles
 endpoint = 'https://127.0.0.1:8000'
 
 # login.htmlに戻る
+#@log_decorator
 def redirect_login(request: Request, message: str):
     try:
-        print("login")
+        logger.info("redirect_login()")
+
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
     except HTTPException as e:
         raise
@@ -61,18 +63,19 @@ def redirect_login(request: Request, message: str):
 
 # -----------------------------------------------------
 # エントリポイント
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def root(request: Request, response: Response):
 
-    logger.info(f"- {""} - {"root()"}, {"ルートにアクセスしました"}")
+    logger.info(f"root() - ルートにアクセスしました")
     # テストデータ作成
     #await init_database()
 
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
-        logger.info(f"- {""} - {"stop_twice_order()"}, {"きょう２度目の注文を阻止"}")
+        logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
+
         return HTMLResponse(message)
 
 
@@ -81,12 +84,13 @@ async def root(request: Request, response: Response):
     #print(f"token_result: {token_result}")
 
     if token_result is None:
-        '''raise TokenExpiredException(status.HTTP_400_BAD_REQUEST, "check_cookie_token()", "トークンの有効期限が切れています。再登録をしてください。")
+        # 備考：ここは例外に置き換えない。理由：画面が停止するため
+        '''raise TokenExpiredException("check_cookie_token()")
         '''
-        #print("token_result: ありません")
+        logger.debug("token_result: ありません")
         message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
-
+        
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
     if not isinstance(token_result, tuple):
         return token_result
@@ -95,18 +99,18 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            raise TokenExpiredException(
-                status.HTTP_400_BAD_REQUEST,
-                f"compare_expire_date()",
-                f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
+            raise TokenExpiredException("compare_expire_date()")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        #print(f"jwt.decode: {payload}")
+        logger.debug(f"jwt.decode: {payload}")
+
         username = payload['sub']
         permission = payload['permission']
         exp = payload['exp']
-        #print(f"exp: {exp}")
-        #print("token is not expired.")
+
+        logger.debug(f"sub: {username}, permission: {permission}, exp: {exp}")
+        logger.debug("token is not expired.")
+
 
         response = RedirectResponse(
             url="/order_complete",
@@ -131,10 +135,7 @@ async def root(request: Request, response: Response):
     except TokenExpiredException as e:
         raise
     except jwt.ExpiredSignatureError:
-        raise TokenExpiredException(
-            status.HTTP_400_BAD_REQUEST,
-            "root()",
-            "トークンの有効期限が切れています。再登録をしてください。")
+        raise TokenExpiredException("root()")
     except jwt.InvalidTokenError:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
@@ -143,10 +144,9 @@ async def root(request: Request, response: Response):
 
 
 # ログイン画面を表示するエンドポイント
-@app.get("/login", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def login_get(request: Request):
-#async def login_get(request: Request, message: Optional[str] = ""):
     try:
         redirect_login(request, "ようこそ")
 
@@ -164,11 +164,11 @@ async def authenticate_user(username, password) -> Optional[User]:
         user = await select_user(username)
 
         if user is None:
-            #print(f"username: {user.username}")
+            logger.debug(f"username: {user.username}")
             await insert_new_user(username, password, 'name')
             user = await select_user(username)
 
-        #print(f"username: {user.username}")
+        logger.debug(f"username: {user.username}")
         if user.get_password() != password:
             return None
 
@@ -177,14 +177,14 @@ async def authenticate_user(username, password) -> Optional[User]:
             "permission": user.get_permission()
         }
         access_token, utc_dt_str = get_new_token(data)
-
-        user.set_token(access_token)
-        #print(f"access_token: {access_token}")
+        user.set_token(access_token)        
         user.set_exp(utc_dt_str)
-        #print(f"expires: {utc_dt_str}")
-        #print(f"user: {user}")
 
-        logger.info(f"- {""} - {"authenticate_user()"}, {"userを正常に取得した"}")
+        logger.debug(f"access_token: {access_token}")        
+        logger.debug(f"expires: {utc_dt_str}")
+        logger.debug(f"user: {user}")
+        logger.debug(f"authenticate_user() - userを正常に取得した")
+
         return user
 
     except SQLException as e:
@@ -196,7 +196,7 @@ async def authenticate_user(username, password) -> Optional[User]:
             f"予期せぬエラーが発生しました。{e.detail}")
 
 # ログインPOST
-@app.post("/login", response_class=HTMLResponse)
+@app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def login_post(response: Response,
     form_data: OAuth2PasswordRequestForm = Depends()):
@@ -205,25 +205,25 @@ async def login_post(response: Response,
         password = form_data.password
 
         user = await authenticate_user(username, password) 
-        #print(f"user: {user}")
+        logger.debug(f"user: {user}")
         if user is None:
             raise CustomException(
                 status.HTTP_404_NOT_FOUND,
                 "login_post()",
                 f"user:{user} 取得に失敗しました")
 
-        #print("username と password一致")
+        logger.debug("username と password一致")
 
         # リダイレクト前
         permission = user.get_permission()
 
         # prefix込みでリダイレクト
         redirect_url = {
-            1: "/order_complete",
-            2: "/manager/today",
-            10: "/shops/today",
-            99: "/admin/today"}.get(permission, "/error")
-        #print(f"redirect_url: {redirect_url}")
+            1: "/users/me/order_complete",
+            2: "/manager/me",
+            10: "/shops/me",
+            99: "/admin/me"}.get(permission, "/error")
+        logger.debug(f"redirect_url: {redirect_url}")
 
         response = RedirectResponse(
             url=redirect_url, status_code=303)
@@ -239,10 +239,10 @@ async def login_post(response: Response,
         #print(f" 'token': {user.get_token()}")
         #print(f" 'exp': {user.get_exp()}")
         #print(f" 'permission': {user.get_permission()}")
-        logger.debug(f"- {""} - {"login_post()"}, 'sub': {user.get_username()}")
-        logger.debug(f"- {""} - {"login_post()"}, 'token': {user.get_token()}")
-        logger.debug(f"- {""} - {"login_post()"}, 'exp': {user.get_exp()}")
-        logger.debug(f"- {""} - {"login_post()"}, 'permission': {user.get_permission()}")
+        logger.debug(f"login_post() - 'sub': {user.get_username()}")
+        logger.debug(f"login_post() - 'token': {user.get_token()}")
+        logger.debug(f"login_post() - 'exp': {user.get_exp()}")
+        logger.debug(f"login_post() - 'permission': {user.get_permission()}")
                      
 
 
@@ -269,19 +269,18 @@ async def login_post(response: Response,
 
 
 # お弁当の注文完了　ユーザーのみ
-@app.get("/order_complete",response_class=HTMLResponse) 
+@app.get("/order_complete",response_class=HTMLResponse, tags=["users"]) 
 @log_decorator
 async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(status.HTTP_400_BAD_REQUEST,"regist_complete()", "Cookieが取得できませんでした。")
+            raise CookieException(method_name="regist_complete()")
 
         # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
-            #print(f"user:{user} 取得に失敗しました")
             raise CustomException(
                 status.HTTP_400_BAD_REQUEST,
                 "regist_complete()",
@@ -297,9 +296,9 @@ async def regist_complete(request: Request, response: Response):
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
-        #print(f"order_count: {order_count}")
+        logger.debug(f"orders: {orders}")
         if orders is None or len(orders) == 0:
-            print("No orders found or error occurred.")
+            logger.debug("No orders found or error occurred.")
             raise CustomException(
                 status.HTTP_400_BAD_REQUEST,
                 "regist_complete()",
@@ -332,7 +331,6 @@ async def regist_complete(request: Request, response: Response):
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
     delete_all_cookies(response)
-
     return response
 
 from typing import List
@@ -344,15 +342,18 @@ class CancelUpdate(BaseModel):
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
     try:
+        logger.info(f"update_cancel_status() - orderチェック変更")
+
         results = []
         for change in update.updates:
             order_id = change["order_id"]
             canceled = change["canceled"]
-            print(f"更新 order_id: {order_id}, canceled: {canceled}")
+            logger.debug(f"更新 order_id: {order_id}, canceled: {canceled}")
 
             # ここに SQL の UPDATE 文を実行するコードを入れる
             # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
             await update_order(order_id, canceled)
+
             results.append({"order_id": order_id, "canceled": canceled, "success": True})
         
         return {"results": results}
@@ -368,7 +369,7 @@ async def update_cancel_status(update: CancelUpdate):
 @app.exception_handler(CustomException)
 async def custom_exception_handler(
     request: Request, exc: CustomException):
-    print(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    logger.debug(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
     """カスタム例外をキャッチして、HTML にエラーを表示"""
     return templates.TemplateResponse(
         "error.html",  # templates/error.html を表示
@@ -379,7 +380,7 @@ async def custom_exception_handler(
 # 例外テスト
 @app.get("/test_exception")
 async def test_exception():
-    logger.error("エラーが発生しました！")
+    logger.error("test_exception() testエラーが発生しました！")
     raise CustomException(
         400, "test_exception()", "これはテストエラーです")
 
