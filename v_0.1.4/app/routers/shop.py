@@ -23,7 +23,10 @@ def check_store_permission(request: Request):
     permission = request.cookies.get("permission")
     logger.debug(f"check_store_permission: {permission}")
     if permission is None:
-        raise CustomException(status.HTTP_403_FORBIDDEN, "Permission Data is not Contained")
+        raise CustomException(
+            status.HTTP_403_FORBIDDEN,
+            "order_json()",
+            "Permission Data is not Contained")
 
     if permission == [10,99]:
         raise CustomException(status.HTTP_401_UNAUTHORIZED, "Not Authorized")
@@ -46,8 +49,8 @@ async def shop_today_order(request: Request, response: Response):
         orders = await select_shop_order('shop01')
         
         if orders is None:
-            #print('ordersなし')
             logger.debug('shop_today_order - ordersなし')
+
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         main_view = "store_orders_today.html"
@@ -63,11 +66,15 @@ async def shop_today_order(request: Request, response: Response):
         #print(f"/shop_today_order Error: {str(e)}")
         #return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
 
+from services.order_view import get_order_json
 # 注文情報を取得する
 # 例 https://127.0.0.1:8000/today/order_json?days_ago=-5
 @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query(None)):
+
+        return await get_order_json(request, days_ago)
+'''
     try:
         cookies = get_all_cookies(request)
         if not cookies:
@@ -78,7 +85,10 @@ async def order_json(request: Request, days_ago: str = Query(None)):
 
         if user is None:
             logger.debug(f"user:{user} 取得に失敗しました")
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "select_user よりユーザー情報が取得できませんでした。")
+            raise CustomException(
+                status.HTTP_400_BAD_REQUEST,
+                "order_json()",
+                "select_user よりユーザー情報が取得できませんでした。")
             #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         if days_ago is not None:
@@ -93,12 +103,15 @@ async def order_json(request: Request, days_ago: str = Query(None)):
             logger.debug(f"{days_ago} 日前までの履歴を取得する")
             orders = await select_shop_order(user.shop_name, days_ago)
         else:
-            raise CustomException(status.HTTP_400_BAD_REQUEST, "days_ago の値が無効です")
+            raise CustomException(
+                status.HTTP_400_BAD_REQUEST,
+                "order_json()",
+                "days_ago の値が無効です")
             #return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
 
         if not orders:
             #raise CustomException(status.HTTP_400_BAD_REQUEST, "len(orders)=0 注文が見つかりません。")
-            print("No orders found or error occurred.")
+            logger.debug("No orders found or error occurred.")
             return JSONResponse({"message": "注文が見つかりません。"}, status_code=status.HTTP_204_NO_CONTENT)
 
         # 日時で逆順
@@ -121,4 +134,6 @@ async def order_json(request: Request, days_ago: str = Query(None)):
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
-            f"/order_json Error: {str(e)}")
+            f"/order_json()",
+            f"Error: {str(e)}")
+'''

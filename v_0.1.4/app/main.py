@@ -81,7 +81,7 @@ async def root(request: Request, response: Response):
 
     # token チェックの結果を取得
     token_result = check_cookie_token(request)
-    #print(f"token_result: {token_result}")
+    logger.debug(f"token_result: {token_result}")
 
     if token_result is None:
         # 備考：ここは例外に置き換えない。理由：画面が停止するため
@@ -89,6 +89,7 @@ async def root(request: Request, response: Response):
         '''
         logger.debug("token_result: ありません")
         message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
+
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
         
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
@@ -219,7 +220,7 @@ async def login_post(response: Response,
 
         # prefix込みでリダイレクト
         redirect_url = {
-            1: "/users/me/order_complete",
+            1: "/order_complete",
             2: "/manager/me",
             10: "/shops/me",
             99: "/admin/me"}.get(permission, "/error")
@@ -357,10 +358,12 @@ async def update_cancel_status(update: CancelUpdate):
             results.append({"order_id": order_id, "canceled": canceled, "success": True})
         
         return {"results": results}
+
     except Exception as e:
-        print(f"/update_cancel_status Error: {str(e)}")
+        logger.debug(f"/update_cancel_status Error: {str(e)}")
         raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, "update_cancel_status()",
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "update_cancel_status()",
             f"予期せぬエラーが発生しました: {str(e)}")
 
 # 例外ハンドラーの設定
@@ -369,7 +372,7 @@ async def update_cancel_status(update: CancelUpdate):
 @app.exception_handler(CustomException)
 async def custom_exception_handler(
     request: Request, exc: CustomException):
-    logger.debug(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    logger.warning(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
     """カスタム例外をキャッチして、HTML にエラーを表示"""
     return templates.TemplateResponse(
         "error.html",  # templates/error.html を表示
@@ -380,9 +383,11 @@ async def custom_exception_handler(
 # 例外テスト
 @app.get("/test_exception")
 async def test_exception():
-    logger.error("test_exception() testエラーが発生しました！")
+    logger.error("test_exception() testエラーが発生しました!")
     raise CustomException(
-        400, "test_exception()", "これはテストエラーです")
+        status.HTTP_400_BAD_REQUEST,
+        "test_exception()",
+        "これはテストエラーです")
 
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 # Ensure favicon.ico is accessible
@@ -391,6 +396,7 @@ def favicon():
     # ブラウザが要求するfaviconのエラーを防ぐ
     # https://github.com/fastapi/fastapi/discussions/11385
     favicon_path = './static/favicon.ico'  # Adjust path to file
+
     return FileResponse(favicon_path)
  
 # Mount the directory where favicon.ico is located 

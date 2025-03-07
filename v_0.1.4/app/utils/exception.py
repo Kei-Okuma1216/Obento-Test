@@ -9,7 +9,10 @@ encoded_message = urllib.parse.quote(f"login_get() Error:  {e.detail}")
 # カスタム例外クラス
 # 例: raise CustomException(status_code=400, method_name="login_get()", message=str(e))
 class CustomException(HTTPException):
-    def __init__(self, status_code: int, method_name: str,message: str):
+    def __init__(self,
+                 status_code: int,
+                 method_name: str,
+                 message: str):
         print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
         logger.error(f"例外が発生！- {status_code} - {method_name}, {message}")
         super().__init__(status_code=status_code, detail={

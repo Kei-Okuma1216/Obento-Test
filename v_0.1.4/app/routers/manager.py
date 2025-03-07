@@ -52,6 +52,6 @@ async def manager_view(request: Request, response: Response):
     except Exception as e:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
-            "/manager_view",
+            "/manager_view()",
             f"Error: {str(e)}")
 
