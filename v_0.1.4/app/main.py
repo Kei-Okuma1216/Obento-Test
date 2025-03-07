@@ -14,7 +14,7 @@ from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
-from utils.exception import CustomException
+from utils.exception import CustomException, TokenExpiredException
 
 from schemas.schemas import User
 
@@ -23,7 +23,6 @@ from services.order_view import order_table_view
 # tracemallocを有効にする
 tracemalloc.start()
 
-import logging
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from services.router import router
@@ -66,13 +65,14 @@ def redirect_login(request: Request, message: str):
 @log_decorator
 async def root(request: Request, response: Response):
 
-    logger.info("ルートエンドポイントにアクセスされました")
+    logger.info(f"- {""} - {"root()"}, {"ルートにアクセスしました"}")
     # テストデータ作成
     #await init_database()
 
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+        logger.info(f"- {""} - {"stop_twice_order()"}, {"きょう２度目の注文を阻止"}")
         return HTMLResponse(message)
 
 
@@ -81,7 +81,8 @@ async def root(request: Request, response: Response):
     #print(f"token_result: {token_result}")
 
     if token_result is None:
-        #raise CustomException(400, "トークンの有効期限が切れています。再登録をしてください。")
+        '''raise TokenExpiredException(status.HTTP_400_BAD_REQUEST, "check_cookie_token()", "トークンの有効期限が切れています。再登録をしてください。")
+        '''
         #print("token_result: ありません")
         message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
@@ -94,7 +95,10 @@ async def root(request: Request, response: Response):
 
     try:
         if compare_expire_date(exp):
-            raise CustomException(400, f"root()", f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
+            raise TokenExpiredException(
+                status.HTTP_400_BAD_REQUEST,
+                f"compare_expire_date()",
+                f"トークンの有効期限が切れています。再登録をしてください。{endpoint}")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         #print(f"jwt.decode: {payload}")
@@ -104,7 +108,9 @@ async def root(request: Request, response: Response):
         #print(f"exp: {exp}")
         #print("token is not expired.")
 
-        response = RedirectResponse(url="/order_complete", status_code=303)
+        response = RedirectResponse(
+            url="/order_complete",
+            status_code=status.HTTP_303_SEE_OTHER)
 
         data = {
             "sub": username,
@@ -122,12 +128,13 @@ async def root(request: Request, response: Response):
 
         return response
 
+    except TokenExpiredException as e:
+        raise
     except jwt.ExpiredSignatureError:
-        raise CustomException(
+        raise TokenExpiredException(
             status.HTTP_400_BAD_REQUEST,
             "root()",
             "トークンの有効期限が切れています。再登録をしてください。")
-
     except jwt.InvalidTokenError:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
@@ -176,6 +183,8 @@ async def authenticate_user(username, password) -> Optional[User]:
         user.set_exp(utc_dt_str)
         #print(f"expires: {utc_dt_str}")
         #print(f"user: {user}")
+
+        logger.info(f"- {""} - {"authenticate_user()"}, {"userを正常に取得した"}")
         return user
 
     except SQLException as e:
@@ -230,6 +239,11 @@ async def login_post(response: Response,
         #print(f" 'token': {user.get_token()}")
         #print(f" 'exp': {user.get_exp()}")
         #print(f" 'permission': {user.get_permission()}")
+        logger.debug(f"- {""} - {"login_post()"}, 'sub': {user.get_username()}")
+        logger.debug(f"- {""} - {"login_post()"}, 'token': {user.get_token()}")
+        logger.debug(f"- {""} - {"login_post()"}, 'exp': {user.get_exp()}")
+        logger.debug(f"- {""} - {"login_post()"}, 'permission': {user.get_permission()}")
+                     
 
 
         set_all_cookies(response, data)

@@ -1,0 +1,102 @@
+2025-03-07 10:20:27 - INFO - Started server process [17728]
+2025-03-07 10:20:27 - INFO - Waiting for application startup.
+2025-03-07 10:20:27 - INFO - Application startup complete.
+2025-03-07 10:20:27 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 10:20:29 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:20:38 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:20:48 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:20:49 - ERROR - エラーが発生しました！
+2025-03-07 10:20:51 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:27:51 - INFO - Started server process [760]
+2025-03-07 10:27:51 - INFO - Waiting for application startup.
+2025-03-07 10:27:51 - INFO - Application startup complete.
+2025-03-07 10:27:51 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 10:27:52 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:28:00 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:28:01 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:28:03 - ERROR - エラーが発生しました！
+2025-03-07 10:28:09 - INFO - ルートエンドポイントにアクセスされました
+2025-03-07 10:31:45 - INFO - Started server process [7348]
+2025-03-07 10:31:45 - INFO - Waiting for application startup.
+2025-03-07 10:31:45 - INFO - Application startup complete.
+2025-03-07 10:31:45 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 10:31:45 - ERROR - -  - root(), ルートにアクセスしました
+2025-03-07 10:31:52 - ERROR - -  - root(), ルートにアクセスしました
+2025-03-07 11:55:49 - INFO - Started server process [4684]
+2025-03-07 11:55:49 - INFO - Waiting for application startup.
+2025-03-07 11:55:49 - INFO - Application startup complete.
+2025-03-07 11:55:49 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 11:55:50 - INFO - -  - root(), ルートにアクセスしました
+2025-03-07 11:55:50 - INFO - -  - stop_twice_order(), きょう２度目の注文を阻止
+2025-03-07 11:55:52 - INFO - -  - root(), ルートにアクセスしました
+2025-03-07 11:55:52 - ERROR - Exception in ASGI application
+Traceback (most recent call last):
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\protocols\http\h11_impl.py", line 403, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\tensy\AppData\Local\Programs\Python\Python312\Lib\site-packages\fastapi\routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Obento-Test\v_0.1.4\app\utils\utils.py", line 18, in async_wrapper
+    result = await func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Obento-Test\v_0.1.4\app\main.py", line 84, in root
+    raise TokenExpiredException(status.HTTP_400_BAD_REQUEST, "check_cookie_token()", "トークンの有効期限が切れています。再登録をしてください。")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: TokenExpiredException.__init__() takes 2 positional arguments but 4 were given
+2025-03-07 11:57:38 - INFO - Started server process [10772]
+2025-03-07 11:57:38 - INFO - Waiting for application startup.
+2025-03-07 11:57:38 - INFO - Application startup complete.
+2025-03-07 11:57:38 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 11:57:39 - INFO - -  - root(), ルートにアクセスしました
+2025-03-07 12:00:58 - INFO - Started server process [3584]
+2025-03-07 12:00:58 - INFO - Waiting for application startup.
+2025-03-07 12:00:58 - INFO - Application startup complete.
+2025-03-07 12:00:58 - ERROR - [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8000): [winerror 10048] 通常、各ソケット アドレスに対してプロトコル、ネットワーク アドレス、またはポートのどれか 1 つのみを使用できます。
+2025-03-07 12:00:58 - INFO - Waiting for application shutdown.
+2025-03-07 12:00:58 - INFO - Application shutdown complete.
+2025-03-07 12:01:06 - INFO - Started server process [9264]
+2025-03-07 12:01:06 - INFO - Waiting for application startup.
+2025-03-07 12:01:06 - INFO - Application startup complete.
+2025-03-07 12:01:06 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-07 12:01:07 - INFO - -  - root(), ルートにアクセスしました
+2025-03-07 12:01:13 - INFO - -  - authenticate_user(), userを正常に取得した
+2025-03-07 12:01:13 - DEBUG - -  - login_post(), 'sub': user1
+2025-03-07 12:01:13 - DEBUG - -  - login_post(), 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTA2VDAzOjAxOjEzLjI3MjI5N1oifQ.GvZBPMGOQpJebXB2OyiRV_Cbsisi2D4J-7VWiuFhwCk
+2025-03-07 12:01:13 - DEBUG - -  - login_post(), 'exp': 2025-04-06T03:01:13.272297Z
+2025-03-07 12:01:13 - DEBUG - -  - login_post(), 'permission': 1
