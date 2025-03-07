@@ -5,6 +5,7 @@ import os
 from pprint import pprint
 from typing import List, Optional
 import sqlite3
+from venv import logger
 import warnings
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
@@ -34,7 +35,7 @@ async def get_connection():
         return await aiosqlite.connect(DB_PATH, isolation_level=None)
         #return await aiosqlite.connect(db_name_str, isolation_level=None)
     except Exception as e:
-        raise DatabaseConnectionException(detail=str(e))
+        raise DatabaseConnectionException("get_connection()", detail=str(e))
 
 # コネクションを閉じる（実際のテストでは不要）
 #await conn.close()
@@ -65,6 +66,7 @@ async def create_user_table():
         '''
         await conn.execute(sqlstr)
         await conn.commit()
+        logger.debug(f"create_user_table() - {sqlstr}")
 
     except SQLException as e:
         raise
@@ -87,6 +89,7 @@ async def select_user(username: str)-> Optional[User]:
             sqlstr = "SELECT * FROM User WHERE username = ?"
             await cursor.execute(sqlstr, (sanitized_username,))
             row = await cursor.fetchone()
+            logger.debug(f"select_user() - {sqlstr}")
 
         if row is None:
             #warnings.warn(
@@ -111,6 +114,7 @@ async def select_user(username: str)-> Optional[User]:
         #print(f"type: {str(type(user))}")
         #print(f"name: {user.name}")
         #print(f"user: {user}")
+        logger.debug(f"select_user() - user: {user}")
 
         return user
 
@@ -128,7 +132,7 @@ async def insert_new_user(username, password, name = ''):
     except SQLException as e:
         raise
     except Exception as e:
-        raise CustomException("", f"insert_new_user() Error: {e}")
+        raise CustomException("method", f"insert_new_user() Error: {e}")
 
 # 追加
 @log_decorator
@@ -138,6 +142,7 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
 
         result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
         count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
+        logger.debug(f"insert_user() - {sqlstr} - count: {count}")
         
         if count > 0:
             print(f"ユーザーID: {username} は既に存在します。挿入をスキップします。")
@@ -151,6 +156,9 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
 
             await conn.commit()  # INSERT が実行されたときのみ commit()
             print(f"ユーザー {username} を追加しました。")
+            
+            logger.debug(f"insert_user() - {sqlstr} , company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id})")
+ 
             return True  # 挿入成功時は True を返す
 
     except SQLException as e:
@@ -169,11 +177,11 @@ async def insert_shop(username, password, shop_name):
         conn = await get_connection()
         sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
         result = await conn.execute(sqlstr, (username,))
-        #result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
+        logger.debug(f"insert_shop() - {sqlstr} - count: {count}")
 
         count = (await result.fetchone())[0] 
         if count > 0:
-            print(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
+            logger.debug(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
         else:
             #print('INSERT INTO 直前')
             sqlstr = '''
@@ -183,6 +191,8 @@ async def insert_shop(username, password, shop_name):
             '''
             await conn.execute(sqlstr, (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 10))
         await conn.commit()
+        
+        logger.debug(f"insert_shop() - {sqlstr} , username: {username}, name: {shop_name}, shop_name: {username},  menu_id: 1, permission: 10)")
 
     except SQLException as e:
         raise
@@ -201,6 +211,7 @@ async def update_user(username, key, value):
             sqlstr = f"UPDATE User SET {key} = ? WHERE username = ?"
             await cursor.execute(sqlstr, (value, username))
             await conn.commit()  # 非同期の `commit()`
+        logger.debug(f"update_user() - {sqlstr}")
 
     except SQLException as e:
         raise
@@ -275,6 +286,7 @@ async def insert_company(name, tel, shop_name):
         await conn.execute(sqlstr, values)
         await conn.commit()
 
+        logger.debug(f"insert_company() - {sqlstr} , name: {name}, tel: {tel},  shop_name: {shop_name},  created_at: {get_today_str()}, disabled: False)")
     except SQLException as e:
         raise
     except Exception as e:
@@ -517,9 +529,9 @@ async def select_shop_order(shopid: str,
         rows = await result.fetchall()
         #print("ここまで 1")
         #print("rows: " + str(rows))
-        
+        logger.debug(f"select_shop_order() - {sqlstr}")
         if rows is None:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
             return None
         else:
             #print("ここまで 2")
@@ -540,7 +552,9 @@ async def select_shop_order(shopid: str,
                 #print(orderlist)
                 #print("ここまで end")
         #print(f" orderlist: {orderlist}")
-        return orderlist #, len(orderlist)
+        logger.debug(f"select_shop_order() - orderlist: {orderlist}")
+
+        return orderlist
 
     except SQLException as e:
         raise
@@ -562,8 +576,7 @@ async def select_company_order(company_id: int,
         cursor = await conn.cursor()
 
         # ベースクエリ
-        #sqlstr = f'''SELECT * FROM Orders WHERE (shop_name = '{shopid}')'''
-        # company_idをCompany:nameに変更した
+        # 注意：company_idをCompany:nameに変更した
         sqlstr = f'''
         SELECT 
          O.order_id,
@@ -600,6 +613,7 @@ async def select_company_order(company_id: int,
             sqlstr += f" AND (O.username = '{username}')"
         '''
         #print(f"sqlstr: {sqlstr}")
+        logger.debug(f"select_company_order() - {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
         #print("ここまで 1")
@@ -627,6 +641,8 @@ async def select_company_order(company_id: int,
                 #print(orderlist)
                 #print("ここまで end")
         #print(f" orderlist: {orderlist}")
+        logger.debug(f"select_company_order() - orderlist: {orderlist}")
+
         return orderlist
 
     except SQLException as e:
@@ -710,6 +726,7 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         await conn.execute(sqlstr, values)
         await conn.commit()
         #print("注文追加成功")
+        logger.debug(f"insert_order() - {sqlstr} , values: {values}")
     except SQLException as e:
         raise
     except Exception as e:
@@ -731,6 +748,8 @@ async def update_order(order_id, canceled):
             await cursor.execute(sqlstr)
             await conn.commit()  # 非同期の `commit()`
 
+        logger.debug(f"update_order() - {sqlstr}")
+        
     except SQLException as e:
         raise
     except Exception as e:
@@ -750,6 +769,8 @@ async def select_company(company_id: str):
         params = [company_id]
         await cursor.execute(sqlstr, params)
         row = cursor.fetchall()
+
+        logger.debug(f"select_company() - {sqlstr}")
 
         return row
 
@@ -784,6 +805,7 @@ async def create_menu_table():
         await conn.execute(sqlstr)
         await conn.commit()
 
+        logger.debug(f"create_menu_table() - {sqlstr}")
     except SQLException as e:
         raise
     except Exception as e:
@@ -812,6 +834,9 @@ async def insert_menu(shop_name, name, price, description, picture_path = None):
 
         await conn.commit()
         #print("メニュー追加成功")
+        logger.debug(f"insert_menu() - sqlstr: {sqlstr}, values: {values}")
+
+
     except SQLException as e:
         raise
     except Exception as e:
@@ -832,8 +857,10 @@ async def select_menu(shop_name: str)-> Optional[dict]:
         await cursor.execute(sqlstr)
         rows = cursor.fetchall()
         #print("rows: " + str(rows))
+        logger.debug(f"select_menu() - sqlstr: {sqlstr}")
+
         if rows is None:
-            warnings.warn("No menu found with the given shopid")
+            logger.warning("select_menu() - No menu found with the given shopid")
             return None
 
         #items = appendMenu(rows)
@@ -850,6 +877,7 @@ async def select_menu(shop_name: str)-> Optional[dict]:
                 "created_at": row[7]
             })
             print(f"menuのクラスは {str(type(items))}")
+            logger.debug(f"select_menu() - items: {items}")
             #return items
 
     except SQLException as e:
@@ -876,9 +904,11 @@ def appendMenu(rows):
                 "disabled": row[6],
                 "created_at": row[7]
             })
-            print(f"menuのクラスは {str(type(items))}")
+            #print(f"menuのクラスは {str(type(items))}")
             #pprint(menus)
+            logger.debug(f"append_menu() - items: {items}")
         return items
+
     except Exception as e:
         raise CustomException(items, detail=f"appendMenu() Error: {e}")
 
@@ -1019,33 +1049,31 @@ async def delete_all_menu():
 
 #@log_decorator
 async def init_database():
-    #default_shop_name = "shop01"
+    default_shop_name = "shop01"
     try:
         await reset_all_autoincrement()
         await drop_all_table()
 
         await create_user_table() 
         # 1
-        await insert_user("user1", "user1", "大隈 慶1",company_id=1, shop_name="shop01", menu_id=1) 
+        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=default_shop_name, menu_id=1) 
         # 2
-        await insert_user("user2", "user2", "大隈 慶2",company_id=1, shop_name="shop01", menu_id=1)
+        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
         # 3
-        await insert_shop("shop01", "shop01", "お店shop01")
+        await insert_shop(default_shop_name, default_shop_name, "お店shop01")
         # 4
-        await insert_user("manager", "manager", "manager",company_id=1, shop_name="shop01", menu_id=1)
+        await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
         await update_user("manager", "permission", 2)
         # 5
-        await insert_user("admin", "admin", "admin",company_id=1, shop_name="shop01", menu_id=1)
+        await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
         await update_user("admin", "permission", 99)
         
         
         await create_company_table()
-        # 1
-        await insert_company("テンシステム", "083-999-9999", "shop01")
+        await insert_company("テンシステム", "083-999-9999", "shop01") # 1
 
         await create_menu_table()
-        # 1
-        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture')
+        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture') # 1
         
         await create_orders_table()
         '''INSERT INTO Orders (company_id, username, shop_name, menu_id,  amount, created_at)
@@ -1067,9 +1095,8 @@ async def init_database():
         
         
         await show_all_orders()
-
         
-        print("データベースファイル 'sample.db' が正常に作成されました。")
+        logger.debug("データベースファイル 'sample.db' が正常に作成されました。")
     except sqlite3.Error as e: 
         print(f"SQLiteエラー: {e}")
         raise CustomException(400, f"SQLiteエラー: {e}")

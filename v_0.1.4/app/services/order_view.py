@@ -1,6 +1,5 @@
 # 管理者の権限チェック
 from fastapi import HTTPException, APIRouter, Request, Response, status
-from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from database.sqlite_database import CustomException

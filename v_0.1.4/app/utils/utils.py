@@ -1,12 +1,13 @@
 # utils.py
 from datetime import datetime, timezone, timedelta
+from venv import logger
 from fastapi import HTTPException, Request, Response
 from functools import wraps
 import functools
 import inspect
 from typing import Dict, List, Optional
 import warnings
-from utils.exception import CustomException
+from utils.exception import CookieException, CustomException
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
@@ -78,11 +79,7 @@ def set_all_cookies(response: Response, user: Dict):
         username = user['sub']
         token = user['token']
         permission = user['permission']
-        '''
-        username = user.get_name()
-        token = user.get_token()
-        permission = user.get_permission()
-        '''
+
         # expiresを30日後に設定する
         future_time = datetime.now(timezone.utc) + timedelta(days=30)
         new_expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
@@ -92,31 +89,24 @@ def set_all_cookies(response: Response, user: Dict):
         print(f" Token: {token}")
         print(f" Expires: {new_expires}")
         print(f" Permission: {permission}")
-        '''
-        data = {
-            'sub': user.get_username(),
-            'token': user.get_token(),
-            'max-age': user.get_exp(),
-            'permission': user.get_permission()
-        }
-        
-        username = data['sub']
-        token = data['token']
-        #exp = data['max-age']
-        permission = data['permission']
-        '''
+
         response.set_cookie(key="token", value=token, expires=new_expires)
         response.set_cookie(key="sub", value=username, expires=new_expires)
         response.set_cookie(key="permission", value=permission, expires=new_expires)
+
+        logger.info(f"set_all_cookies() - sub: {username}")
+        logger.info(f"set_all_cookies() - token: {token}")
+        logger.info(f"set_all_cookies() - new_expires: {new_expires}")
+        logger.info(f"set_all_cookies() - permission: {permission}")
         
         return new_expires
         
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
-        raise CustomException(
-            status_code=400,
-            method_name="set_all_cookies()", message=str(e))
+        raise CookieException(
+            method_name="set_all_cookies()",
+            message=str(e))
 
 
 #@log_decorator
@@ -124,9 +114,9 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     try:
         username = request.cookies.get("sub")
         print(f"cookies['sub']: {username}")
-        
+
         if username is None:
-            print("")
+            logger.info("set_all_cookies() - cookies['sub']が存在しません")
             print("cookies['sub']が存在しません")
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
             return None
@@ -140,13 +130,19 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
             "exp": exp,
             "permission": int(permission)
         }
+        logger.info(f"get_all_cookies() - sub: {username}")
+        logger.info(f"get_all_cookies() - token: {token}")
+        logger.info(f"get_all_cookies() - exp: {exp}")
+        logger.info(f"get_all_cookies() - permission: {permission}")
+
         return data
+
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
-        raise CustomException(
-            status_code=400,
-            method_name="get_all_cookies()", message=str(e))
+        raise CookieException(
+            method_name="get_all_cookies()",
+            message=str(e))
 
 @log_decorator
 def delete_all_cookies(response: Response):
@@ -160,7 +156,9 @@ def delete_all_cookies(response: Response):
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
-        print(f"An error occurred: {e}")
+        raise CookieException(
+            method_name="delete_all_cookies()",
+            message=str(e))
 
 @log_decorator
 def compare_expire_date(exp_unix_str: str) -> bool:
