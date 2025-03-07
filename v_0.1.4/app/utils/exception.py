@@ -20,9 +20,10 @@ class CustomException(HTTPException):
 # Token期限切れ例外クラス
 # 例: raise TokenExpiredException(method_name="verify_token()")
 class TokenExpiredException(CustomException):
-    def __init__(self, method_name: str):
+    def __init__(self, method_name: str, message: str = "トークンの有効期限が切れています。再登録をしてください。"):
         message = "Token has expired"
         print(f"⚠️ TokenExpiredException 発生！ method_name={method_name}, message={message}")  
+        
         logger.warning(f"Token期限切れ！- {status.HTTP_401_UNAUTHORIZED} - {method_name}, {message}")
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, method_name=method_name, message=message)
 
@@ -40,7 +41,7 @@ class NotAuthorizedException(CustomException):
 # Cookie取得失敗クラス
 # 例: raise CookieException(method_name="get_cookie()", detail="有効なセッションがありません")
 class CookieException(CustomException):
-    def __init__(self, method_name: str, detail: str = "Cookieが取得できませんでした"):
+    def __init__(self, method_name: str, detail: str = "Cookie情報が取得できませんでした"):
 
         print(f"🚨 CookieException 発生！ method_name={method_name}, message={detail}")  
         logger.error(f"Cookie例外が発生!- {status.HTTP_500_INTERNAL_SERVER_ERROR} - {method_name}, {detail}")

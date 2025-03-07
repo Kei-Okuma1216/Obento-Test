@@ -1,12 +1,12 @@
 # manager.py
-from fastapi import Header, Request, Response, APIRouter, status
+from venv import logger
+from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 
-from utils.exception import CustomException
+from utils.exception import CookieException, CustomException
 from utils.utils import get_all_cookies, log_decorator
 from database.sqlite_database import select_company_order
 from services.order_view import order_table_view
-from typing import Optional
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
@@ -27,30 +27,22 @@ def check_manager_permission(request: Request):
 
 # 会社お弁当担当者画面
 # 注意：エンドポイントにprefix:managerはつけない
-@manager_router.get("/today", response_class=HTMLResponse)
+@manager_router.get("/me", response_class=HTMLResponse, tags=["manager"])
 @log_decorator
-async def manager_view(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
+async def manager_view(request: Request, response: Response):
     try:
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CustomException(
-                status.HTTP_400_BAD_REQUEST,
-                "manager_view()",
-                "Cookieが取得できませんでした。")
-            #print('cookie userなし')
-            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            logger.debug('cookie userなし')
+            raise CookieException(method_name="manager_view()")
 
         check_manager_permission(request)
-
-        #permission = cookies.get('permission')
-        #if permission not in [2,99]:
-            #raise HTTPException(status_code=403, detail="Not Authorized")
 
         # 昨日の全注文
         orders = await select_company_order(1)
 
         if orders is None:
-            print('ordersなし')
+            logger.debug('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
             #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 

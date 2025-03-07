@@ -1095,8 +1095,8 @@ async def init_database():
         
         
         await show_all_orders()
-        
-        logger.debug("データベースファイル 'sample.db' が正常に作成されました。")
+
+        logger.info("データベースファイル 'sample.db' が正常に作成されました。")
     except sqlite3.Error as e: 
         print(f"SQLiteエラー: {e}")
         raise CustomException(400, f"SQLiteエラー: {e}")
@@ -1106,3 +1106,5 @@ async def init_database():
         print(f"init_database Error: {str(e)}")
         import traceback 
         traceback.print_exc()
+        raise CustomException(500, "init_database()", f"例外発生: {e}")
+        

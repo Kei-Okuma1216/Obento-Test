@@ -94,10 +94,10 @@ def set_all_cookies(response: Response, user: Dict):
         response.set_cookie(key="sub", value=username, expires=new_expires)
         response.set_cookie(key="permission", value=permission, expires=new_expires)
 
-        logger.info(f"set_all_cookies() - sub: {username}")
-        logger.info(f"set_all_cookies() - token: {token}")
-        logger.info(f"set_all_cookies() - new_expires: {new_expires}")
-        logger.info(f"set_all_cookies() - permission: {permission}")
+        logger.debug(f"set_all_cookies() - sub: {username}")
+        logger.debug(f"set_all_cookies() - token: {token}")
+        logger.debug(f"set_all_cookies() - new_expires: {new_expires}")
+        logger.debug(f"set_all_cookies() - permission: {permission}")
         
         return new_expires
         
@@ -116,7 +116,7 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         print(f"cookies['sub']: {username}")
 
         if username is None:
-            logger.info("set_all_cookies() - cookies['sub']が存在しません")
+            logger.debug("set_all_cookies() - cookies['sub']が存在しません")
             print("cookies['sub']が存在しません")
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
             return None
@@ -130,10 +130,10 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
             "exp": exp,
             "permission": int(permission)
         }
-        logger.info(f"get_all_cookies() - sub: {username}")
-        logger.info(f"get_all_cookies() - token: {token}")
-        logger.info(f"get_all_cookies() - exp: {exp}")
-        logger.info(f"get_all_cookies() - permission: {permission}")
+        logger.debug(f"get_all_cookies() - sub: {username}")
+        logger.debug(f"get_all_cookies() - token: {token}")
+        logger.debug(f"get_all_cookies() - exp: {exp}")
+        logger.debug(f"get_all_cookies() - permission: {permission}")
 
         return data
 
@@ -152,7 +152,8 @@ def delete_all_cookies(response: Response):
         response.delete_cookie(key="exp")
         response.delete_cookie(key="permission")
         response.delete_cookie(key="last_order_date")
-        print("all cookies deleted")
+        logger.debug("delete_all_cookies()", "all cookies deleted")
+
     except KeyError as e:
         print(f"Missing key: {e}")
     except Exception as e:
@@ -163,21 +164,22 @@ def delete_all_cookies(response: Response):
 @log_decorator
 def compare_expire_date(exp_unix_str: str) -> bool:
     # UTCからUNIX値変換
-    print(f"exp_unix_str :{exp_unix_str}")
+    logger.debug(f"exp_unix_str :{exp_unix_str}")
     #exp_unix_int = int(exp_unix_str)
     
     max_age = convert_expires_to_max_age(exp_unix_str)
     
     now_utc_int = int(datetime.now(timezone.utc).timestamp()) 
-    print(f"now_utc_int: {now_utc_int}")
+    logger.debug(f"now_utc_int: {now_utc_int}")
 
     # 有効期限をチェック
-    print(f"now: {now_utc_int} < exp: {max_age}")
+    logger.debug(f"now: {now_utc_int} < exp: {max_age}")
     if now_utc_int < max_age:
-        print("有効期限が無効です")  # 期限切れ
+        logger.debug("有効期限が無効です")  # 期限切れ
         return True
     else:
-        print("有効期限は有効です")  # まだ有効
+        logger.debug("有効期限は有効です")  # まだ有効
+
     return False
 
 # 二重注文の禁止
@@ -189,30 +191,33 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
     current = datetime.now(JST)
     current_time = get_max_age(current)
     future_time = end_time - current_time
-    '''
-    print(f"end_of_day: {end_of_day}")
-    print(f"max_time: {end_time}")
-    print(f"now: {current}")
-    print(f"current_time: {end_time}")
-    print(f"future_time: {end_time}")
-    '''
+
+    logger.debug(f"end_of_day: {end_of_day}")
+    logger.debug(f"max_time: {end_time}")
+    logger.debug(f"now: {current}")
+    logger.debug(f"current_time: {end_time}")
+    logger.debug(f"future_time: {end_time}")
+
     response.set_cookie(
-        key="last_order_date", value=last_order_date, max_age=future_time)
-    print("# 期限を本日の23:59:59にした")
+        key="last_order_date",
+        value=last_order_date, max_age=future_time)
+    logger.debug("# 期限を本日の23:59:59にした")
 
 # 期限として本日の23:59:59を作成
 #@log_decorator
 def get_end_of_today() -> datetime:
     today = datetime.now(JST)  # JSTで現在時刻を取得
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
-    #print(f"JST end_of_day: {end_of_day}")
+    logger.debug(f"JST end_of_day: {end_of_day}")
+
     return end_of_day
 
 # UNIX時間に変換
 @deprecated
 def get_max_age(dt: datetime) -> int:
     unix_time = int(dt.timestamp())
-    #print(f"unix_time: {unix_time}")
+    logger.debug(f"unix_time: {unix_time}")
+
     return unix_time
 
 # チェックする
@@ -253,11 +258,13 @@ def convert_max_age_to_dhms(max_age : int, add_date: datetime = None):
     hours = (max_age % 86400) // 3600
     minutes = (max_age % 3600) // 60
     seconds = max_age % 60
+
     return days, hours, minutes, seconds
 
 # 指定日時をmax_ageに変換する
 def convert_dhms_to_max_age(days: int, hours: int, minutes: int, seconds: int) -> int:
     max_age = days * 86400 + hours * 3600 + minutes * 60 + seconds
+
     return max_age
 
 # expires（UTC値の年月日時刻）をmax_age（秒）に変換する
@@ -299,14 +306,14 @@ def convert_expired_time_to_expires(expired_time: datetime) -> str:
 @log_decorator
 def check_permission(request: Request, allowed_permissions: Optional[List[int]] = None):
     permission = request.cookies.get("permission")
-    #print(f"check_store_permission: {permission}")
+    logger.debug(f"check_permission(): {permission}")
     if permission is None:
         #allowed_permissions = [99]
         raise HTTPException(status_code=403, detail="Permission Data is not Contained")
     if permission == 99:
-        print(f"permission: {permission}")
+        logger.debug(f"permission: {permission}")
     elif permission in allowed_permissions:
-        print(f"permission: {permission}")
+        logger.debug(f"permission: {permission}")
     else:
         raise HTTPException(status_code=403, detail="Not Authorized")
 

@@ -14,11 +14,14 @@ def check_admin_permission(request: Request):
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission != "99":
-        raise CustomException(status.HTTP_401_UNAUTHORIZED, "check_admin_permission()", f"Not Authorized permission={permission}")
+        raise CustomException(
+            status.HTTP_401_UNAUTHORIZED,
+            "check_admin_permission()",
+            f"Not Authorized permission={permission}")
 
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
-@admin_router.get("/today", response_class=HTMLResponse)
+@admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
 @log_decorator
 def admin_view(request: Request):    
     
