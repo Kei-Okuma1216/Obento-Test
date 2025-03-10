@@ -47,10 +47,10 @@ from fastapi.staticfiles import StaticFiles
 endpoint = 'https://127.0.0.1:8000'
 
 # login.htmlに戻る
-#@log_decorator
+@log_decorator
 def redirect_login(request: Request, message: str):
     try:
-        logger.info("redirect_login()")
+        logger.debug("redirect_login()")
 
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
     except HTTPException as e:
@@ -142,7 +142,6 @@ async def root(request: Request, response: Response):
             status.HTTP_400_BAD_REQUEST,
             "root()",
             "無効なトークンです")
-
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])

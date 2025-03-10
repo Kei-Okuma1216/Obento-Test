@@ -21,12 +21,16 @@ class CustomException(HTTPException):
             })
 
 # Token期限切れ例外クラス
-# 例: raise TokenExpiredException(method_name="verify_token()")
 class TokenExpiredException(CustomException):
+    ''' 例: raise TokenExpiredException(
+                 method_name="verify_token()")
+        備考：tokenの初回取得は、この例外を使用しない。
+        理由：画面が停止するため
+    '''
     def __init__(self, method_name: str, message: str = "トークンの有効期限が切れています。再登録をしてください。"):
         message = "Token has expired"
         print(f"⚠️ TokenExpiredException 発生！ method_name={method_name}, message={message}")  
-        
+
         logger.warning(f"Token期限切れ！- {status.HTTP_401_UNAUTHORIZED} - {method_name}, {message}")
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, method_name=method_name, message=message)
 
@@ -48,10 +52,14 @@ class CookieException(CustomException):
 
         print(f"🚨 CookieException 発生！ method_name={method_name}, message={detail}")  
         logger.error(f"Cookie例外が発生!- {status.HTTP_500_INTERNAL_SERVER_ERROR} - {method_name}, {detail}")
-        
+
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, method_name=method_name, message=detail)
 
 # SQLエラー例外クラス
+''' SQLException は Python に標準で用意されていない例外です。
+SQLite を使っているなら、sqlite3.DatabaseError または sqlite3.OperationalError などの例外が発生する可能性が高いです。
+PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。'''
+#  except sqlite3.DatabaseError as e:  # SQLite の例外
 # 例: raise SQLException(sql_statement=query, method_name="execute_query()", detail=str(e))
 class SQLException(CustomException):
     def __init__(self, sql_statement: str, method_name: str, detail: str = "An error occurred with the SQL operation"):
@@ -59,7 +67,7 @@ class SQLException(CustomException):
         print(f"🚨 SQLException 発生！ SQL文: {sql_statement}")  # SQL文をログに出力
         full_message = f"{detail}: SQL statement = {sql_statement}"
         logger.critical(f"SQL例外が発生!- {status.HTTP_500_INTERNAL_SERVER_ERROR} - {method_name}, {full_message}")
-        
+
         super().__init__(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, method_name=method_name, message=full_message)
 
 # データベース接続エラー例外クラス

@@ -31,10 +31,10 @@ def check_manager_permission(request: Request):
 @log_decorator
 async def manager_view(request: Request, response: Response):
     try:
-        '''cookies = get_all_cookies(request)
+        cookies = get_all_cookies(request)
         if not cookies:
             logger.debug('cookie userなし')
-            raise CookieException(method_name="manager_view()")'''
+            raise CookieException(method_name="manager_view()")
 
         check_manager_permission(request)
 
