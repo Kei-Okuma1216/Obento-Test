@@ -66,9 +66,9 @@ async def order_table_view(request: Request, response: Response, orders, redirec
 async def get_order_json(request: Request, days_ago: str = Query(None)): 
     try:
         cookies = get_all_cookies(request)
-        '''if not cookies:
+        if not cookies:
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)'''
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         # 注文追加
         user = await select_user(cookies['sub'])

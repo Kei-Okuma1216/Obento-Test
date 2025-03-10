@@ -6,7 +6,6 @@ from pprint import pprint
 from typing import List, Optional
 import sqlite3
 from venv import logger
-import warnings
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
 from schemas.schemas import Order, User
@@ -26,9 +25,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイル�
 DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフォルダの sample.db を指定
 #conn = sqlite3.connect(DB_PATH)
 
-
-
-
 # コネクション取得
 async def get_connection():
     try:
@@ -40,14 +36,14 @@ async def get_connection():
 # コネクションを閉じる（実際のテストでは不要）
 #await conn.close()
 
+'''------------------------------------------------------'''
 # Userテーブル
 # 作成
 #@log_decorator
 async def create_user_table():
     try:
         conn = await get_connection()
-        if conn is None: 
-            raise DatabaseConnectionException(detail=str(e))
+
         sqlstr = '''
         CREATE TABLE IF NOT EXISTS User (
         user_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,17 +62,21 @@ async def create_user_table():
         '''
         await conn.execute(sqlstr)
         await conn.commit()
+
         logger.debug(f"create_user_table() - {sqlstr}")
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"create_user_table()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"create_user_table() Error: {e}")
+        raise CustomException(
+            500, f"create_user_table()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
-# ユーザー
 # 検索
 @log_decorator
 async def select_user(username: str)-> Optional[User]:
@@ -92,8 +92,7 @@ async def select_user(username: str)-> Optional[User]:
             logger.debug(f"select_user() - {sqlstr}")
 
         if row is None:
-            #warnings.warn(
-            print(
+            logger.debug(
                 "No user found with the given username")
             return None  # ユーザーが存在しない場合
         user = User(
@@ -111,17 +110,61 @@ async def select_user(username: str)-> Optional[User]:
             updated_at=row[11]
         )
 
-        #print(f"type: {str(type(user))}")
-        #print(f"name: {user.name}")
-        #print(f"user: {user}")
         logger.debug(f"select_user() - user: {user}")
 
         return user
 
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_user()", f"Error: {e}") from e
     except Exception as e:
-        raise SQLException(sqlstr, f"select_user() Error: {e}")from e
+        raise CustomException(
+            500, f"select_user()", f"Error: {e}") from e
     finally:
-        if conn:
+        if conn is not None:
+            await conn.close()
+
+# 追加
+@log_decorator
+async def insert_user(username, password, name, company_id, shop_name, menu_id):
+    try:
+        conn = await get_connection()
+
+        sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
+        result = await conn.execute(sqlstr, (username,))
+        count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
+        logger.debug(f"insert_user() - {sqlstr} - count: {count}")
+        
+        if count > 0:
+            logger.info(f"ユーザーID: {username} は既に存在します。挿入をスキップします。")
+            return False  # 既に存在する場合は False を返す
+        else:
+            sqlstr = '''
+            INSERT INTO User (username, password, name, token, exp, company_id, shop_name, menu_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            '''
+            await conn.execute(sqlstr, (username, password, name, '', '', company_id, shop_name, menu_id))
+
+            if not isinstance(conn, aiosqlite.Connection):  
+                await conn.commit()
+            
+            #await conn.commit()  # INSERT が実行されたときのみ commit()
+            logger.info("ユーザー追加成功")        
+            logger.debug(f"insert_user() - {sqlstr} , company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id})")
+ 
+            return True  # 挿入成功時は True を返す
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"insert_user()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(sqlstr, f"insert_user() Error: {e}")
+    finally:
+        if conn is not None:
             await conn.close()
 
 # 新規ユーザーの登録
@@ -132,42 +175,8 @@ async def insert_new_user(username, password, name = ''):
     except SQLException as e:
         raise
     except Exception as e:
-        raise CustomException("method", f"insert_new_user() Error: {e}")
-
-# 追加
-@log_decorator
-async def insert_user(username, password, name, company_id, shop_name, menu_id):
-    try:
-        conn = await get_connection()
-
-        result = await conn.execute('SELECT COUNT(*) FROM User WHERE username = ?', (username,))
-        count = (await result.fetchone())[0]  # カーソルを明示的に使わず取得
-        logger.debug(f"insert_user() - {sqlstr} - count: {count}")
-        
-        if count > 0:
-            print(f"ユーザーID: {username} は既に存在します。挿入をスキップします。")
-            return False  # 既に存在する場合は False を返す
-        else:
-            sqlstr = '''
-            INSERT INTO User (username, password, name, token, exp, company_id, shop_name, menu_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            '''
-            await conn.execute(sqlstr, (username, password, name, '', '', company_id, shop_name, menu_id))
-
-            await conn.commit()  # INSERT が実行されたときのみ commit()
-            print(f"ユーザー {username} を追加しました。")
-            
-            logger.debug(f"insert_user() - {sqlstr} , company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id})")
- 
-            return True  # 挿入成功時は True を返す
-
-    except SQLException as e:
-        raise
-    except Exception as e:
-        raise CustomException(sqlstr, f"insert_user() Error: {e}")
-    finally:
-        if conn:
-            await conn.close()
+        raise CustomException(
+            500, "insert_new_user() ", f"Error: {e}")
 
 # お弁当屋追加
 # 備考：username == shop_name とする
@@ -189,17 +198,24 @@ async def insert_shop(username, password, shop_name):
                 username, password, name, token, exp, company_id, shop_name, menu_id, permission)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             '''
+
             await conn.execute(sqlstr, (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 10))
+
         await conn.commit()
         
         logger.debug(f"insert_shop() - {sqlstr} , username: {username}, name: {shop_name}, shop_name: {username},  menu_id: 1, permission: 10)")
+        logger.info("ユーザー追加成功")
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"insert_shop()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"insert_shop() Error: {e}")
+        raise CustomException(
+            500, f"insert_shop()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 更新
@@ -213,12 +229,16 @@ async def update_user(username, key, value):
             await conn.commit()  # 非同期の `commit()`
         logger.debug(f"update_user() - {sqlstr}")
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"update_user()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"update_user() Error: {e}")
+        raise CustomException(
+            500, f"update_user()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 全件確認
@@ -233,12 +253,16 @@ async def show_all_users():
         for row in rows:
             print(row)
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"show_all_users()", f"Error: {e}") from e
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
+'''------------------------------------------------------'''
 # Companyお客様団体テーブル
 # 作成
 #@log_decorator
@@ -246,9 +270,7 @@ async def create_company_table():
     conn = None
     try:
         conn = await get_connection()
-        if conn is None: 
-            print("データベース接続の確立に失敗しました。")
-            return
+
         sqlstr = '''
         CREATE TABLE IF NOT EXISTS Company (
             company_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -262,12 +284,16 @@ async def create_company_table():
         await conn.execute(sqlstr)
         await conn.commit()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"create_company_table()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"create_company_table() Error: {e}")
+        raise CustomException(
+            500, f"create_company_table()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 追加
@@ -287,15 +313,48 @@ async def insert_company(name, tel, shop_name):
         await conn.commit()
 
         logger.debug(f"insert_company() - {sqlstr} , name: {name}, tel: {tel},  shop_name: {shop_name},  created_at: {get_today_str()}, disabled: False)")
-    except SQLException as e:
+        logger.info("契約企業追加成功")
+
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"insert_company()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"insert_company() Error: {e}")
+        raise CustomException(
+            500, f"insert_company()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
+# 選択
+@log_decorator
+async def select_company(company_id: str):
+    try:
+        conn = await get_connection()
+        cursor = conn.cursor()
+        sqlstr = 'SELECT * FROM Company WHERE company_id = ?'
+        params = [company_id]
+        await cursor.execute(sqlstr, params)
+        row = cursor.fetchall()
 
+        logger.debug(f"select_company() - {sqlstr}")
+
+        return row
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_company()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(
+            500, f"select_company()", f"Error: {e}")
+    finally:
+        if conn is not None:
+            await conn.close()
+
+'''------------------------------------------------------'''
 # 注文テーブル
 # 作成
 #@log_decorator
@@ -303,9 +362,9 @@ async def create_orders_table():
     conn = None
     try:
         conn = await get_connection() 
-        if conn is None: 
+        '''if conn is None: 
             print("データベース接続の確立に失敗しました。")
-            return
+            return'''
         sqlstr = '''
             CREATE TABLE Orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -322,12 +381,16 @@ async def create_orders_table():
         await conn.execute(sqlstr)
         await conn.commit()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"create_order_table()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"create_orders_table() Error: {e}")
+        raise CustomException(
+            500, f"create_orders_table()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 選択
@@ -365,7 +428,7 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
         rows = await cursor.fetchall()
         #print(f"rows: {rows}")
         if not rows:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
             return None
         else:
             orders = appendOrder(rows)
@@ -381,12 +444,16 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
 
         return orderlist            
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_all_orders2()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"select_all_orders2() Error: {e}")
+        raise CustomException(
+            500, f"select_all_orders2()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 選択
@@ -396,26 +463,29 @@ async def select_all_orders()-> Optional[dict]:
     try:
         conn = await get_connection()
         cursor = await conn.cursor()
-        
+
         sqlstr = f"SELECT * FROM Orders"
         await cursor.execute(sqlstr)
         rows = await cursor.fetchall()
         #print(f"rows: {rows}")
         if not rows:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
         else:
             orders = appendOrder(rows)
-            
+
         return orders
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_all_orders()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"select_all_orders() Error: {e}")
+        raise CustomException(
+            500, f"select_all_orders()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
 
 # 選択
 @deprecated
@@ -429,52 +499,61 @@ async def select_order(username: str)-> Optional[dict]:
         today = get_today_str(0,"YMD")
         
         sqlstr = f"SELECT * FROM Orders WHERE username = '{username}' AND created_at BETWEEN '{today} 00:00:00' AND '{today} 23:59:59';"
-        #print(f"sqlstr: {sqlstr}")
+        logger.debug(f"sqlstr: {sqlstr}")
+        
         await cursor.execute(sqlstr)
         rows = cursor.fetchall()
         #print("rows: " + str(rows))
         if rows is None:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
         else:
             orders = appendOrder(rows)
         
-        print(f"return orders: {orders}")
+        logger.debug(f"return orders: {orders}")
         
         return orders
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_order()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"select_order() Error: {e}")
+        raise CustomException(
+            500, f"select_order()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
 
 # Order辞書を返す
 @log_decorator
 def appendOrder(rows) -> List[dict]:
-    orders = []
-    for row in rows:
-        orders.append({
-            "order_id": int(row[0]),
-            "company_name": row[1],
-            "username": row[2],
-            "shop_name": row[3],
-            "menu_name": row[4],
-            "amount": int(row[5]),
-            "created_at": row[6],
-            "canceled": bool(row[7])
-        })
-        #print(f"orderのクラスは {str(type(orders))}")
-        #pprint(orders)
-        
-        # 列名を取得（カラム名をキーにして辞書に変換するため）
-        #columns = [column[0] for column in result.description]
-        # `Order` クラスにマッピング
-        #orders = [Order(**dict(zip(columns, row))) for row in rows]
-        
-    return orders
+    try:
+        orders = []
+        for row in rows:
+            orders.append({
+                "order_id": int(row[0]),
+                "company_name": row[1],
+                "username": row[2],
+                "shop_name": row[3],
+                "menu_name": row[4],
+                "amount": int(row[5]),
+                "created_at": row[6],
+                "canceled": bool(row[7])
+            })
+            #print(f"orderのクラスは {str(type(orders))}")
+            #pprint(orders)
+            
+            # 列名を取得（カラム名をキーにして辞書に変換するため）
+            #columns = [column[0] for column in result.description]
+            # `Order` クラスにマッピング
+            #orders = [Order(**dict(zip(columns, row))) for row in rows]
+            
+        return orders
+
+    except Exception as e:
+        raise CustomException(
+            500,"appendOrder()", f"Error: {e.detail}")
 
 # 選択（ユーザーとお弁当屋）
 @log_decorator
@@ -523,8 +602,8 @@ async def select_shop_order(shopid: str,
             sqlstr += ""
         else:
             sqlstr += f" AND (O.username = '{username}')"
-        
-        #print(f"sqlstr: {sqlstr}")
+
+        #logger.debug(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
         #print("ここまで 1")
@@ -534,34 +613,31 @@ async def select_shop_order(shopid: str,
             logger.warning("No order found with the given shopid")
             return None
         else:
-            #print("ここまで 2")
-            #print(f"rows: {rows}")
             orders = appendOrder(rows)
-
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
             #print(f"orders.count(): {len(orders)}")
             orderlist = []
             for o in orders:
-                #print("ここまで start")
-                #print(f"list: {o}")
                 json_data = json.dumps(o, ensure_ascii=False)
-                #print(f"json_data: {json_data}")
+                logger.debug(f"json_data: {json_data}")
                 dict_data = json.loads(json_data)  # JSON文字列を辞書に変換
                 orderlist.append(Order(**dict_data))
-                #print(orderlist)
-                #print("ここまで end")
-        #print(f" orderlist: {orderlist}")
+
         logger.debug(f"select_shop_order() - orderlist: {orderlist}")
 
         return orderlist
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_shop_order()", f"Error: {e}") from e
     except Exception as e:
-        CustomException(500, f"select_shop_order() Error: {e}")
+        CustomException(
+            500, f"select_shop_order()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 選択（ユーザーとお弁当屋）
@@ -620,37 +696,36 @@ async def select_company_order(company_id: int,
         #print("rows: " + str(rows))
 
         if rows is None:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
             return None
         else:
             #print("ここまで 2")
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
-            
+
             # ここからList<Order>クラスにキャストする
             #print(f"ordersの型: {str(type(orders))}")
             #print(f"orders.count(): {len(orders)}")
             orderlist = []
             for o in orders:
-                #print("ここまで start")
-                #print(f"list: {o}")
                 json_data = json.dumps(o, ensure_ascii=False)
-                #print(f"json_data: {json_data}")
                 dict_data = json.loads(json_data)  # JSON文字列を辞書に変換
                 orderlist.append(Order(**dict_data))
-                #print(orderlist)
-                #print("ここまで end")
         #print(f" orderlist: {orderlist}")
         logger.debug(f"select_company_order() - orderlist: {orderlist}")
 
         return orderlist
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_company_order()", f"Error: {e}") from e
     except Exception as e:
-        CustomException(sqlstr, f"select_company_order() Error: {e}")
+        CustomException(
+            500, f"select_company_order()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 選択（ユーザーとお弁当屋）
@@ -681,19 +756,23 @@ async def select_today_orders(shopid: str, userid: str = None)-> Optional[dict]:
         #print("rows: " + str(rows))
 
         if rows is None:
-            warnings.warn("No order found with the given shopid")
+            logger.warning("No order found with the given shopid")
         else:
             #print(f"rows: {rows}")
             orders = appendOrder(rows)
         #print(f" Shop orders: {orders}")
         return orders
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_today_orders()", f"Error: {e}") from e
     except Exception as e:
-        CustomException(sqlstr, f"select_today_orders() Error: {e}")
+        CustomException(
+            500, f"select_today_orders()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 注文全確認
@@ -702,14 +781,20 @@ async def show_all_orders():
     try:
         conn = await get_connection()
         cursor = await conn.cursor()
-        await cursor.execute('SELECT * FROM Orders')
+        sqlstr ='SELECT * FROM Orders'
+        await cursor.execute(sqlstr)
         rows = await cursor.fetchall()
         for row in rows:
             pprint(row)
-    except SQLException as e:
+
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"show_all_orders()", f"Error: {e}") from e
     finally:
-        await conn.close()
+        if conn is not None:
+            await conn.close()
 
 # 追加
 @log_decorator
@@ -725,14 +810,19 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         values = (company_id, username, shop_name, menu_id, amount, created_at)
         await conn.execute(sqlstr, values)
         await conn.commit()
-        #print("注文追加成功")
+        logger.info("注文追加成功")
         logger.debug(f"insert_order() - {sqlstr} , values: {values}")
-    except SQLException as e:
+
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"insert_order()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"insert_order() Error: {e}")
+        raise CustomException(
+            500, f"insert_order()", f"Error: {e}")
     finally:
-        if not conn:
+        if conn is not None:
             await conn.close()
 
 # 更新
@@ -748,48 +838,29 @@ async def update_order(order_id, canceled):
             await cursor.execute(sqlstr)
             await conn.commit()  # 非同期の `commit()`
 
-        logger.debug(f"update_order() - {sqlstr}")
-        
-    except SQLException as e:
+        logger.debug(f"注文更新成功")
+
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"update_order()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"update_order() Error: {e}")
+        raise CustomException(
+            500, f"update_order()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
-            
-# 選択
-@log_decorator
-async def select_company(company_id: str):
-    try:
-        conn = await get_connection()
-        cursor = conn.cursor()
-        sqlstr = 'SELECT * FROM Company WHERE company_id = ?'
-        params = [company_id]
-        await cursor.execute(sqlstr, params)
-        row = cursor.fetchall()
-
-        logger.debug(f"select_company() - {sqlstr}")
-
-        return row
-
-    except SQLException as e:
-        raise
-    except Exception as e:
-        raise CustomException(sqlstr, f"select_company() Error: {e}")
-    finally:
-        if conn:
-            await conn.close()
-
+'''------------------------------------------------------'''
 # メニューテーブル
 # 作成
 #@log_decorator
 async def create_menu_table():
     try:
         conn = await get_connection() 
-        if conn is None:
-            raise CustomException(400, f"データベース接続の確立に失敗しました。conn: {conn}")
+        '''if conn is None:
+            raise CustomException(400, f"データベース接続の確立に失敗しました。conn: {conn}")'''
         sqlstr = '''
         CREATE TABLE Menu (
         menu_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -806,25 +877,31 @@ async def create_menu_table():
         await conn.commit()
 
         logger.debug(f"create_menu_table() - {sqlstr}")
-    except SQLException as e:
+
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"create_menu_table()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"create_menu_table() Error: {e}")
+        raise CustomException(
+            500, f"create_menu_table()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 追加
 @log_decorator
 # 書式
 # insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture'もしくはpicture_path=r'c:\\picture')
-async def insert_menu(shop_name, name, price, description, picture_path = None):
+async def insert_menu(
+    shop_name, name, price, description, picture_path = None):
+    
     try:
         conn = await get_connection()
 
-        created_at = get_today_str()        
-        #print(f"menu_id: ""自動連番"", shop_name: {shop_name}, name: {name}, price: {price}, description: {description}, picture_path: {picture_path}, created_at: {created_at}")
-        
+        created_at = get_today_str()
+
         sqlstr = '''
         INSERT INTO Menu (shop_name, name, price, description, picture_path, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -833,18 +910,21 @@ async def insert_menu(shop_name, name, price, description, picture_path = None):
         await conn.execute(sqlstr, values)
 
         await conn.commit()
-        #print("メニュー追加成功")
+        logger.info("メニュー追加成功")
         logger.debug(f"insert_menu() - sqlstr: {sqlstr}, values: {values}")
 
-
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"insert_menu()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, detail=f"insert_menu() Error: {e}")
+        raise CustomException(
+            500, "insert_menu()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-    
+
 # 選択
 @log_decorator
 async def select_menu(shop_name: str)-> Optional[dict]:
@@ -853,7 +933,7 @@ async def select_menu(shop_name: str)-> Optional[dict]:
         cursor = conn.cursor()
 
         sqlstr = f"SELECT * FROM Menu WHERE shop_name = '{shop_name}'"
-        #print(f"sqlstr: {sqlstr}")
+
         await cursor.execute(sqlstr)
         rows = cursor.fetchall()
         #print("rows: " + str(rows))
@@ -880,14 +960,18 @@ async def select_menu(shop_name: str)-> Optional[dict]:
             logger.debug(f"select_menu() - items: {items}")
             #return items
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"select_menu()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, detail=f"select_menu() Error: {e}")
+        raise CustomException(
+            500, f"select_menu()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
+'''
 # 辞書を返す
 @deprecated
 def appendMenu(rows):
@@ -910,7 +994,40 @@ def appendMenu(rows):
         return items
 
     except Exception as e:
-        raise CustomException(items, detail=f"appendMenu() Error: {e}")
+        raise CustomException(
+            500, f"appendMenu()", f"Error: {e}")
+'''
+'''------------------------------------------------------'''
+# メニューテーブル
+# 作成
+@log_decorator
+async def create_devices_table():
+    try:
+        conn = await get_connection() 
+        sqlstr = '''
+        CREATE TABLE Devices (
+        device_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tag_id TEXT,
+        user_id TEXT,
+        created_at TEXT,
+        last_order_at TEXT
+        )
+        '''
+        await conn.execute(sqlstr)
+        await conn.commit()
+
+        logger.debug(f"create_devices_table() - {sqlstr}")
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"create_devices_table()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(
+            500, f"create_devices_table()", f"Error: {e.detail}")
+    finally:
+        if conn is not None:
+            await conn.close()
 
 '''owari'''
 
@@ -924,28 +1041,20 @@ async def reset_all_autoincrement():
         for table in ["Company", "Orders", "Menu"]:
             sqlstr = f'DELETE FROM sqlite_sequence WHERE name = "{table}"'
             await conn.execute(sqlstr)
-        await conn.commit()  # コミットを一度だけ実行
-        print("AUTOINCREMENT のリセット完了")
-        '''旧コード
-        cursor = conn.cursor()
-        await cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Company"')
-        await conn.commit()
-        
-        #cursor = conn.cursor()
-        await cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Orders"')
-        await conn.commit()
-        
-        #cursor = conn.cursor()
-        await cursor.execute('DELETE FROM sqlite_sequence WHERE name = "Menu"')
-        await conn.commit()
-        '''
-    except SQLException as e:
-        raise
-    except Exception as e:
-        raise CustomException(sqlstr, detail=f"reset_all_autoincrement() Error: {e}")        
 
+        await conn.commit()  # コミットを一度だけ実行
+        logger.debug("AUTOINCREMENT のリセット完了")
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"reset_all_autoincrement()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(
+            500, f"reset_all_autoincrement()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 # 全テーブルをDrop
@@ -959,17 +1068,20 @@ async def drop_all_table():
         for table in ["Company", "Orders", "Menu", "User"]:
             sqlstr = f'DROP TABLE IF EXISTS {table}'
             await conn.execute(sqlstr)
+
         await conn.commit()  # コミットを一度だけ実行
-        print("全テーブルのDrop完了")
-    except SQLException as e:
+        logger.debug("全テーブルのDrop完了")
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"drop_all_table()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, detail=f"drop_all_table() Error: {e}")    
+        raise CustomException(
+            500, f"drop_all_table()", f"Error: {e}")    
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
-
 
 # 削除
 @log_decorator
@@ -982,14 +1094,17 @@ async def delete_all_company():
         await conn.commit()
         await conn.close()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"delete_all_company()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, detail=f"delete_all_company() Error: {e}")
+        raise CustomException(
+            500, f"delete_all_company()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
 
 @log_decorator
 async def delete_all_orders():
@@ -1001,12 +1116,16 @@ async def delete_all_orders():
         #await cursor.execute('DELETE FROM Orders')    
         await conn.commit()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"drop_all_orders()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, detail=f"delete_all_orders() Error: {e}")
+        raise CustomException(
+            500, f"delete_all_orders()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
 @log_decorator
@@ -1020,15 +1139,18 @@ async def delete_all_user():
         await conn.commit()
         await conn.close()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"drop_all_users()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(sqlstr, f"delete_all_user() Error: {e}")
+        raise CustomException(
+            500, f"delete_all_user()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
 
-# 削除
 @log_decorator
 async def delete_all_menu():
     try:
@@ -1037,16 +1159,21 @@ async def delete_all_menu():
         sqlstr = 'DROP TABLE IF EXISTS Menu'
         await cursor.execute(sqlstr)
         conn.commit()
+
         await conn.close()
 
-    except SQLException as e:
+    except DatabaseConnectionException as e:
         raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sqlstr, f"delete_all_menu()", f"Error: {e}") from e
     except Exception as e:    
-        raise CustomException(sqlstr, f"delete_all_menu() Error: {e}")
+        raise CustomException(
+            500, f"delete_all_menu()", f"Error: {e}")
     finally:
-        if conn:
+        if conn is not None:
             await conn.close()
-
+'''------------------------------------------------------'''
 #@log_decorator
 async def init_database():
     default_shop_name = "shop01"
@@ -1097,14 +1224,15 @@ async def init_database():
         await show_all_orders()
 
         logger.info("データベースファイル 'sample.db' が正常に作成されました。")
+
+    except DatabaseConnectionException as e:
+        raise
     except sqlite3.Error as e: 
-        print(f"SQLiteエラー: {e}")
-        raise CustomException(400, f"SQLiteエラー: {e}")
-    except SQLException as e:
-        print(f"SQLException: {e}")
+        raise
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
         import traceback 
         traceback.print_exc()
-        raise CustomException(500, "init_database()", f"例外発生: {e}")
-        
+        raise CustomException(
+            500, "init_database()", f"例外発生: {e}")
+
