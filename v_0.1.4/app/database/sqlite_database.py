@@ -28,7 +28,7 @@ DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフ
 # コネクション取得
 async def get_connection():
     try:
-        return await aiosqlite.connect(DB_PATH, isolation_level=None)
+        return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
         #return await aiosqlite.connect(db_name_str, isolation_level=None)
     except Exception as e:
         raise DatabaseConnectionException("get_connection()", detail=str(e))
@@ -829,14 +829,15 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
 @log_decorator
 async def update_order(order_id, canceled):
     try:
-        conn = await get_connection()
-        async with conn.cursor() as cursor:
-            current_time = get_today_str()
-            #print(f"current_time: {current_time}")
-            sqlstr = f"UPDATE Orders SET canceled = {canceled} , updated_at = '{current_time}' WHERE order_id = {order_id}"
-            #print(f"query: {sql_query}")
-            await cursor.execute(sqlstr)
-            await conn.commit()  # 非同期の `commit()`
+        #conn = await get_connection()
+        async with get_connection() as conn:
+            async with conn.cursor() as cursor:
+                current_time = get_today_str()
+                #print(f"current_time: {current_time}")
+                sqlstr = f"UPDATE Orders SET canceled = {canceled} , updated_at = '{current_time}' WHERE order_id = {order_id}"
+                #print(f"query: {sql_query}")
+                await cursor.execute(sqlstr)
+                await conn.commit()  # 非同期の `commit()`
 
         logger.debug(f"注文更新成功")
 

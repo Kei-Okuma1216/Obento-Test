@@ -1,12 +1,13 @@
 # 管理者の権限チェック
 import json
+import sqlite3
 from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from database.sqlite_database import select_shop_order, select_user
-from main import get_all_cookies
+from database.sqlite_database import DatabaseConnectionException, select_shop_order, select_user
+from main import SQLException, get_all_cookies
 templates = Jinja2Templates(directory="templates")
 from database.sqlite_database import CustomException
 from utils.utils import log_decorator 
@@ -22,7 +23,7 @@ view_router = APIRouter(
 @log_decorator
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str):
     try:
-        #print(f"ordersあり")
+        logger.debug(f"ordersあり")
    
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
@@ -42,7 +43,7 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         # 必須！　Set-CookieヘッダーがNoneでないことを確認
         set_cookie_header = response.headers.get("Set-Cookie")
         #print("ここまできた 4")
-        if set_cookie_header is not None:
+        if set_cookie_header:
             template_response.headers["Set-Cookie"] = set_cookie_header
         #print("ここまできた 5")
         return template_response
@@ -60,10 +61,10 @@ async def order_table_view(request: Request, response: Response, orders, redirec
 
 
 # 注文情報を取得する
-# 例 /order_json?days_ago=-5
-#@app.get("/order_json",response_class=HTMLResponse) 
 @log_decorator
-async def get_order_json(request: Request, days_ago: str = Query(None)): 
+async def get_order_json(request: Request, days_ago: str = Query(None)):
+    # 入力例 /order_json?days_ago=-5
+    # @app.get("/order_json",response_class=HTMLResponse) 
     try:
         cookies = get_all_cookies(request)
         if not cookies:
@@ -85,10 +86,13 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         if days_ago is None:
             logger.debug("全履歴を取得する") 
             orders = await select_shop_order(user.shop_name)
+
         elif days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit()):
             logger.debug(f"{days_ago} 日前までの履歴を取得する")
+
             orders = await select_shop_order(user.shop_name, days_ago)
         else:
+            logger.debug("days_ago の値が無効です")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
 
         if not orders:
@@ -108,7 +112,11 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders_json = json.dumps(orders_dict, default=str)  # ← datetime を文字列に変換
 
         return JSONResponse(content=json.loads(orders_json))  # JSON をパースしてレスポンス
-    
+
+    except DatabaseConnectionException as e:
+        raise
+    except SQLException as e:
+        raise
     except Exception as e:
         orders = []
         logger.warning(f"/order_json Error: {str(e)}")
