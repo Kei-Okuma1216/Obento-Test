@@ -1,5 +1,6 @@
 import asyncio
 import os
+import sys
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -11,7 +12,7 @@ from typing import Optional
 
 from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token
 
-from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
+from database.sqlite_database import SQLException, get_connection, init_database, insert_new_user, select_user, update_order, update_user, select_shop_order, select_user, insert_order
 
 from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 from utils.exception import CookieException, CustomException, TokenExpiredException
@@ -228,7 +229,6 @@ async def login_post(response: Response,
         response = RedirectResponse(
             url=redirect_url, status_code=303)
 
-        #print("ここまできた 1")
         data = {
             'sub': user.get_username(),
             'token': user.get_token(),
@@ -247,8 +247,6 @@ async def login_post(response: Response,
 
 
         set_all_cookies(response, data)
-
-        #user.print_max_age_str()
 
         # トークンのsave
         username = user.get_username()
@@ -309,14 +307,14 @@ async def regist_complete(request: Request, response: Response):
         prevent_order_twice(response, last_order_date)
         
         main_view = "order_complete.html"
-        return await order_table_view(request, response, orders, main_view)
+        return await order_table_view(
+            request, response, orders, main_view)
 
     except SQLException as e:
         raise
     except HTTPException as e:
         raise
     except Exception as e:
-        print(f"/order_complete Error: {str(e)}")
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "regist_complete()",
@@ -331,11 +329,23 @@ async def clear_cookie(response: Response):
     delete_all_cookies(response)
     return response
 
+
+
 from typing import List
 
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
 
+@app.post("/update_cancel_status")
+@log_decorator
+async def update_cancel_status(update: CancelUpdate):
+    try:
+        #change_cancel_status(update)
+        return await batch_update_orders(update.updates)
+    except Exception as e:
+        raise 
+
+'''
 @app.post("/update_cancel_status")
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
@@ -348,8 +358,29 @@ async def update_cancel_status(update: CancelUpdate):
             canceled = change["canceled"]
             logger.debug(f"更新 order_id: {order_id}, canceled: {canceled}")
 
-            # ここに SQL の UPDATE 文を実行するコードを入れる
-            # 例: await database.execute("UPDATE orders SET canceled = $1 WHERE order_id = $2", canceled, order_id)
+            await update_order(order_id, canceled)
+
+            results.append({"order_id": order_id, "canceled": canceled, "success": True})
+        
+        return {"results": results}
+
+    except Exception as e:
+        logger.debug(f"/update_cancel_status Error: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "update_cancel_status()",
+            f"予期せぬエラーが発生しました: {str(e)}")'''
+
+async def change_cancel_status(update: CancelUpdate):
+    try:
+        logger.info(f"update_cancel_status() - orderチェック変更")
+
+        results = []
+        for change in update.updates:
+            order_id = change["order_id"]
+            canceled = change["canceled"]
+            logger.debug(f"更新 order_id: {order_id}, canceled: {canceled}")
+
             await update_order(order_id, canceled)
 
             results.append({"order_id": order_id, "canceled": canceled, "success": True})
@@ -363,13 +394,43 @@ async def update_cancel_status(update: CancelUpdate):
             "update_cancel_status()",
             f"予期せぬエラーが発生しました: {str(e)}")
 
-# 例外ハンドラーの設定
-# 実装例
-# raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
+
+import aiosqlite
+
+async def batch_update_orders(updates: list[dict]):
+    try:
+        values = [(change["canceled"], change["order_id"]) for change in updates]
+        sql = "UPDATE orders SET canceled = ? WHERE order_id = ?"
+
+        conn = await get_connection()  # ✅ 非同期DB接続
+        try:
+            cur = await conn.cursor()  # ✅ `async with` は不要
+            await cur.executemany(sql, values)  # ✅ `await` なし
+            await conn.commit()  # ✅ コミットを実行
+        finally:
+            await conn.close()  # ✅ 明示的にクローズ
+
+        return {"message": "Orders updated successfully"}
+
+    except Exception as e:
+        logger.error(f"batch_update_orders Error: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "batch_update_orders()",
+            f"予期せぬエラー: {str(e)}")
+
+
+
+
+
+# デバッグ用 例外ハンドラーの設定
 @app.exception_handler(CustomException)
 async def custom_exception_handler(
     request: Request, exc: CustomException):
-    logger.warning(f"例外ハンドラーが呼ばれました: {exc.detail}")  # デバッグ用
+    logger.error(f"例外ハンドラーが呼ばれました: {exc.detail}")  
+    # 実装例
+    # raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
+
     """カスタム例外をキャッチして、HTML にエラーを表示"""
     return templates.TemplateResponse(
         "error.html",  # templates/error.html を表示
@@ -377,7 +438,7 @@ async def custom_exception_handler(
         status_code=exc.status_code
     )
 
-# 例外テスト
+# デバッグ用 例外テスト
 @app.get("/test_exception")
 async def test_exception():
     logger.error("test_exception() testエラーが発生しました!")
@@ -404,6 +465,9 @@ static_path = os.path.join(os.path.dirname(__file__), "static")  # 絶対パス�
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 
 # 他のモジュールでの誤使用を防ぐ
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
 if __name__ == "__main__":
     import asyncio
     import uvicorn
@@ -413,3 +477,33 @@ if __name__ == "__main__":
 
     # Uvicornの起動
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
+
+
+LOGS_DIR = "./logs"
+
+@app.get("/logs", response_class=HTMLResponse)
+async def list_logs():
+    # 入力例 https://127.0.0.0.1:8000/logs/2025-03-10
+    # 備考　現在誰でもログにアクセスできる
+    """logs フォルダ内のログファイル一覧を表示"""
+    if not os.path.exists(LOGS_DIR):
+        return "<h1>No logs found</h1>"
+
+    files = sorted(os.listdir(LOGS_DIR), reverse=True)  # 最新のログを上に
+    file_links = [f'<a href="/logs/{file}">{file}</a><br>' for file in files]
+
+    return "<h1>Log Files</h1>" + "".join(file_links)
+
+@app.get("/logs/{filename}")
+async def read_log(filename: str):
+    """指定されたログファイルの内容をHTMLで表示"""
+    filepath = os.path.join(LOGS_DIR, filename)
+
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Log file not found")
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = f"<h1>{filename}</h1><pre>{f.read()}</pre>"
+
+    return HTMLResponse(content)
+
