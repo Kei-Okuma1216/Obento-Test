@@ -336,6 +336,8 @@ from typing import List
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
 
+from services.order_view import batch_update_orders
+
 @app.post("/update_cancel_status")
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
@@ -370,7 +372,7 @@ async def update_cancel_status(update: CancelUpdate):
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "update_cancel_status()",
             f"予期せぬエラーが発生しました: {str(e)}")'''
-
+'''
 async def change_cancel_status(update: CancelUpdate):
     try:
         logger.info(f"update_cancel_status() - orderチェック変更")
@@ -393,10 +395,10 @@ async def change_cancel_status(update: CancelUpdate):
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "update_cancel_status()",
             f"予期せぬエラーが発生しました: {str(e)}")
-
+'''
 
 import aiosqlite
-
+'''
 async def batch_update_orders(updates: list[dict]):
     try:
         values = [(change["canceled"], change["order_id"]) for change in updates]
@@ -418,7 +420,7 @@ async def batch_update_orders(updates: list[dict]):
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "batch_update_orders()",
             f"予期せぬエラー: {str(e)}")
-
+'''
 
 
 

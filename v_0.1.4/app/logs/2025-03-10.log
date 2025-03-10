@@ -255,3 +255,42 @@
 2025-03-10 15:01:52 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDE6NTIuMDc2MzY4WiJ9.JDcX_PJQ-8xqbCD_fI0ayVKjYY8pzSVJeSCHfUhLD1s
 2025-03-10 15:01:52 - DEBUG - login_post() - 'exp': 2025-04-09T06:01:52.076368Z
 2025-03-10 15:01:52 - DEBUG - login_post() - 'permission': 10
+2025-03-10 15:05:44 - INFO - Started server process [20060]
+2025-03-10 15:05:44 - INFO - Waiting for application startup.
+2025-03-10 15:05:44 - INFO - Application startup complete.
+2025-03-10 15:05:44 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-10 15:05:46 - INFO - root() - ルートにアクセスしました
+2025-03-10 15:05:46 - DEBUG - token_result: None
+2025-03-10 15:05:46 - DEBUG - token_result: ありません
+2025-03-10 15:05:52 - DEBUG - username: shop01
+2025-03-10 15:05:52 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDU6NTIuMzUwNDUwWiJ9.dRtWJf1TnkyOnpjcSVR9rmRoibKhOwHkaCpYm6RDWPI
+2025-03-10 15:05:52 - DEBUG - expires: 2025-04-09T06:05:52.350450Z
+2025-03-10 15:05:52 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDU6NTIuMzUwNDUwWiJ9.dRtWJf1TnkyOnpjcSVR9rmRoibKhOwHkaCpYm6RDWPI' exp='2025-04-09T06:05:52.350450Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-10 15:05:52 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-10 15:05:52 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDU6NTIuMzUwNDUwWiJ9.dRtWJf1TnkyOnpjcSVR9rmRoibKhOwHkaCpYm6RDWPI' exp='2025-04-09T06:05:52.350450Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-10 15:05:52 - DEBUG - username と password一致
+2025-03-10 15:05:52 - DEBUG - redirect_url: /shops/me
+2025-03-10 15:05:52 - DEBUG - login_post() - 'sub': shop01
+2025-03-10 15:05:52 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDU6NTIuMzUwNDUwWiJ9.dRtWJf1TnkyOnpjcSVR9rmRoibKhOwHkaCpYm6RDWPI
+2025-03-10 15:05:52 - DEBUG - login_post() - 'exp': 2025-04-09T06:05:52.350450Z
+2025-03-10 15:05:52 - DEBUG - login_post() - 'permission': 10
+2025-03-10 15:06:01 - INFO - root() - ルートにアクセスしました
+2025-03-10 15:06:01 - DEBUG - token_result: None
+2025-03-10 15:06:01 - DEBUG - token_result: ありません
+2025-03-10 15:06:06 - DEBUG - username: shop01
+2025-03-10 15:06:06 - DEBUG - access_token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDY6MDYuMjMyNjYyWiJ9.b5U6-TE0iobg8mKCIu1bzu0PsvvEUAAN7_G3q9zKZqw
+2025-03-10 15:06:06 - DEBUG - expires: 2025-04-09T06:06:06.232662Z
+2025-03-10 15:06:06 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDY6MDYuMjMyNjYyWiJ9.b5U6-TE0iobg8mKCIu1bzu0PsvvEUAAN7_G3q9zKZqw' exp='2025-04-09T06:06:06.232662Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-10 15:06:06 - DEBUG - authenticate_user() - userを正常に取得した
+2025-03-10 15:06:06 - DEBUG - user: user_id=3 username='shop01' password='shop01' name='お店shop01' token='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDY6MDYuMjMyNjYyWiJ9.b5U6-TE0iobg8mKCIu1bzu0PsvvEUAAN7_G3q9zKZqw' exp='2025-04-09T06:06:06.232662Z' company_id=1 shop_name='shop01' menu_id=1 permission=10 is_modified=False updated_at=None
+2025-03-10 15:06:06 - DEBUG - username と password一致
+2025-03-10 15:06:06 - DEBUG - redirect_url: /shops/me
+2025-03-10 15:06:06 - DEBUG - login_post() - 'sub': shop01
+2025-03-10 15:06:06 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMDlUMDY6MDY6MDYuMjMyNjYyWiJ9.b5U6-TE0iobg8mKCIu1bzu0PsvvEUAAN7_G3q9zKZqw
+2025-03-10 15:06:06 - DEBUG - login_post() - 'exp': 2025-04-09T06:06:06.232662Z
+2025-03-10 15:06:06 - DEBUG - login_post() - 'permission': 10
+2025-03-10 15:06:10 - INFO - root() - ルートにアクセスしました
+2025-03-10 15:06:10 - DEBUG - token_result: None
+2025-03-10 15:06:10 - DEBUG - token_result: ありません
+2025-03-10 15:06:41 - ERROR - test_exception() testエラーが発生しました!
+2025-03-10 15:06:41 - ERROR - 例外ハンドラーが呼ばれました: {'method_name': 'test_exception()', 'message': 'これはテストエラーです'}

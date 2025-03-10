@@ -6,7 +6,7 @@ from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from database.sqlite_database import DatabaseConnectionException, select_shop_order, select_user
+from database.sqlite_database import DatabaseConnectionException, get_connection, select_shop_order, select_user
 from main import SQLException, get_all_cookies
 templates = Jinja2Templates(directory="templates")
 from database.sqlite_database import CustomException
@@ -121,4 +121,29 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders = []
         logger.warning(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+
+
+import aiosqlite
+
+async def batch_update_orders(updates: list[dict]):
+    try:
+        values = [(change["canceled"], change["order_id"]) for change in updates]
+        sql = "UPDATE orders SET canceled = ? WHERE order_id = ?"
+
+        conn = await get_connection()  # ✅ 非同期DB接続
+        try:
+            cur = await conn.cursor()  # ✅ `async with` は不要
+            await cur.executemany(sql, values)  # ✅ `await` なし
+            await conn.commit()  # ✅ コミットを実行
+        finally:
+            await conn.close()  # ✅ 明示的にクローズ
+
+        return {"message": "Orders updated successfully"}
+
+    except Exception as e:
+        logger.error(f"batch_update_orders Error: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "batch_update_orders()",
+            f"予期せぬエラー: {str(e)}")
 
