@@ -1,9 +1,12 @@
-# 管理者の権限チェック
+# admin.py
+import bcrypt
 from fastapi import Request, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from database.sqlite_database import update_user, get_all_users
 from utils.exception import CustomException
 from utils.utils import log_decorator
+from venv import logger
 
 templates = Jinja2Templates(directory="templates")
 
@@ -11,6 +14,7 @@ admin_router = APIRouter()
 
 @log_decorator
 def check_admin_permission(request: Request):
+    # 管理者の権限チェック
     permission = request.cookies.get("permission")
     #print(f"permission: {permission}")
     if permission != "99":
@@ -24,12 +28,33 @@ def check_admin_permission(request: Request):
 @admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
 @log_decorator
 def admin_view(request: Request):    
-    
+
     # 権限チェック
     check_admin_permission(request)
-    
+
     return templates.TemplateResponse(
         "admin.html", {"request": request})
+
+@log_decorator
+@admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
+async def update_existing_passwords():
+    """既存ユーザーのパスワードをハッシュ化"""
+    users = await get_all_users()  # すべてのユーザーを取得する関数が必要
+    for user in users:
+        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+
+            """パスワードをハッシュ化する"""
+            salt = bcrypt.gensalt()
+            password = user.get_password()
+            hashed_password = bcrypt.hashpw(password.encode(), salt)
+            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+            #new_hashed_password = hash_password(user.get_password())  # ハッシュ化
+
+            await update_user(
+                user.username, "password", new_hashed_password)  # DB更新
+            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+
+
 '''
 # 注意：ここに移動するとJSONのみ表示になる
 # 例外ハンドラーの設定
