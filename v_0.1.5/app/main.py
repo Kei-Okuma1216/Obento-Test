@@ -71,7 +71,7 @@ async def root(request: Request, response: Response):
     logger.info(f"root() - ルートにアクセスしました")
     # テストデータ作成
     #await init_database()
-    print("v_0.1.5 環境変数設定は不要")
+    print("v_0.1.5")
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
@@ -179,20 +179,16 @@ async def authenticate_user(username, password) -> Optional[User]:
         user = await select_user(username)
 
         if user is None:
-            #logger.debug(f"username: {user.username}")
             logger.debug(f"ユーザーが存在しません: {username}")
             await insert_new_user(username, password, 'name')
             user = await select_user(username)
 
-        logger.debug(f"認証試行: {user.username}")
+        logger.info(f"認証試行: {user.username}")
 
         # ハッシュ化されたパスワードと入力パスワードを比較
         if not verify_password(password, user.get_password()):
-            logger.debug("パスワードが一致しません")
+            #logger.info("パスワードが一致しません")
             return None
-        '''logger.debug(f"username: {user.username}")
-        if user.get_password() != password:
-            return None'''
 
         data = {
             "sub": user.get_username(),
@@ -202,11 +198,7 @@ async def authenticate_user(username, password) -> Optional[User]:
         user.set_token(access_token)        
         user.set_exp(utc_dt_str)
 
-        '''logger.debug(f"access_token: {access_token}")        
-        logger.debug(f"expires: {utc_dt_str}")
-        logger.debug(f"user: {user}")
-        logger.debug(f"authenticate_user() - userを正常に取得した")'''
-        logger.debug(f"認証成功: {user.username}")
+        logger.info(f"認証成功: {user.username}")
 
         return user
 
@@ -264,8 +256,7 @@ async def login_post(response: Response,
         logger.debug(f"login_post() - 'sub': {user.get_username()}")
         logger.debug(f"login_post() - 'token': {user.get_token()}")
         logger.debug(f"login_post() - 'exp': {user.get_exp()}")
-        logger.debug(f"login_post() - 'permission': {user.get_permission()}")
-                     
+        logger.debug(f"login_post() - 'permission': {user.get_permission()}")           
 
 
         set_all_cookies(response, data)
@@ -327,7 +318,7 @@ async def regist_complete(request: Request, response: Response):
         last_order_date = orders[order_count].created_at
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
-        
+
         main_view = "order_complete.html"
         return await order_table_view(
             request, response, orders, main_view)
@@ -363,87 +354,11 @@ from services.order_view import batch_update_orders
 @app.post("/update_cancel_status")
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
+    ''' チェックの更新 '''
     try:
-        #change_cancel_status(update)
         return await batch_update_orders(update.updates)
     except Exception as e:
         raise 
-
-'''
-@app.post("/update_cancel_status")
-@log_decorator
-async def update_cancel_status(update: CancelUpdate):
-    try:
-        logger.info(f"update_cancel_status() - orderチェック変更")
-
-        results = []
-        for change in update.updates:
-            order_id = change["order_id"]
-            canceled = change["canceled"]
-            logger.debug(f"更新 order_id: {order_id}, canceled: {canceled}")
-
-            await update_order(order_id, canceled)
-
-            results.append({"order_id": order_id, "canceled": canceled, "success": True})
-        
-        return {"results": results}
-
-    except Exception as e:
-        logger.debug(f"/update_cancel_status Error: {str(e)}")
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "update_cancel_status()",
-            f"予期せぬエラーが発生しました: {str(e)}")'''
-'''
-async def change_cancel_status(update: CancelUpdate):
-    try:
-        logger.info(f"update_cancel_status() - orderチェック変更")
-
-        results = []
-        for change in update.updates:
-            order_id = change["order_id"]
-            canceled = change["canceled"]
-            logger.debug(f"更新 order_id: {order_id}, canceled: {canceled}")
-
-            await update_order(order_id, canceled)
-
-            results.append({"order_id": order_id, "canceled": canceled, "success": True})
-        
-        return {"results": results}
-
-    except Exception as e:
-        logger.debug(f"/update_cancel_status Error: {str(e)}")
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "update_cancel_status()",
-            f"予期せぬエラーが発生しました: {str(e)}")
-'''
-
-import aiosqlite
-'''
-async def batch_update_orders(updates: list[dict]):
-    try:
-        values = [(change["canceled"], change["order_id"]) for change in updates]
-        sql = "UPDATE orders SET canceled = ? WHERE order_id = ?"
-
-        conn = await get_connection()  # ✅ 非同期DB接続
-        try:
-            cur = await conn.cursor()  # ✅ `async with` は不要
-            await cur.executemany(sql, values)  # ✅ `await` なし
-            await conn.commit()  # ✅ コミットを実行
-        finally:
-            await conn.close()  # ✅ 明示的にクローズ
-
-        return {"message": "Orders updated successfully"}
-
-    except Exception as e:
-        logger.error(f"batch_update_orders Error: {str(e)}")
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "batch_update_orders()",
-            f"予期せぬエラー: {str(e)}")
-'''
-
 
 
 
