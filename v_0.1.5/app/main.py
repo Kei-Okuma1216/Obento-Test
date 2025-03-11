@@ -92,7 +92,7 @@ async def root(request: Request, response: Response):
         message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
 
         return templates.TemplateResponse("login.html", {"request": request, "message": message})
-        
+
     # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
     if not isinstance(token_result, tuple):
         return token_result
@@ -159,12 +159,14 @@ async def login_get(request: Request):
 
 # -----------------------------------------------------
 import bcrypt
+@log_decorator
 def hash_password(password: str) -> str:
     """パスワードをハッシュ化する"""
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password.decode()  # バイト列を文字列に変換
 
+@log_decorator
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())

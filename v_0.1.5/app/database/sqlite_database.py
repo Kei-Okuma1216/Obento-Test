@@ -126,6 +126,52 @@ async def select_user(username: str)-> Optional[User]:
         if conn is not None:
             await conn.close()
 
+from typing import List
+
+@log_decorator
+async def get_all_users() -> List[User]:
+    """すべてのユーザーを取得する"""
+    try:
+        conn = await get_connection()
+        cursor = await conn.execute("SELECT * FROM user")  # 正しいテーブル名に変更
+        rows = await cursor.fetchall()  # すべての行を取得
+
+        logger.debug(f"get_all_user() - {len(rows)} 件のユーザーを取得")
+
+        if not rows:
+            return []  # ユーザーが存在しない場合は空リストを返す
+
+        users = [
+            User(
+                user_id=row[0],
+                username=row[1],
+                password=row[2],
+                name=row[3],
+                token=row[4],
+                exp=row[5],
+                company_id=row[6],
+                shop_name=row[7],
+                menu_id=row[8],
+                permission=row[9],
+                is_modified=row[10],
+                updated_at=row[11]
+            ) for row in rows
+        ]
+
+        return users  # ユーザーリストを返す
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            "SELECT * FROM user", f"get_all_user()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(
+            500, "get_all_user()", f"Error: {e}") from e
+    finally:
+        if conn is not None:
+            await conn.close()
+
 # 追加
 @log_decorator
 async def insert_user(username, password, name, company_id, shop_name, menu_id):
