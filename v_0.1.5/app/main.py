@@ -158,20 +158,39 @@ async def login_get(request: Request):
             f"Error:  {e.detail}")
 
 # -----------------------------------------------------
-# ログイン認証
+import bcrypt
+def hash_password(password: str) -> str:
+    """パスワードをハッシュ化する"""
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
+    return hashed_password.decode()  # バイト列を文字列に変換
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """入力されたパスワードがハッシュと一致するか検証"""
+    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+
+
 @log_decorator
 async def authenticate_user(username, password) -> Optional[User]:
+    """ ログイン認証 """
     try:
         user = await select_user(username)
 
         if user is None:
-            logger.debug(f"username: {user.username}")
+            #logger.debug(f"username: {user.username}")
+            logger.debug(f"ユーザーが存在しません: {username}")
             await insert_new_user(username, password, 'name')
             user = await select_user(username)
 
-        logger.debug(f"username: {user.username}")
-        if user.get_password() != password:
+        logger.debug(f"認証試行: {user.username}")
+
+        # ハッシュ化されたパスワードと入力パスワードを比較
+        if not verify_password(password, user.get_password()):
+            logger.debug("パスワードが一致しません")
             return None
+        '''logger.debug(f"username: {user.username}")
+        if user.get_password() != password:
+            return None'''
 
         data = {
             "sub": user.get_username(),
@@ -181,10 +200,11 @@ async def authenticate_user(username, password) -> Optional[User]:
         user.set_token(access_token)        
         user.set_exp(utc_dt_str)
 
-        logger.debug(f"access_token: {access_token}")        
+        '''logger.debug(f"access_token: {access_token}")        
         logger.debug(f"expires: {utc_dt_str}")
         logger.debug(f"user: {user}")
-        logger.debug(f"authenticate_user() - userを正常に取得した")
+        logger.debug(f"authenticate_user() - userを正常に取得した")'''
+        logger.debug(f"認証成功: {user.username}")
 
         return user
 
@@ -194,7 +214,7 @@ async def authenticate_user(username, password) -> Optional[User]:
         raise CustomException(
             status.HTTP_405_METHOD_NOT_ALLOWED,
             f"authenticate_user()",
-            f"予期せぬエラーが発生しました。{e.detail}")
+            f"予期せぬエラー{e}")
 
 # ログインPOST
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
