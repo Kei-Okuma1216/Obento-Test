@@ -1,6 +1,5 @@
 # 管理者の権限チェック
 import json
-import sqlite3
 from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -11,13 +10,12 @@ from main import SQLException, get_all_cookies
 templates = Jinja2Templates(directory="templates")
 from database.sqlite_database import CustomException
 from utils.utils import log_decorator 
-
+import aiosqlite
 
 view_router = APIRouter(
     prefix="/orders",
     tags=["orders"]
 )
-
 
 # 注文一覧テーブル表示
 @log_decorator
@@ -59,8 +57,7 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         #return JSONResponse({"message": "エラーが発生しました"},
         #                    e.status_code)
 
-
-# 注文情報を取得する
+# 注文情報JSON取得
 @log_decorator
 async def get_order_json(request: Request, days_ago: str = Query(None)):
     # 入力例 /order_json?days_ago=-5
@@ -122,9 +119,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         logger.warning(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
-
-import aiosqlite
-
+# キャンセルチェック状態を更新
 async def batch_update_orders(updates: list[dict]):
     try:
         values = [(change["canceled"], change["order_id"]) for change in updates]
