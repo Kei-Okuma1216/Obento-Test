@@ -1,0 +1,6 @@
+2025-03-06 15:19:12 - INFO - Started server process [7784]
+2025-03-06 15:19:12 - INFO - Waiting for application startup.
+2025-03-06 15:19:12 - INFO - Application startup complete.
+2025-03-06 15:19:12 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-06 15:19:14 - INFO - ルートエンドポイントにアクセスされました
+2025-03-06 15:19:23 - ERROR - エラーが発生しました！

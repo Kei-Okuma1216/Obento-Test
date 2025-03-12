@@ -1,0 +1,41 @@
+2025-03-12 10:08:40 - INFO - Started server process [5356]
+2025-03-12 10:08:40 - INFO - Waiting for application startup.
+2025-03-12 10:08:40 - INFO - Application startup complete.
+2025-03-12 10:08:40 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-12 10:41:36 - INFO - Started server process [12704]
+2025-03-12 10:41:36 - INFO - Waiting for application startup.
+2025-03-12 10:41:36 - INFO - Application startup complete.
+2025-03-12 10:41:36 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-12 10:41:37 - INFO - root() - ルートにアクセスしました
+2025-03-12 10:41:37 - DEBUG - token_result: None
+2025-03-12 10:41:37 - DEBUG - token_result: ありません
+2025-03-12 10:41:46 - INFO - 認証試行: user1
+2025-03-12 10:41:46 - INFO - 認証成功: user1
+2025-03-12 10:41:46 - DEBUG - redirect_url: /order_complete
+2025-03-12 10:41:46 - DEBUG - login_post() - 'sub': user1
+2025-03-12 10:41:46 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTExVDAxOjQxOjQ2LjU2MzQzMVoifQ.zuQvmr9iTICUpBhMppI8Sje2dnXLJg3caJIBZ4HAxI4
+2025-03-12 10:41:46 - DEBUG - login_post() - 'exp': 2025-04-11T01:41:46.563431Z
+2025-03-12 10:41:46 - DEBUG - login_post() - 'permission': 1
+2025-03-12 10:41:46 - DEBUG - orders: [Order(order_id=1, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 20), canceled=False), Order(order_id=7, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 27), canceled=False), Order(order_id=8, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 10, 31), canceled=False), Order(order_id=9, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 12, 1), canceled=False), Order(order_id=10, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 13, 34), canceled=False), Order(order_id=11, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 7), canceled=False), Order(order_id=12, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 9), canceled=False), Order(order_id=13, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 14), canceled=False), Order(order_id=14, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 21), canceled=False), Order(order_id=15, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 25), canceled=False), Order(order_id=16, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 14, 46), canceled=False), Order(order_id=17, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 7, 15, 27), canceled=False), Order(order_id=18, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 11, 57), canceled=False), Order(order_id=19, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 14, 23), canceled=False), Order(order_id=20, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 14, 29), canceled=True), Order(order_id=21, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 14, 30), canceled=False), Order(order_id=22, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 15, 16), canceled=False), Order(order_id=23, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 10, 15, 27), canceled=False), Order(order_id=24, company_name='テンシステム', username='user1', shop_name='shop01', menu_name='お昼の定食', amount=1, created_at=datetime.datetime(2025, 3, 12, 10, 41), canceled=False)]
+2025-03-12 10:41:48 - INFO - root() - ルートにアクセスしました
+2025-03-12 10:41:48 - INFO - stop_twice_order() - きょう２度目の注文を阻止
+2025-03-12 10:41:50 - INFO - root() - ルートにアクセスしました
+2025-03-12 10:41:50 - DEBUG - token_result: None
+2025-03-12 10:41:50 - DEBUG - token_result: ありません
+2025-03-12 10:42:08 - INFO - Started server process [15868]
+2025-03-12 10:42:08 - INFO - Waiting for application startup.
+2025-03-12 10:42:08 - INFO - Application startup complete.
+2025-03-12 10:42:08 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-12 10:42:10 - INFO - root() - ルートにアクセスしました
+2025-03-12 10:42:10 - DEBUG - token_result: None
+2025-03-12 10:42:10 - DEBUG - token_result: ありません
+2025-03-12 10:42:18 - INFO - 認証試行: shop01
+2025-03-12 10:42:18 - INFO - 認証成功: shop01
+2025-03-12 10:42:18 - DEBUG - redirect_url: /shops/me
+2025-03-12 10:42:18 - DEBUG - login_post() - 'sub': shop01
+2025-03-12 10:42:18 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMTFUMDE6NDI6MTguMzYxODM2WiJ9.WLMUC3B0JM3DJDFat8qU2HIewz8I0Zd-2c3WJgbvqA0
+2025-03-12 10:42:18 - DEBUG - login_post() - 'exp': 2025-04-11T01:42:18.361836Z
+2025-03-12 10:42:18 - DEBUG - login_post() - 'permission': 10
+2025-03-12 10:42:19 - INFO - root() - ルートにアクセスしました
+2025-03-12 10:42:19 - DEBUG - token_result: None
+2025-03-12 10:42:19 - DEBUG - token_result: ありません
