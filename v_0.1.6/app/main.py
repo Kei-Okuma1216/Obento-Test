@@ -46,7 +46,7 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
-
+from db_config import get_db
 
 endpoint = 'https://127.0.0.1:8000'
 
