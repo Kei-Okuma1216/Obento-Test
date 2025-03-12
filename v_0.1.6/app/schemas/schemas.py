@@ -31,7 +31,6 @@ class Order(BaseModel):
         amount: int
         created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
         canceled: Optional[bool] = Field(default=False)
-  
 
         def get_created_at(self) -> datetime:
                 print(f"order_id: {self.created_at}, created_at: {self.created_at}")
@@ -44,14 +43,9 @@ class Order(BaseModel):
                 print(f"order_id: {self.created_at}, end_of_day: {end_of_day}")
                 return end_of_day
 
-
 class Orders(RootModel[list[Order]]):
     def sort_by_desc(self):
         print(f"*****This is a custom method with root: {self.root}")
-        
-
-        
-
 
 class Payload(BaseModel):
     sub: str
@@ -196,7 +190,31 @@ class User(BaseModel):
     #    day, hour, minute, second = convert_max_age_to_dhms(self.exp)
     #    print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
 
-        
+'''修正後の schemas.py'''
+from datetime import datetime
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class UserBase(BaseModel):
+    username: str
+    name: Optional[str] = None
+    company_id: Optional[int] = None
+    shop_name: Optional[str] = None
+    menu_id: Optional[int] = None
+    permission: Optional[int] = 1
+    class Config:
+        from_attributes = True  # ここに設定することで全ての派生クラスに適用される
+
+class UserCreate(UserBase):
+    password: str
+
+class UserResponse(UserBase):
+    user_id: int
+    token: Optional[str] = None
+    exp: Optional[str] = None
+    updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+
+
 
 
 

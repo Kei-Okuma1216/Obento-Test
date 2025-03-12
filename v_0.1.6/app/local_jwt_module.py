@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from datetime import date, datetime, timedelta, timezone
 import jwt
 import os
-from utils.utils import convert_expired_time_to_expires, get_now, log_decorator
+from utils.utils import JST, convert_expired_time_to_expires, get_now, log_decorator
 
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
 ALGORITHM = "HS256"
@@ -63,23 +63,29 @@ def get_new_token(data) -> str:
         to_encode = data.copy()
         #print("ここまできた 2")
 
-        username = data['sub']        
+        username = data['sub']
         to_encode.update({"sub": username})
 
         permission = data['permission']
         to_encode.update({"permission": permission})
 
-        expired_time = get_now() + timedelta(days=30)
-        utc_dt_str = convert_expired_time_to_expires(expired_time)
-
-        to_encode.update({"expires": utc_dt_str})
+        expired_time = get_now(JST) + timedelta(days=30)
+        '''utc_dt_str = convert_expired_time_to_expires(expired_time)
+        to_encode.update({"expires": utc_dt_str})'''
+        #utc_dt_str = convert_expired_time_to_expires(expired_time)
+        # expired_timeをUTCに変換
+        expired_time_utc = expired_time.astimezone(timezone.utc)
+        # ISO形式の文字列に変換
+        expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
+        # 更新
+        to_encode.update({"max-age": expires})
 
         #pprint(to_encode)
         #print("ここまできた 3")
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, 
                                  algorithm=ALGORITHM)
         #print("ここまできた 4")
-        return encoded_jwt, utc_dt_str
+        return encoded_jwt, expires
     
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -88,27 +94,25 @@ def get_new_token(data) -> str:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+from log_config import logger
 # cookieのtoken有無と有効期限をチェックする
 @log_decorator
 def check_cookie_token(request):
     token = request.cookies.get("token")
+    logger.debug(f"token: {token}")
     if token is None: 
-        print(f"token なし")
-        #raise TokenExpiredException()
         return None
-    else:
-        print(f"token: {token}")
+    return token
 
+@log_decorator
+def check_exp_token(request):
     exp = request.cookies.get("exp")
     if exp is None:
-        print("exp なし")
-        #raise TokenExpiredException()
+        logger.debug("exp なし")
         return None
-    else:
-        print(f"exp: {exp}")
 
-    return token ,exp
-
+    logger.debug(f"exp: {exp}")
+    return exp
 
 # JWTトークンの生成
 @log_decorator
