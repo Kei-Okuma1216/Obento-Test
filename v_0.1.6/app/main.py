@@ -10,17 +10,18 @@ from pydantic import BaseModel
 from starlette import status
 from typing import Optional
 
-from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token
+from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token, check_exp_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
 
-from utils.utils import prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
-from utils.exception import CookieException, CustomException, TokenExpiredException
+from utils.utils import get_max_age, prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils.exception import CustomException, TokenExpiredException
 
 #import schemas, models, crud, database
 #from schemas.schemas import User
 
 from services.order_view import order_table_view
+from schemas.schemas import User
 
 #from crud import get_user, verify_password, hash_password, create_user
 #from database import get_db
@@ -47,7 +48,13 @@ templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
 from db_config import get_db
+#from crud import hash_password, verify_password, get_user, create_user 
 
+'''接続ダメ
+https://192.168.3.19:8000
+
+
+'''
 endpoint = 'https://127.0.0.1:8000'
 
 # login.htmlに戻る
@@ -84,26 +91,22 @@ async def root(request: Request, response: Response):
 
 
     # token チェックの結果を取得
-    token_result = check_cookie_token(request)
-    logger.debug(f"token_result: {token_result}")
+    token = check_cookie_token(request)
+    max_age = get_max_age(request)
 
-    if token_result is None:
-        # 備考：ここは例外に置き換えない。理由：画面が停止するため
-        '''raise TokenExpiredException("check_cookie_token()")
+    if token is None:
+        ''' 備考：ここは例外に置き換えない。理由：画面が停止するため
+        raise TokenExpiredException("check_cookie_token()")
         '''
-        logger.debug("token_result: ありません")
+        logger.debug("token: ありません")
+
         message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "message": message})
 
-        return templates.TemplateResponse("login.html", {"request": request, "message": message})
-
-    # もし token_result がタプルでなければ（＝TemplateResponse が返されているなら）、そのまま返す
-    if not isinstance(token_result, tuple):
-        return token_result
-    else:
-        token, exp = token_result
-
+    ''' max_age チェック '''
     try:
-        if compare_expire_date(exp):
+        if compare_expire_date(max_age):
             raise TokenExpiredException("compare_expire_date()")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -125,12 +128,12 @@ async def root(request: Request, response: Response):
             "sub": username,
             "permission": permission,
         }
-        access_token, exp = get_new_token(data)
+        access_token, max_age = get_new_token(data)
         new_data = {
             "sub": username,
-            "permission": permission,
-            "exp": exp,
-            "token": access_token
+            "token": access_token,
+            "max-age": max_age,
+            "permission": permission
         }
 
         set_all_cookies(response, new_data)
@@ -167,14 +170,16 @@ def hash_password(password: str) -> str:
     """パスワードをハッシュ化する"""
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
+
     return hashed_password.decode()  # バイト列を文字列に変換
 
 @log_decorator
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
+
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
-from schemas.schemas import User
+#from schemas.schemas import User
 @log_decorator
 async def authenticate_user(username, password) -> Optional[User]:
     """ ログイン認証 """
@@ -197,9 +202,9 @@ async def authenticate_user(username, password) -> Optional[User]:
             "sub": user.get_username(),
             "permission": user.get_permission()
         }
-        access_token, utc_dt_str = get_new_token(data)
+        access_token, max_age = get_new_token(data)
         user.set_token(access_token)        
-        user.set_exp(utc_dt_str)
+        user.set_exp(max_age)
 
         logger.info(f"認証成功: {user.username}")
 
