@@ -186,9 +186,10 @@ async def insert_shop(username, password, shop_name):
         conn = await get_connection()
         sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
         result = await conn.execute(sqlstr, (username,))
-        logger.debug(f"insert_shop() - {sqlstr} - count: {count}")
 
         count = (await result.fetchone())[0] 
+        logger.debug(f"insert_shop() - {sqlstr} - count: {count}")
+
         if count > 0:
             logger.debug(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
         else:

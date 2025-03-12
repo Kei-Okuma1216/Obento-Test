@@ -72,6 +72,11 @@ async def root(request: Request, response: Response):
     # テストデータ作成
     #await init_database()
 
+    # moduleを別ファイルに出力する
+    '''with open("modules_list.txt", "w") as f:
+        for m in sys.modules:
+            f.write(m + "\n")'''
+
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
