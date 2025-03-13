@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from starlette import status
 from typing import Optional
 
-from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token, check_cookie_token, check_exp_token
+from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
 
@@ -82,6 +82,8 @@ async def root(request: Request, response: Response):
     # テストデータ作成
     #await init_database()
     print("v_0.1.6")
+
+    # 二重注文の排除
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
         message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
@@ -90,34 +92,39 @@ async def root(request: Request, response: Response):
         return HTMLResponse(message)
 
 
-    # token チェックの結果を取得
-    token = check_cookie_token(request)
+    ''' token チェック '''
+    message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
 
+    token = request.cookies.get("token")
     if token is None:
-        ''' 備考：ここは例外に置き換えない。理由：画面が停止するため
+        ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
+            理由：画面が停止するため
         raise TokenExpiredException("check_cookie_token()")
         '''
         logger.debug("token: ありません")
-
-        message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
+        # redirect_login(request, message) # ここでこれは効かない
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
 
-    ''' max_age チェック '''
-    max_age = get_max_age(request)
+    ''' token がある場合、max_age チェック '''
+    expires = get_max_age(request)
+    if expires is None:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "message": message})
 
     try:
-        if compare_expire_date(max_age):
-            raise TokenExpiredException("compare_expire_date()")
+        if compare_expire_date(expires):
+            #raise TokenExpiredException("compare_expire_date()")
+            redirect_login(request, "トークンの有効期限切れです")
 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         logger.debug(f"jwt.decode: {payload}")
 
         username = payload['sub']
         permission = payload['permission']
-        max_age = payload['max-age']
+        #max_age = payload['max-age']
 
-        logger.debug(f"sub: {username}, permission: {permission}, max-age: {max_age}")
+        logger.debug(f"sub: {username}, permission: {permission}, expires: {expires}")
         logger.debug("token is not expired.")
 
 
@@ -129,12 +136,12 @@ async def root(request: Request, response: Response):
             "sub": username,
             "permission": permission,
         }
-        access_token, max_age = get_new_token(data)
+        access_token, expires = get_new_token(data)
         new_data = {
             "sub": username,
             "token": access_token,
-            "max-age": max_age,
-            "permission": permission
+            "permission": permission,
+            "expires": expires
         }
 
         set_all_cookies(response, new_data)
@@ -181,6 +188,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
 
 #from schemas.schemas import User
+
 @log_decorator
 async def authenticate_user(username, password) -> Optional[User]:
     """ ログイン認証 """
@@ -203,9 +211,9 @@ async def authenticate_user(username, password) -> Optional[User]:
             "sub": user.get_username(),
             "permission": user.get_permission()
         }
-        access_token, max_age = get_new_token(data)
+        access_token, expires = get_new_token(data)
         user.set_token(access_token)        
-        user.set_exp(max_age)
+        user.set_exp(expires)
 
         logger.info(f"認証成功: {user.username}")
 
@@ -263,9 +271,8 @@ async def login_post(response: Response,
         #print(f" 'permission': {user.get_permission()}")
         logger.debug(f"login_post() - 'sub': {user.get_username()}")
         logger.debug(f"login_post() - 'token': {user.get_token()}")
-        logger.debug(f"login_post() - 'max-age': {user.get_exp()}")
-        logger.debug(f"login_post() - 'permission': {user.get_permission()}")           
-
+        logger.debug(f"login_post() - 'expires': {user.get_exp()}")
+        logger.debug(f"login_post() - 'permission': {user.get_permission()}")
 
         set_all_cookies(response, data)
 
@@ -313,7 +320,7 @@ async def regist_complete(request: Request, response: Response):
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
-        logger.debug(f"orders: {orders}")
+        #logger.debug(f"orders: {orders}")
         if orders is None or len(orders) == 0:
             logger.debug("No orders found or error occurred.")
             raise CustomException(
@@ -348,6 +355,7 @@ async def regist_complete(request: Request, response: Response):
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
     delete_all_cookies(response)
+
     return response
 
 

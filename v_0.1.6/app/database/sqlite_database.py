@@ -29,9 +29,13 @@ DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフ
 async def get_connection():
     try:
         return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
-        #return await aiosqlite.connect(db_name_str, isolation_level=None)
+
     except Exception as e:
-        raise DatabaseConnectionException("get_connection()", detail=str(e))
+        raise DatabaseConnectionException(
+            method_name="get_connection()",
+            detail="データベース接続に失敗しました。",
+            exception=e
+        )
 
 # コネクションを閉じる（実際のテストでは不要）
 #await conn.close()
@@ -69,7 +73,11 @@ async def create_user_table():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"create_user_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="create_user_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"create_user_table()", f"Error: {e}")
@@ -118,7 +126,11 @@ async def select_user(username: str)-> Optional[User]:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_user()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_user()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"select_user()", f"Error: {e}") from e
@@ -133,7 +145,8 @@ async def get_all_users() -> List[User]:
     """すべてのユーザーを取得する"""
     try:
         conn = await get_connection()
-        cursor = await conn.execute("SELECT * FROM user")  # 正しいテーブル名に変更
+        sqlstr = "SELECT * FROM user"
+        cursor = await conn.execute(sqlstr)  # 正しいテーブル名に変更
         rows = await cursor.fetchall()  # すべての行を取得
 
         logger.debug(f"get_all_user() - {len(rows)} 件のユーザーを取得")
@@ -164,7 +177,11 @@ async def get_all_users() -> List[User]:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            "SELECT * FROM user", f"get_all_user()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="get_all_users()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, "get_all_user()", f"Error: {e}") from e
@@ -206,7 +223,11 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"insert_user()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="insert_users()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(sqlstr, f"insert_user() Error: {e}")
     finally:
@@ -256,7 +277,11 @@ async def insert_shop(username, password, shop_name):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"insert_shop()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="insert_shop()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"insert_shop()", f"Error: {e}")
@@ -279,7 +304,11 @@ async def update_user(username, key, value):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"update_user()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="update_users()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"update_user()", f"Error: {e}")
@@ -303,7 +332,11 @@ async def show_all_users():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"show_all_users()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="show_all_users()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     finally:
         if conn is not None:
             await conn.close()
@@ -334,7 +367,11 @@ async def create_company_table():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"create_company_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="create_company_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"create_company_table()", f"Error: {e}")
@@ -365,7 +402,11 @@ async def insert_company(name, tel, shop_name):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"insert_company()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="insert_company()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"insert_company()", f"Error: {e}")
@@ -392,7 +433,11 @@ async def select_company(company_id: str):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_company()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_company()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"select_company()", f"Error: {e}")
@@ -431,7 +476,11 @@ async def create_orders_table():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"create_order_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="create_orders_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"create_orders_table()", f"Error: {e}")
@@ -458,7 +507,7 @@ async def select_all_orders2(shop_name: str = None, days_ago_str: str = 0)-> Opt
             sqlstr += ""
         elif days_ago is None or days_ago == "":
             # shop_name で全件数取る
-            sqlstr += f''' WHERE shop_name = {shop_name};'''
+            sqlstr += f'''WHERE shop_name = {shop_name};'''
         elif shop_name is None or shop_name == "":
             # days_ago で全件数取る
             today = get_today_str(0, "YMD")
@@ -563,7 +612,11 @@ async def select_order(username: str)-> Optional[dict]:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_order()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"select_order()", f"Error: {e}")
@@ -587,14 +640,7 @@ def appendOrder(rows) -> List[dict]:
                 "created_at": row[6],
                 "canceled": bool(row[7])
             })
-            #print(f"orderのクラスは {str(type(orders))}")
-            #pprint(orders)
-            
-            # 列名を取得（カラム名をキーにして辞書に変換するため）
-            #columns = [column[0] for column in result.description]
-            # `Order` クラスにマッピング
-            #orders = [Order(**dict(zip(columns, row))) for row in rows]
-            
+
         return orders
 
     except Exception as e:
@@ -678,7 +724,11 @@ async def select_shop_order(shopid: str,
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_shop_order()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_shop_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         CustomException(
             500, f"select_shop_order()", f"Error: {e}")
@@ -766,7 +816,11 @@ async def select_company_order(company_id: int,
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_company_order()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_company_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         CustomException(
             500, f"select_company_order()", f"Error: {e}")
@@ -813,7 +867,12 @@ async def select_today_orders(shopid: str, userid: str = None)-> Optional[dict]:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_today_orders()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_today_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     except Exception as e:
         CustomException(
             500, f"select_today_orders()", f"Error: {e}")
@@ -837,7 +896,12 @@ async def show_all_orders():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"show_all_orders()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="show_all_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     finally:
         if conn is not None:
             await conn.close()
@@ -863,7 +927,11 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"insert_order()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="insert_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"insert_order()", f"Error: {e}")
@@ -891,7 +959,12 @@ async def update_order(order_id, canceled):
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"update_order()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="update_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     except Exception as e:
         raise CustomException(
             500, f"update_order()", f"Error: {e}")
@@ -929,7 +1002,12 @@ async def create_menu_table():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"create_menu_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="create_menu_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     except Exception as e:
         raise CustomException(
             500, f"create_menu_table()", f"Error: {e}")
@@ -964,7 +1042,12 @@ async def insert_menu(
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"insert_menu()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="insert_menu()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     except Exception as e:
         raise CustomException(
             500, "insert_menu()", f"Error: {e}")
@@ -1011,39 +1094,19 @@ async def select_menu(shop_name: str)-> Optional[dict]:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"select_menu()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="select_menu()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+
     except Exception as e:
         raise CustomException(
             500, f"select_menu()", f"Error: {e}")
     finally:
         if conn is not None:
             await conn.close()
-'''
-# 辞書を返す
-@deprecated
-def appendMenu(rows):
-    try:
-        items = []
-        for row in rows:
-            items.append({
-                "menu_id": row[0],
-                "shop_name": row[1],
-                "name": row[2],
-                "price": row[3],
-                "description": row[4],
-                "picture_path": row[5],
-                "disabled": row[6],
-                "created_at": row[7]
-            })
-            #print(f"menuのクラスは {str(type(items))}")
-            #pprint(menus)
-            logger.debug(f"append_menu() - items: {items}")
-        return items
 
-    except Exception as e:
-        raise CustomException(
-            500, f"appendMenu()", f"Error: {e}")
-'''
 '''------------------------------------------------------'''
 # メニューテーブル
 # 作成
@@ -1063,12 +1126,16 @@ async def create_devices_table():
         await conn.execute(sqlstr)
         await conn.commit()
 
-        logger.debug(f"create_devices_table() - {sqlstr}")
+        #logger.debug(f"create_devices_table() - {sqlstr}")
     except DatabaseConnectionException as e:
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"create_devices_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="create_devices_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"create_devices_table()", f"Error: {e.detail}")
@@ -1096,7 +1163,11 @@ async def reset_all_autoincrement():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"reset_all_autoincrement()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="reset_all_autoincrement()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"reset_all_autoincrement()", f"Error: {e}")
@@ -1122,7 +1193,11 @@ async def drop_all_table():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"drop_all_table()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="drop_all_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"drop_all_table()", f"Error: {e}")    
@@ -1145,7 +1220,11 @@ async def delete_all_company():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"delete_all_company()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="delete_all_company()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"delete_all_company()", f"Error: {e}")
@@ -1167,7 +1246,11 @@ async def delete_all_orders():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"drop_all_orders()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="delete_all_orders()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"delete_all_orders()", f"Error: {e}")
@@ -1190,7 +1273,11 @@ async def delete_all_user():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"drop_all_users()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="delete_all_user()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(
             500, f"delete_all_user()", f"Error: {e}")
@@ -1213,7 +1300,11 @@ async def delete_all_menu():
         raise
     except sqlite3.DatabaseError as e:
         raise SQLException(
-            sqlstr, f"delete_all_menu()", f"Error: {e}") from e
+            sql_statement=sqlstr,
+            method_name="delete_all_menu()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e:    
         raise CustomException(
             500, f"delete_all_menu()", f"Error: {e}")

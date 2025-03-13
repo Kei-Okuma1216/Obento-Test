@@ -1,13 +1,12 @@
 # utils.py
 from datetime import datetime, timezone, timedelta
-from dateutil import parser
 
 from http.cookies import SimpleCookie
 from venv import logger
 from fastapi import Request, Response
 from functools import wraps
 from typing import Dict, Optional
-from utils.exception import CustomException, CookieException
+from utils.exception import CookieException
 
 import functools
 import inspect
@@ -88,7 +87,7 @@ def set_all_cookies(response: Response, user: Dict):
         username = user['sub']
         token = user['token']
         permission = user['permission']
-        max_age = user['max-age']
+        #max_age = user['max-age']
 
         # expiresを30日後に設定する
         future_time = datetime.now(timezone.utc) + timedelta(days=30)
@@ -125,7 +124,7 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         print(f"cookies['sub']: {username}")
 
         if username is None:
-            logger.info("set_all_cookies() - cookies['sub']が存在しません")
+            logger.info("get_all_cookies() - cookies['sub']が存在しません")
             #print("cookies['sub']が存在しません")
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
             return None
@@ -150,7 +149,7 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         cookie.load(set_cookie_header)
 
         # `max-age` を取得
-        max_age = cookie["token"]["max-age"] if "token" in cookie and "max-age" in cookie["token"] else None
+        expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
 
         '''logger.debug(f"get_all_cookies() - sub: {username}")
         logger.debug(f"get_all_cookies() - token: {token}")
@@ -161,7 +160,7 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         data = {
             "sub": username,
             "token": token,
-            "max-age": max_age,
+            "expires": expires,
             "permission": int(permission)
         }
 
@@ -190,31 +189,41 @@ def delete_all_cookies(response: Response):
         print(f"Missing key: {e}")
     except Exception as e:
         raise CookieException(
-            method_name="delete_all_cookies()",
-            detail=str(e))
+            detail="クッキー削除中にエラーが発生しました。",
+            exception=e  # `e` を追加
+            )
 
 @log_decorator
-#def compare_expire_date(exp_unix_str: str) -> bool:
-def compare_expire_date(max_age: int) -> bool:
-    # UTCからUNIX値変換
-    #logger.debug(f"exp_unix_str :{exp_unix_str}")
-    #exp_unix_int = int(exp_unix_str)
+def compare_expire_date(expires: str) -> bool:
+    """
+    クッキーの有効期限 (`expires`) を現在の UTC 時刻と比較し、期限切れかどうかを判定する。
     
-    #max_age = convert_expires_to_max_age(exp_unix_str)
+    :param expires: ISO 8601 形式の UTC 日時 (`YYYY-MM-DDTHH:MM:SSZ`)
+    :return: 期限が切れていれば True（無効）、まだ有効なら False（有効）
+    """
+    try:
+        # `expires` を datetime に変換
+        expire_datetime = datetime.fromisoformat(expires.replace('Z', '+00:00')).astimezone(timezone.utc)
 
-    #now_utc_int = int(datetime.now(timezone.utc).timestamp())
-    now_utc_datetime = get_now(JST) 
-    now_utc_int = int(now_utc_datetime.timestamp()) 
+        # 現在の UTC 時刻
+        now_utc_datetime = get_now()
+        now_utc_int = int(now_utc_datetime.timestamp())
+        expire_int = int(expire_datetime.timestamp())
 
-    # 有効期限をチェック
-    logger.debug(f"現在: {now_utc_int} < max_age: {max_age}")
-    if  now_utc_int > max_age:
-    #if  now_utc_int < max_age:
-        logger.info("有効期限が無効です")  # 期限切れ
-        return True
+        # 有効期限をチェック
+        logger.debug(f"現在: {now_utc_int} < expires: {expire_int}")
+        
+        if now_utc_int > expire_int:
+            logger.info("有効期限が無効です")  # 期限切れ
+            return True
 
-    logger.debug("有効期限は有効です")  # まだ有効
-    return False
+        logger.debug("有効期限は有効です")  # まだ有効
+        return False
+    
+    except Exception as e:
+        logger.error(f"compare_expire_date() でエラー発生: {str(e)}")
+        return True  # エラー時は期限切れとみなす
+
 
 # 二重注文の禁止
 # 設定
@@ -265,21 +274,62 @@ def get_max_age(request: Request) -> int:
         cookie.load(set_cookie_header)
         print("ここまできた 4")
 
-        print(f" token: {cookie["token"]}")
-        print(f" token, max-age: {cookie["token"]["max-age"]}")
-
+        #print(f" token: {cookie["token"]}")
+        print(f" token, expires: {cookie["token"]["expires"]}")
+        print("ここまできた 5")
+        if cookie["token"]["expires"] is None:
+            print("token expires なし")
+            return None
         # `max-age` を取得
-        max_age = cookie["token"]["max-age"] if "token" in cookie and "max-age" in cookie["token"] else None
+        exp = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
 
-        max_age_int = int(max_age)
+        #max_age_int = int(max_age)
         #return {"max_age": max_age}
 
-        logger.debug(f"max_age: {max_age_int}")
+        logger.debug(f"expires: {exp}")
 
-        return max_age_int
+        return exp
 
     except Exception as e:
-        raise CookieException(method_name="get_max_age()")
+        raise CookieException(
+            method_name="get_max_age()",
+            detail="max-age取得でエラーが発生しました。",
+            exception=e
+        )
+
+@log_decorator
+def get_expires(request: Request) -> int:
+    try:
+        set_cookie_header = request.headers.get("cookie")
+        # `Set-Cookie` をパース
+        cookie = SimpleCookie()
+        print("ここまできた 3")
+        print(set_cookie_header)
+        cookie.load(set_cookie_header)
+        print("ここまできた 4")
+
+        #print(f" token: {cookie["token"]}")
+        print(f" token, expires: {cookie["token"]["expires"]}")
+        print("ここまできた 5")
+        if cookie["token"]["expires"] is None:
+            print("token expires なし")
+            return None
+        # `max-age` を取得
+        expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
+
+        expires_int = int(expires)
+        #return {"max_age": max_age}
+
+        logger.debug(f"expires: {expires_int}")
+
+        return expires_int
+
+    except Exception as e:
+        raise CookieException(
+            method_name="get_expires()",
+            detail="expires取得でエラーが発生しました。",
+            exception=e
+        )
 
 
 # チェックする
@@ -311,61 +361,7 @@ def get_exp_value(set_cookie_header):
  days, hours, minutes, seconds = convert_max_age_to_dhms(max_age)
  print(f"{days}日 {hours}時間 {minutes}分 {seconds}秒")
 '''
-# max_ageを指定日時に変換する
-def convert_max_age_to_dhms(max_age : int, add_date: datetime = None):    
-    if add_date:
-        add_max_age = convert_dhms_to_max_age(add_date.day, add_date.hour, add_date.minute, add_date.second)
-        max_age = max_age + add_max_age
-    days = max_age // 86400
-    hours = (max_age % 86400) // 3600
-    minutes = (max_age % 3600) // 60
-    seconds = max_age % 60
 
-    return days, hours, minutes, seconds
-
-# 指定日時をmax_ageに変換する
-def convert_dhms_to_max_age(days: int, hours: int, minutes: int, seconds: int) -> int:
-    max_age = days * 86400 + hours * 3600 + minutes * 60 + seconds
-
-    return max_age
-
-# expires（UTC値の年月日時刻）をmax_age（秒）に変換する
-def convert_expires_to_max_age(expires: str) -> int:
-    try:
-        # expiresをdatetimeオブジェクトに変換
-        #expires_datetime = datetime.fromisoformat(expires).replace(tzinfo=timezone.utc)
-
-        # expiresをdatetimeオブジェクトに変換
-        expires_datetime = parser.isoparse(expires).replace(tzinfo=timezone.utc)
-
-
-        # 現在のUTC時刻を取得
-        #current_utc_time = get_now() #datetime.now(timezone.utc)
-
-        # expiresまでの差を計算
-        delta = expires_datetime - get_now()#current_utc_time
-        
-        # 差を秒に変換
-        max_age = int(delta.total_seconds())
-
-        return max_age
-
-    except Exception:
-        raise CustomException(
-            500,
-            "max_age変換に失敗しました。"
-        )
-
-
-from datetime import datetime, timedelta, timezone
-
-'''
-# 使用例
-get_now = datetime.now  # デモ用のget_now関数
-expired_time = get_now() + timedelta(days=30)
-expires = convert_expired_time_to_expires(expired_time)
-print(expires)
-'''
 def convert_expired_time_to_expires(expired_time: datetime) -> str:
     # expired_timeをUTCに変換
     expired_time_utc = expired_time.astimezone(timezone.utc)
@@ -374,20 +370,4 @@ def convert_expired_time_to_expires(expired_time: datetime) -> str:
     expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
     
     return expires
-'''
-# 権限チェック
-@deprecated
-@log_decorator
-def check_permission(request: Request, allowed_permissions: Optional[List[int]] = None):
-    permission = request.cookies.get("permission")
-    logger.debug(f"check_permission(): {permission}")
-    if permission is None:
-        #allowed_permissions = [99]
-        raise HTTPException(status_code=403, detail="Permission Data is not Contained")
-    if permission == 99:
-        logger.debug(f"permission: {permission}")
-    elif permission in allowed_permissions:
-        logger.debug(f"permission: {permission}")
-    else:
-        raise HTTPException(status_code=403, detail="Not Authorized")
-'''
+
