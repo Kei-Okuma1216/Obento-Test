@@ -181,7 +181,7 @@ def delete_all_cookies(response: Response):
     try:
         response.delete_cookie(key="sub")
         response.delete_cookie(key="token")
-        response.delete_cookie(key="max-age")
+        #response.delete_cookie(key="max-age")
         response.delete_cookie(key="permission")
         response.delete_cookie(key="last_order_date")
         logger.debug("delete_all_cookies()", "all cookies deleted")
@@ -191,7 +191,7 @@ def delete_all_cookies(response: Response):
     except Exception as e:
         raise CookieException(
             method_name="delete_all_cookies()",
-            message=str(e))
+            detail=str(e))
 
 @log_decorator
 #def compare_expire_date(exp_unix_str: str) -> bool:
@@ -260,7 +260,13 @@ def get_max_age(request: Request) -> int:
         set_cookie_header = request.headers.get("cookie")
         # `Set-Cookie` をパース
         cookie = SimpleCookie()
+        print("ここまできた 3")
+        print(set_cookie_header)
         cookie.load(set_cookie_header)
+        print("ここまできた 4")
+
+        print(f" token: {cookie["token"]}")
+        print(f" token, max-age: {cookie["token"]["max-age"]}")
 
         # `max-age` を取得
         max_age = cookie["token"]["max-age"] if "token" in cookie and "max-age" in cookie["token"] else None
@@ -272,8 +278,8 @@ def get_max_age(request: Request) -> int:
 
         return max_age_int
 
-    except Exception:
-        raise CookieException("get_max_age()")
+    except Exception as e:
+        raise CookieException(method_name="get_max_age()")
 
 
 # チェックする
