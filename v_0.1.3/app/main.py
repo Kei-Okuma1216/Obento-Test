@@ -246,9 +246,8 @@ async def login_post(response: Response,
 # お弁当の注文完了　ユーザーのみ
 @app.get("/order_complete",response_class=HTMLResponse) 
 @log_decorator
-async def regist_complete(request: Request, response: Response): 
-#async def regist_complete(request: Request, response: Response,
-#                    hx_request: Optional[str] = Header(None)): 
+async def regist_complete(request: Request, response: Response,
+                    hx_request: Optional[str] = Header(None)): 
     try:
         cookies = get_all_cookies(request)
         if not cookies:
@@ -271,6 +270,7 @@ async def regist_complete(request: Request, response: Response):
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
+        #print(f"order_count: {order_count}")
         if orders is None or len(orders) == 0:
             print("No orders found or error occurred.")
             raise CustomException(status.HTTP_400_BAD_REQUEST, "注文が見つかりません")

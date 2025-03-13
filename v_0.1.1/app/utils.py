@@ -116,7 +116,7 @@ def set_all_cookies(response: Response, user: Dict):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-@log_decorator
+#@log_decorator
 def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     try:
         username = request.cookies.get("sub")
@@ -128,7 +128,6 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
             #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
             return None
 
-        print("")
         token = request.cookies.get("token")
         exp = request.cookies.get("exp")
         permission = request.cookies.get("permission")
@@ -180,29 +179,29 @@ def compare_expire_date(exp_unix_str: str) -> bool:
 
 # 二重注文の禁止
 # 設定
-@log_decorator
+#@log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
     end_of_day = get_end_of_today() 
-    print(f"end_of_day: {end_of_day}")
+    #print(f"end_of_day: {end_of_day}")
     end_time = get_max_age(end_of_day)
-    print(f"max_time: {end_time}")
+    #print(f"max_time: {end_time}")
     current = datetime.now(JST)
-    print(f"now: {current}")
+    #print(f"now: {current}")
     current_time = get_max_age(current)
-    print(f"current_time: {end_time}")
+    #print(f"current_time: {end_time}")
     future_time = end_time - current_time
-    print(f"future_time: {end_time}")
+    #print(f"future_time: {end_time}")
     
     response.set_cookie(
         key="last_order_date", value=last_order_date, max_age=future_time)
     print("# 期限を本日の23:59:59にした")
 
 # 期限として本日の23:59:59を作成
-@log_decorator
+#@log_decorator
 def get_end_of_today() -> datetime:
     today = datetime.now(JST)  # JSTで現在時刻を取得
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
-    print(f"JST end_of_day: {end_of_day}")
+    #print(f"JST end_of_day: {end_of_day}")
     return end_of_day
 
 # UNIX時間に変換
@@ -216,7 +215,7 @@ def get_max_age(dt: datetime) -> int:
 #@log_decorator
 def stop_twice_order(request: Request):
     last_order = request.cookies.get("last_order_date")
-    print(f"last_order: {last_order}")
+    #print(f"last_order: {last_order}")
     if last_order != None:
         return True # 注文処理をやめる
     else:
