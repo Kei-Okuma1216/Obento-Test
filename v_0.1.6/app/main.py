@@ -1,5 +1,5 @@
 # main.py
-# 1.5はauthenticate_user()が無い
+# 1.5 はauthenticate_user()が無い
 import asyncio
 import os
 import sys
@@ -80,10 +80,10 @@ async def root(request: Request, response: Response):
 
     logger.info(f"root() - ルートにアクセスしました")
     # テストデータ作成
+    # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
     #await init_database()
-    # リダイレクト
     #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
-    
+
     print("v_0.1.6")
 
     # 二重注文の排除
