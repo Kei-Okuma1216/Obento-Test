@@ -1,5 +1,5 @@
 # main.py
-# 1.5 はauthenticate_user()が無い
+# 1.7 SQLAlchemy移行
 import asyncio
 import os
 import sys
@@ -84,7 +84,7 @@ async def root(request: Request, response: Response):
     #await init_database()
     #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
 
-    print("v_0.1.6")
+    print("v_0.1.7")
 
     # 二重注文の排除
     if(stop_twice_order(request)):
