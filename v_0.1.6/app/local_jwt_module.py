@@ -64,14 +64,9 @@ def get_new_token(data) -> str:
         #print("ここまできた 2")
 
         to_encode.update({"sub": data['sub']})
-
         to_encode.update({"permission": data['permission']})
 
         expired_time = get_now() + timedelta(days=30)
-        '''utc_dt_str = convert_expired_time_to_expires(expired_time)
-        to_encode.update({"expires": utc_dt_str})'''
-        #utc_dt_str = convert_expired_time_to_expires(expired_time)
-        # expired_timeをUTCに変換
         expired_time_utc = expired_time.astimezone(timezone.utc)
         # ISO形式の文字列に変換
         expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
@@ -91,28 +86,7 @@ def get_new_token(data) -> str:
             detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-'''
-# cookieのtoken有無と有効期限をチェックする
-@log_decorator
-def check_cookie_token(request):
-    token = request.cookies.get("token")
-    #logger.debug(f"token: {token}")
-    if token is None: 
-        return None
 
-    return token
-'''
-'''
-@log_decorator
-def check_exp_token(request):
-    max_age = request.cookies.get("max-age")
-    if max_age is None:
-        logger.debug("max-age なし")
-        return None
-
-    logger.debug(f"max-age: {max_age}")
-    return max_age
-'''
 # JWTトークンの生成
 @log_decorator
 def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
