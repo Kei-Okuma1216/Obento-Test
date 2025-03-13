@@ -1,11 +1,12 @@
-# models.py
+# schemas.py
+# pydantic用クラス
 from dataclasses import Field
 from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, RootModel
+from pydantic import BaseModel, Field, PrivateAttr, RootModel
 from typing import Optional
 '''
-Orderクラス
-使用方法
+#Orderクラス
+#使用方法
 # 1. List[dict]をjsonにする
         json_data = json.dumps(o, ensure_ascii=False)
         #print(f"json_data: {json_data}")
@@ -22,7 +23,7 @@ Orderクラス
 # 99. ordersリストを降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
 '''
-class Order(BaseModel):
+'''class Order(BaseModel):
         order_id: int
         company_name: str
         username: str
@@ -109,10 +110,10 @@ class User(BaseModel):
     is_modified: Optional[bool] = Field(default=False)
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
 
-    '''@classmethod
+    @classmethod
     def create_user(cls, user_id: int, username: str, password: str, name: str) -> 'User':
         return cls(id=id, password=password, name=name)
-    '''
+    
     def get_user_id(self) -> int:
             return self.user_id
     
@@ -189,7 +190,7 @@ class User(BaseModel):
     #def print_max_age_str(self) -> str:
     #    day, hour, minute, second = convert_max_age_to_dhms(self.exp)
     #    print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
-
+'''
 '''修正後の schemas.py'''
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -202,11 +203,46 @@ class UserBase(BaseModel):
     shop_name: Optional[str] = None
     menu_id: Optional[int] = None
     permission: Optional[int] = 1
+
     class Config:
         from_attributes = True  # ここに設定することで全ての派生クラスに適用される
+    
+    '''
+    使用例
+    user = UserBase(username="alice", company_id=123, shop_name="Shop A")
+    '''
+    # ゲッターメソッド
+    def get_username(self) -> str:
+        return self.username
+
+    def get_name(self) -> Optional[str]:
+        return self.name
+
+    def get_company_id(self) -> Optional[int]:
+        return self.company_id
+
+    def get_shop_name(self) -> Optional[str]:
+        return self.shop_name
+
+    def get_menu_id(self) -> Optional[int]:
+        return self.menu_id
+
+    def get_permission(self) -> Optional[int]:
+        return self.permission
+
 
 class UserCreate(UserBase):
-    password: str
+    password: str = PrivateAttr()
+
+    def __init__(self, **data):
+        password = data.pop("password")
+        super().__init__(**data)
+        self._password = password
+
+    def get_password(self) -> str:
+        return self.password
+
+
 
 class UserResponse(UserBase):
     user_id: int
@@ -214,6 +250,27 @@ class UserResponse(UserBase):
     exp: Optional[str] = None
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
 
+    ''' 使用例
+        user_response = UserResponse(
+                username="bob",
+                user_id=42,
+                token="abcdef12345",
+                exp="2025-12-31T23:59:59",
+                updated_at=datetime(2025, 3, 13, 12, 0, 0)
+        )
+    '''
+    # ゲッターメソッド
+    def get_user_id(self) -> int:
+        return self.user_id
+
+    def get_token(self) -> Optional[str]:
+        return self.token
+
+    def get_exp(self) -> Optional[str]:
+        return self.exp
+
+    def get_updated_at(self) -> Optional[datetime]:
+        return self.updated_at
 
 
 
