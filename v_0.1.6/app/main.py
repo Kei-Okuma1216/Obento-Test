@@ -92,7 +92,6 @@ async def root(request: Request, response: Response):
 
     # token チェックの結果を取得
     token = check_cookie_token(request)
-    max_age = get_max_age(request)
 
     if token is None:
         ''' 備考：ここは例外に置き換えない。理由：画面が停止するため
@@ -105,6 +104,8 @@ async def root(request: Request, response: Response):
             "login.html", {"request": request, "message": message})
 
     ''' max_age チェック '''
+    max_age = get_max_age(request)
+
     try:
         if compare_expire_date(max_age):
             raise TokenExpiredException("compare_expire_date()")
@@ -114,9 +115,9 @@ async def root(request: Request, response: Response):
 
         username = payload['sub']
         permission = payload['permission']
-        exp = payload['exp']
+        max_age = payload['max-age']
 
-        logger.debug(f"sub: {username}, permission: {permission}, exp: {exp}")
+        logger.debug(f"sub: {username}, permission: {permission}, max-age: {max_age}")
         logger.debug("token is not expired.")
 
 
@@ -253,25 +254,25 @@ async def login_post(response: Response,
         data = {
             'sub': user.get_username(),
             'token': user.get_token(),
-            'exp': user.get_exp(),
+            'max-age': user.get_exp(),
             'permission': user.get_permission()
         }
         #print(f" 'sub': {user.get_username()}")
         #print(f" 'token': {user.get_token()}")
-        #print(f" 'exp': {user.get_exp()}")
+        #print(f" 'max-age': {user.get_exp()}")
         #print(f" 'permission': {user.get_permission()}")
         logger.debug(f"login_post() - 'sub': {user.get_username()}")
         logger.debug(f"login_post() - 'token': {user.get_token()}")
-        logger.debug(f"login_post() - 'exp': {user.get_exp()}")
+        logger.debug(f"login_post() - 'max-age': {user.get_exp()}")
         logger.debug(f"login_post() - 'permission': {user.get_permission()}")           
 
 
         set_all_cookies(response, data)
 
         # トークンのsave
-        username = user.get_username()
-        await update_user(username, "token", user.get_token())
-        await update_user(username, "exp", user.get_exp())
+        #username = user.get_username()
+        #await update_user(username, "token", user.get_token())
+        #await update_user(username, "max-age", user.get_exp())
 
         return response
     
