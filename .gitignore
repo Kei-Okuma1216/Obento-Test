@@ -1,3 +1,6 @@
 .env
-/C:\Obento-Test\DB.Browser
+# すべての __pycache__ フォルダを無視する
+**/__pycache__/
+**.pytest_cache
+**env
 

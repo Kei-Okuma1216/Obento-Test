@@ -23,7 +23,7 @@ db_name_str = "example.db"
 # コネクション取得
 async def get_connection(): 
     # return await sqlite3.connect('example.db') 
-    return await aiosqlite.connect('example.db')
+    return await aiosqlite.connect('example.db', isolation_level=None)
      #conn = sqlite3.connect({{db_name_str}}) 
      
 
@@ -72,7 +72,7 @@ async def create_user_table():
 @log_decorator
 async def select_user(username: str)-> Optional[User]:
     try:
-        #print(f"username: {username}")
+        print(f"username: {username}")
         conn = await get_connection()
         
         async with conn.cursor() as cursor:

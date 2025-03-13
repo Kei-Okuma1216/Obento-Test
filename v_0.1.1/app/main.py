@@ -85,7 +85,7 @@ async def root(request: Request, response: Response):
 
         # 毎回tokenを作り直す
         response = RedirectResponse(url="/order_complete", status_code=303)
-        
+
         data = {
             "sub": username,
             "permission": permission,
@@ -116,7 +116,6 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request, message: Optional[str] = ""):
     try:
-        #print("/login")
         redirect_login(request, "ようこそ")
 
     except Exception as e:
@@ -134,7 +133,7 @@ async def authenticate_user(request: Request, username, password) -> Optional[Us
         user = await select_user(username)
         #print(f"type: {str(type(user))}")
         #print(f"name: {user.name}")
-
+        #print(f"user: {user}")
         if user is None:
             #print(f"username: {user.username}")
             await insert_new_user(username, password, 'name')
@@ -174,7 +173,7 @@ async def login_post(request: Request, response: Response,
         password = form_data.password
 
         user = await authenticate_user(request, username, password) 
-        #print(f"user: {user}")
+        print(f"user: {user}")
         if user is None:
             raise HTTPException(status_code=400, detail="ログインに失敗しました。")
 
@@ -184,8 +183,10 @@ async def login_post(request: Request, response: Response,
         permission = user.get_permission()
 
         redirect_url = {1: "/order_complete", 2: "/manager", 10: "/today", 99: "/admin"}.get(permission, "/error")
-        #print(f"redirect_url: {redirect_url}")
-
+        print("******")
+        print(f"redirect_url: {redirect_url}")
+        print("******")
+        
         response = RedirectResponse(
             url=redirect_url, status_code=303)
 
@@ -261,32 +262,7 @@ async def regist_complete(request: Request, response: Response,
         
         return await order_table_view(request, response, orders, "order_complete.html")
 
-                
-        # 日時で逆順
-        orders.sort(key=lambda x: x.created_at, reverse=True)
 
-        context = {'request': request, 'orders': orders}
-
-        if hx_request:
-            '''templates.TemplateResponse() は デフォルトでは Response を新しく作成する ため、response.set_cookie() の影響を受けない場合がある。'''
-            return templates.TemplateResponse("table.html", context)
-
-        last_order_date = orders[0].created_at
-        prevent_order_twice(response, last_order_date)
-
-        context = {'request': request, 'orders': orders}
-        template_response = templates.TemplateResponse("order_complete.html", context)
-        template_response.headers["Set-Cookie"] = response.headers.get("Set-Cookie")
-
-        #print("1.Cookie Value")
-        #print(template_response.headers["Set-Cookie"])
-        #print("2. max_age value")
-        header = template_response.headers["Set-Cookie"]
-        exp_value = get_exp_value(header)
-        print(f"exp_value: {exp_value}")
-
-
-        return template_response
 
     except Exception as e:
         orders = []
@@ -340,6 +316,7 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
             #print(order)
         return await order_table_view(request, response, orders, "store_orders_today.html")
 
+<<<<<<< HEAD
         '''
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
@@ -359,6 +336,8 @@ async def shop_today_order(request: Request, response: Response, hx_request: Opt
 
         return template_response
 '''
+=======
+>>>>>>> restored-files
     except Exception as e:
         print(f"/shop_today_order Error: {str(e)}")
         return HTMLResponse(f"<html><p>エラーが発生しました: {str(e)}</p></html>")
@@ -435,14 +414,7 @@ async def order_json(request: Request, days_ago: str = Query(None)):
             print(order.model_dump_json())
 
         #print("ここまできた 4")
-        #orders = [dict(order) for order in orders]  # 明示的に辞書のリストに変換
-
-        #orders_dict = [order.model_dump() for order in orders]
-        #orders_json = json.dumps(orders_dict, indent=4, default=str)
-        #print(orders_json)
-        #return HTMLResponse(orders_json)
-        #return JSONResponse(content=orders_dict)
-        # datetime を JSON に変換可能な形式に変換
+ 
         orders_dict = [order.model_dump() for order in orders]
         orders_json = json.dumps(orders_dict, default=str)  # ← datetime を文字列に変換
 
@@ -450,14 +422,14 @@ async def order_json(request: Request, days_ago: str = Query(None)):
     
     except Exception as e:
         orders = []
-        print(f"/order_complete Error: {str(e)}")
+        print(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
 # 管理者の権限チェック
 def check_admin_permission(request: Request):
     permission = request.cookies.get("permission")
     print(f"permission: {permission}")
-    if permission != "3":
+    if permission != "99":
         raise HTTPException(status_code=403, detail="Not Authorized")
 
 # 管理者画面
@@ -476,12 +448,13 @@ def admin_view(request: Request):
 @log_decorator
 async def manager_view(request: Request, response: Response, hx_request: Optional[str] = Header(None)):
     try:
-        #check_store_permission(request)
-
         cookies = get_all_cookies(request)
         if not cookies:
             print('cookie userなし')
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+        permission = cookies.get('permission')
+        if permission != 2:
+            raise HTTPException(status_code=403, detail="Not Authorized")
 
         # 昨日の全注文
         orders = await select_company_order(1)
@@ -501,23 +474,8 @@ async def manager_view(request: Request, response: Response, hx_request: Optiona
         #for order in orders:
             #print(order)
 
-        # ordersリストをin-placeで降順にソート
-        orders.sort(key=lambda x: x.created_at, reverse=True)
+        return await order_table_view(request, response, orders, "manager_orders_today.html")
 
-        context = {'request': request, 'orders': orders}
-        if hx_request:
-            return templates.TemplateResponse(
-                "table.html",context)
-
-        template_response = templates.TemplateResponse(
-            "store_orders_today.html", context)
-
-        # Set-CookieヘッダーがNoneでないことを確認
-        set_cookie_header = response.headers.get("Set-Cookie")
-        if set_cookie_header is not None:
-            template_response.headers["Set-Cookie"] = set_cookie_header
-
-        return template_response
 
     except Exception as e:
         print(f"/manager_view Error: {str(e)}")
@@ -544,6 +502,15 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
     uvicorn.run(app, host="127.0.0.1", port=8000, timeout_keep_alive=100)
 '''
 if __name__ == "__main__":
+    import asyncio
+    import uvicorn
+    
+    # Windows環境向けのイベントループポリシーを最初に設定
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
+    # Uvicornの起動
+    uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
+    '''
     # イベントループの存在確認
     try:
         loop = asyncio.get_running_loop()
@@ -558,3 +525,4 @@ if __name__ == "__main__":
     # Uvicornサーバーの起動
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=100)
+    '''

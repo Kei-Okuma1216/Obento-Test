@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>顧客担当者注文一覧</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+            }
+            h1 {
+                color: #2c3e50;
+            }
+            ul {
+                background: #ecf0f1;
+                list-style-type: square;
+                padding: 0;
+            }
+            li {
+                background: #ecf0f1;
+                margin: 0px 0;
+                padding: 0px;
+                border-radius: 4px;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>顧客担当者注文一覧</h1>
+        <a>この画面は会社でお弁当をまとめて注文する場合に使用します。</a>
+        <h2>注文締切時刻：毎前日13時</h2>
+        <h3>機能状況</h3>
+        <ul>実装済</ul>
+            <li><del>受注情報を集計</del></li>
+        <ul>未実装</ul>
+            <li>受注情報を集計</li>
+            <li>所定の時刻（前日13時）にFAX送信する</li>
+            <li>注文ログ・キャンセルログ</li>
+            <li>ユーザごとのデバイス識別</li>
+            <li>注文確認</li>
+            <a href="https://chatgpt.com/share/675fa125-e804-800b-99cf-6820389efba2">参考：ChatGPTによる仕様書</a>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>番号</th>
+                    <th>会社</th>
+                    <th>名前</th>
+                    <th>メニュー名</th>
+                    <th>注文数</th>
+                    <th>注文時刻</th>
+                    <th>キャンセル有無</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% include 'table.html' %}
+            </tbody>
+        </table>
+    </body>
+</html>
