@@ -1,3 +1,5 @@
+# main.py
+# 1.5はauthenticate_user()が無い
 import asyncio
 import os
 import sys
@@ -14,7 +16,7 @@ from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
 
-from utils.utils import get_max_age, prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils.utils import get_expires, prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
 from utils.exception import CustomException, TokenExpiredException
 
 #import schemas, models, crud, database
@@ -50,12 +52,10 @@ from fastapi.staticfiles import StaticFiles
 from db_config import get_db
 #from crud import hash_password, verify_password, get_user, create_user 
 
-'''接続ダメ
-https://192.168.3.19:8000
+work_endpoint = 'https://192.168.3.19:8000'
+develop_endpoint = 'https://127.0.0.1:8000'
 
-
-'''
-endpoint = 'https://127.0.0.1:8000'
+endpoint = develop_endpoint
 
 # login.htmlに戻る
 @log_decorator
@@ -81,6 +81,9 @@ async def root(request: Request, response: Response):
     logger.info(f"root() - ルートにアクセスしました")
     # テストデータ作成
     #await init_database()
+    # リダイレクト
+    #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
+    
     print("v_0.1.6")
 
     # 二重注文の排除
@@ -106,8 +109,9 @@ async def root(request: Request, response: Response):
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
 
-    ''' token がある場合、max_age チェック '''
-    expires = get_max_age(request)
+    ''' token の expires チェック '''
+
+    expires = get_expires(request)
     if expires is None:
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
@@ -117,15 +121,14 @@ async def root(request: Request, response: Response):
             #raise TokenExpiredException("compare_expire_date()")
             redirect_login(request, "トークンの有効期限切れです")
 
+        logger.debug("token is not expired.")
+
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         logger.debug(f"jwt.decode: {payload}")
 
         username = payload['sub']
         permission = payload['permission']
-        #max_age = payload['max-age']
 
-        logger.debug(f"sub: {username}, permission: {permission}, expires: {expires}")
-        logger.debug("token is not expired.")
 
 
         response = RedirectResponse(
@@ -139,12 +142,14 @@ async def root(request: Request, response: Response):
         access_token, expires = get_new_token(data)
         new_data = {
             "sub": username,
-            "token": access_token,
             "permission": permission,
+            "token": access_token,
             "expires": expires
         }
 
         set_all_cookies(response, new_data)
+
+        logger.debug(f"sub: {username}, permission: {permission}, token: {token}, expires: {expires}")
 
         return response
 
@@ -204,7 +209,9 @@ async def authenticate_user(username, password) -> Optional[User]:
 
         # ハッシュ化されたパスワードと入力パスワードを比較
         if not verify_password(password, user.get_password()):
+            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある　'''
             #logger.info("パスワードが一致しません")
+
             return None
 
         data = {

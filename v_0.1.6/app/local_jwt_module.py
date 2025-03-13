@@ -6,7 +6,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from datetime import date, datetime, timedelta, timezone
 import jwt
 import os
-from utils.utils import JST, convert_expired_time_to_expires, get_now, log_decorator
+from utils.utils import get_now, log_decorator
 
 SECRET_KEY = os.getenv("SECRET_KEY", "3a5e8e2b7c9d5f7b6a1b2e9f8e2d6c3e4f5a6b7c8d9e0a1b2c3d4e5f6a7b8c9d")
 ALGORITHM = "HS256"
@@ -59,6 +59,8 @@ def sign_message(private_key, message: str, date: date):
 
 @log_decorator
 def get_new_token(data) -> str:
+    ''' トークンの有効期限はutc日付で表す
+    '''
     try:
         to_encode = data.copy()
         #print("ここまできた 2")
@@ -66,7 +68,7 @@ def get_new_token(data) -> str:
         to_encode.update({"sub": data['sub']})
         to_encode.update({"permission": data['permission']})
 
-        expired_time = get_now() + timedelta(days=30)
+        expired_time = get_now() + timedelta(days=TOKEN_EXPIRE_DAYS)
         expired_time_utc = expired_time.astimezone(timezone.utc)
         # ISO形式の文字列に変換
         expires = expired_time_utc.isoformat().replace('+00:00', 'Z')

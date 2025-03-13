@@ -229,17 +229,20 @@ def compare_expire_date(expires: str) -> bool:
 # 設定
 @log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
+
     end_of_day = get_end_of_today() 
-    end_time = convert_max_age(end_of_day)
+    end_time = int(end_of_day.timestamp())
+    #end_time = convert_max_age(end_of_day)
     current = datetime.now(JST)
-    current_time = convert_max_age(current)
+    #current_time = convert_max_age(current)
+    current_time = int(current.timestamp())
     future_time = end_time - current_time
 
     logger.debug(f"end_of_day: {end_of_day}")
     logger.debug(f"max_time: {end_time}")
     logger.debug(f"now: {current}")
-    logger.debug(f"current_time: {end_time}")
-    logger.debug(f"future_time: {end_time}")
+    logger.debug(f"current_time: {current_time}")
+    logger.debug(f"future_time: {future_time}")
 
     response.set_cookie(
         key="last_order_date", value=last_order_date,
@@ -255,6 +258,7 @@ def get_end_of_today() -> datetime:
 
     return end_of_day
 
+'''
 # UNIX時間に変換
 @log_decorator
 def convert_max_age(dt: datetime) -> int:
@@ -296,33 +300,31 @@ def get_max_age(request: Request) -> int:
             detail="max-age取得でエラーが発生しました。",
             exception=e
         )
-
+'''
 @log_decorator
-def get_expires(request: Request) -> int:
+def get_expires(request: Request) -> str:
     try:
         set_cookie_header = request.headers.get("cookie")
         # `Set-Cookie` をパース
         cookie = SimpleCookie()
-        print("ここまできた 3")
-        print(set_cookie_header)
+        #print("ここまできた 3")
+        #print(set_cookie_header)
         cookie.load(set_cookie_header)
-        print("ここまできた 4")
+        #print("ここまできた 4")
 
         #print(f" token: {cookie["token"]}")
-        print(f" token, expires: {cookie["token"]["expires"]}")
-        print("ここまできた 5")
+        #print(f" token, expires: {cookie["token"]["expires"]}")
+        #print("ここまできた 5")
         if cookie["token"]["expires"] is None:
             print("token expires なし")
             return None
-        # `max-age` を取得
+
+        # `expires` を取得
         expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
 
-        expires_int = int(expires)
-        #return {"max_age": max_age}
+        logger.debug(f"expires: {expires}")
 
-        logger.debug(f"expires: {expires_int}")
-
-        return expires_int
+        return expires
 
     except Exception as e:
         raise CookieException(
@@ -341,7 +343,7 @@ def stop_twice_order(request: Request):
         return True # 注文処理をやめる
     else:
         return False
-
+'''
 # max-ageを取り出す関数
 def get_exp_value(set_cookie_header):
     # ヘッダーを分割して各属性に分ける
@@ -354,14 +356,14 @@ def get_exp_value(set_cookie_header):
             return part.split("=")[1]
     # max-ageが見つからなかった場合
     return None
-
+'''
 '''max-age変換
  例えば、3600秒 (1時間)
  max_age = 3600
  days, hours, minutes, seconds = convert_max_age_to_dhms(max_age)
  print(f"{days}日 {hours}時間 {minutes}分 {seconds}秒")
 '''
-
+'''
 def convert_expired_time_to_expires(expired_time: datetime) -> str:
     # expired_timeをUTCに変換
     expired_time_utc = expired_time.astimezone(timezone.utc)
@@ -370,4 +372,4 @@ def convert_expired_time_to_expires(expired_time: datetime) -> str:
     expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
     
     return expires
-
+'''
