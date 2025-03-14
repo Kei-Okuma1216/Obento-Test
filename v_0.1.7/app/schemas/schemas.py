@@ -23,7 +23,7 @@ from typing import Optional
 # 99. ordersリストを降順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
 '''
-'''class Order(BaseModel):
+class Order(BaseModel):
         order_id: int
         company_name: str
         username: str
@@ -95,7 +95,7 @@ class Payload(BaseModel):
         return expire
     
 
-
+''' これをコメントアウトするとエラーになる '''
 class User(BaseModel):
     user_id: int
     username: str
@@ -183,14 +183,15 @@ class User(BaseModel):
 
     def set_max_age(self, max_age: str):
         self.exp = max_age
-        
+      
     #def get_max_age_str(self) -> str:
     #    return convert_max_age_to_dhms(self.exp)
         
     #def print_max_age_str(self) -> str:
     #    day, hour, minute, second = convert_max_age_to_dhms(self.exp)
     #    print(f"{day}日, {hour}時間, {minute}分, {second}秒 ")
-'''
+
+# 
 '''修正後の schemas.py'''
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -232,7 +233,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str = PrivateAttr()
+    _password: str = PrivateAttr()
 
     def __init__(self, **data):
         password = data.pop("password")
@@ -240,8 +241,7 @@ class UserCreate(UserBase):
         self._password = password
 
     def get_password(self) -> str:
-        return self.password
-
+        return self._password
 
 
 class UserResponse(UserBase):

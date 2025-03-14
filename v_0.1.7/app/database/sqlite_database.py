@@ -9,6 +9,10 @@ from venv import logger
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
 from schemas.schemas import Order, User
+from schemas.schemas import UserBase, UserCreate, UserResponse
+#from order_schemas import Order
+#from user_schemas import User
+
 import aiosqlite
 
 # ログ用の設定
@@ -465,11 +469,13 @@ async def create_orders_table():
             shop_name TEXT,
             menu_id INTEGER,
             amount INTEGER,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            created_at TEXT NOT NULL,
             updated_at TEXT DEFAULT "",
             canceled INTEGER DEFAULT 0
             )
         '''
+        #             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
         await conn.execute(sqlstr)
         await conn.commit()
 
@@ -917,7 +923,14 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         INSERT INTO Orders (company_id, username, shop_name, menu_id, amount, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         '''
-        created_at = get_today_str()
+        
+        # ここで created_at をデバッグ出力
+        print(f"DEBUG: insert_order() called with created_at = {created_at}")
+
+        #created_at = get_today_str()
+        # created_at が None の場合のみデフォルト値を設定する
+        created_at = created_at if created_at else get_today_str()
+        
         values = (company_id, username, shop_name, menu_id, amount, created_at)
         await conn.execute(sqlstr, values)
         await conn.commit()
@@ -1348,17 +1361,22 @@ async def init_database():
         
         # 1
         await insert_order(1, "user1", "shop01", 1, 1, get_today_str(-5))
+        print(f"insert_order() - {get_today_str(-5)}")
         # 2
         await insert_order(1, "user2", "shop01", 1, 2, get_today_str(-4))
+        print(f"insert_order() - {get_today_str(-4)}")
         # 3
         await insert_order(1, "tenten01", "shop01", 1, 3, get_today_str(-3))
+        print(f"insert_order() - {get_today_str(-3)}")
         # 4
         await insert_order(1, "tenten02", "shop01", 1, 1, get_today_str(-2))
+        print(f"insert_order() - {get_today_str(-2)}")
         # 5
         await insert_order(1, "user3", "shop01", 1, 1, get_today_str(-1))
+        print(f"insert_order() - {get_today_str(-1)}")
         # 6
         await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
-        
+        print(f"insert_order() - {get_today_str(-1)}")
         
         await show_all_orders()
 
