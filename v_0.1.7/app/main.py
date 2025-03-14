@@ -23,7 +23,8 @@ from utils.exception import CustomException, TokenExpiredException
 #from schemas.schemas import User
 
 from services.order_view import order_table_view
-from schemas.schemas import User
+#from schemas.schemas import User
+from schemas.schemas import UserBase, UserCreate, UserResponse
 
 #from crud import get_user, verify_password, hash_password, create_user
 #from database import get_db
@@ -112,9 +113,9 @@ async def root(request: Request, response: Response):
     ''' token の expires チェック '''
 
     expires = get_expires(request)
-    if expires is None:
+    '''if expires is None:
         return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message})
+            "login.html", {"request": request, "message": message})'''
 
     try:
         if compare_expire_date(expires):
@@ -128,7 +129,6 @@ async def root(request: Request, response: Response):
 
         username = payload['sub']
         permission = payload['permission']
-
 
 
         response = RedirectResponse(
@@ -195,15 +195,15 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 #from schemas.schemas import User
 
 @log_decorator
-async def authenticate_user(username, password) -> Optional[User]:
+async def authenticate_user(username, password) -> Optional[UserBase]:
     """ ログイン認証 """
     try:
-        user = await select_user(username)
+        user : UserResponse = await select_user(username)
 
         if user is None:
             logger.debug(f"ユーザーが存在しません: {username}")
             await insert_new_user(username, password, 'name')
-            user = await select_user(username)
+            user: UserResponse = await select_user(username)
 
         logger.info(f"認証試行: {user.username}")
 
@@ -309,7 +309,7 @@ async def regist_complete(request: Request, response: Response):
         cookies = get_all_cookies(request)
 
         # 注文追加
-        user = await select_user(cookies['sub'])
+        user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
             raise CustomException(

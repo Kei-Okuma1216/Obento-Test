@@ -1,0 +1,68 @@
+2025-03-14 13:19:55 - INFO - Started server process [13992]
+2025-03-14 13:19:55 - INFO - Waiting for application startup.
+2025-03-14 13:19:55 - INFO - Application startup complete.
+2025-03-14 13:19:55 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 13:19:59 - INFO - root() - ルートにアクセスしました
+2025-03-14 13:19:59 - DEBUG - token: ありません
+2025-03-14 13:25:49 - INFO - Started server process [17376]
+2025-03-14 13:25:49 - INFO - Waiting for application startup.
+2025-03-14 13:25:49 - INFO - Application startup complete.
+2025-03-14 13:25:49 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 13:49:36 - INFO - Started server process [16588]
+2025-03-14 13:49:36 - INFO - Waiting for application startup.
+2025-03-14 13:49:36 - INFO - Application startup complete.
+2025-03-14 13:49:36 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 13:49:46 - INFO - root() - ルートにアクセスしました
+2025-03-14 13:49:46 - DEBUG - token: ありません
+2025-03-14 13:49:56 - INFO - 認証試行: user1
+2025-03-14 13:49:56 - INFO - 認証成功: user1
+2025-03-14 13:49:56 - DEBUG - redirect_url: /order_complete
+2025-03-14 13:49:56 - DEBUG - login_post() - 'sub': user1
+2025-03-14 13:49:56 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSIsInBlcm1pc3Npb24iOjEsImV4cGlyZXMiOiIyMDI1LTA0LTEzVDA0OjQ5OjU2Ljg3NTY4MloifQ.5On9mgcRy9sJhxmIKha-kVqdzz3wO8rBBCA-PfDY358
+2025-03-14 13:49:56 - DEBUG - login_post() - 'expires': 2025-04-13T04:49:56.875682Z
+2025-03-14 13:49:56 - DEBUG - login_post() - 'permission': 1
+2025-03-14 13:50:01 - INFO - root() - ルートにアクセスしました
+2025-03-14 13:50:01 - INFO - stop_twice_order() - きょう２度目の注文を阻止
+2025-03-14 13:50:02 - INFO - root() - ルートにアクセスしました
+2025-03-14 13:50:02 - DEBUG - token: ありません
+2025-03-14 13:50:09 - INFO - 認証試行: shop01
+2025-03-14 13:50:09 - INFO - 認証成功: shop01
+2025-03-14 13:50:09 - DEBUG - redirect_url: /shops/me
+2025-03-14 13:50:09 - DEBUG - login_post() - 'sub': shop01
+2025-03-14 13:50:09 - DEBUG - login_post() - 'token': eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMTNUMDQ6NTA6MDkuNDU0MjIxWiJ9.mxwRW1vOBvsjbTAm8SFAQKYSRIp52S6mH-ohLb0fZmc
+2025-03-14 13:50:09 - DEBUG - login_post() - 'expires': 2025-04-13T04:50:09.454221Z
+2025-03-14 13:50:09 - DEBUG - login_post() - 'permission': 10
+2025-03-14 13:52:00 - INFO - Started server process [4144]
+2025-03-14 13:52:00 - INFO - Waiting for application startup.
+2025-03-14 13:52:00 - INFO - Application startup complete.
+2025-03-14 13:52:00 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 13:52:02 - INFO - root() - ルートにアクセスしました
+2025-03-14 13:55:57 - INFO - Started server process [6868]
+2025-03-14 13:55:57 - INFO - Waiting for application startup.
+2025-03-14 13:55:57 - INFO - Application startup complete.
+2025-03-14 13:55:57 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 13:55:59 - INFO - root() - ルートにアクセスしました
+2025-03-14 14:04:34 - INFO - Started server process [13568]
+2025-03-14 14:04:34 - INFO - Waiting for application startup.
+2025-03-14 14:04:34 - INFO - Application startup complete.
+2025-03-14 14:04:34 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 14:04:36 - INFO - root() - ルートにアクセスしました
+2025-03-14 14:04:36 - DEBUG - redirect_login()
+2025-03-14 14:04:36 - DEBUG - token is not expired.
+2025-03-14 14:04:36 - DEBUG - jwt.decode: {'sub': 'shop01', 'permission': 10, 'expires': '2025-04-13T04:50:09.454221Z'}
+2025-03-14 14:04:36 - DEBUG - sub: shop01, permission: 10, token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJzaG9wMDEiLCJwZXJtaXNzaW9uIjoxMCwiZXhwaXJlcyI6IjIwMjUtMDQtMTNUMDQ6NTA6MDkuNDU0MjIxWiJ9.mxwRW1vOBvsjbTAm8SFAQKYSRIp52S6mH-ohLb0fZmc, expires: 2025-04-13T05:04:36.524284Z
+2025-03-14 14:04:42 - INFO - root() - ルートにアクセスしました
+2025-03-14 14:04:42 - INFO - stop_twice_order() - きょう２度目の注文を阻止
+2025-03-14 14:04:43 - INFO - root() - ルートにアクセスしました
+2025-03-14 14:04:43 - DEBUG - token: ありません
+2025-03-14 14:11:06 - INFO - Started server process [4544]
+2025-03-14 14:11:06 - INFO - Waiting for application startup.
+2025-03-14 14:11:06 - INFO - Application startup complete.
+2025-03-14 14:11:06 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 14:11:08 - INFO - root() - ルートにアクセスしました
+2025-03-14 14:11:08 - DEBUG - token: ありません
+2025-03-14 14:11:32 - INFO - Started server process [16572]
+2025-03-14 14:11:32 - INFO - Waiting for application startup.
+2025-03-14 14:11:32 - INFO - Application startup complete.
+2025-03-14 14:11:32 - INFO - Uvicorn running on https://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-03-14 14:11:33 - INFO - root() - ルートにアクセスしました

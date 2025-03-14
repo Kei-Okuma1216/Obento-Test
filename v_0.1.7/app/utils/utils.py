@@ -77,8 +77,8 @@ def get_today_str(offset: int = 0, date_format: str = None):
     if date_format == "YMD":
         ymd = new_date.strftime("%Y-%m-%d")
     else:
-        ymd = new_date.strftime("%Y-%m-%d %H:%M")
-    #print(f"get_today_str(): {ymd}")
+        ymd = new_date.strftime("%Y-%m-%d %H:%M:%S")
+    print(f"get_today_str(): {ymd}")
     return ymd
 
 @log_decorator
@@ -202,6 +202,9 @@ def compare_expire_date(expires: str) -> bool:
     :return: 期限が切れていれば True（無効）、まだ有効なら False（有効）
     """
     try:
+        if expires is None:
+            return True
+
         # `expires` を datetime に変換
         expire_datetime = datetime.fromisoformat(expires.replace('Z', '+00:00')).astimezone(timezone.utc)
 
