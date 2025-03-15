@@ -1,0 +1,14 @@
+2025-03-15 10:10:22 - INFO - Started server process [12412]
+2025-03-15 10:10:22 - INFO - Waiting for application startup.
+2025-03-15 10:10:22 - INFO - Application startup complete.
+2025-03-15 10:10:22 - INFO - Uvicorn running on https://192.168.3.19:8000 (Press CTRL+C to quit)
+2025-03-15 10:10:24 - INFO - root() - ルートにアクセスしました
+2025-03-15 10:10:24 - DEBUG - token: ありません
+2025-03-15 10:10:50 - INFO - root() - ルートにアクセスしました
+2025-03-15 10:10:50 - DEBUG - token: ありません
+2025-03-15 10:14:46 - INFO - Started server process [12540]
+2025-03-15 10:14:46 - INFO - Waiting for application startup.
+2025-03-15 10:14:46 - INFO - Application startup complete.
+2025-03-15 10:14:46 - INFO - Uvicorn running on https://192.168.3.19:8000 (Press CTRL+C to quit)
+2025-03-15 10:14:48 - INFO - root() - ルートにアクセスしました
+2025-03-15 10:14:48 - DEBUG - token: ありません
