@@ -13,6 +13,8 @@ log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
 # ログ設定
 logger = logging.getLogger("uvicorn")
+# Uvicorn のデフォルトロガーが二重出力しないようにする
+logger.propagate = False
 #logger.setLevel(logging.INFO)
 
 def set_logger_levels(logger, levels):
@@ -58,7 +60,14 @@ console_handler.setFormatter(formatter)  # コンソールのログも同じフ�
 # ロガーにハンドラーを追加
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)  # 追加
+
+
 # -----------------------------------------------------
+'''
+C:\Windows\System32\cmd.exe /k "cd /d C:\Obento-Test\v_0.1.7\app & .\env\Scripts\activate & uvicorn main:app --host 192.168.3.19 --port 8000 --ssl-keyfile=C:\Obento-Test\v_0.1.7\app\my-local.key --ssl-certfile=C:\Obento-Test\v_0.1.7\app\my-local.crt --log-level info"
+'''
+
+
 '''ログ
 1. ログレベル
 ログレベルは以下の5つがあります。

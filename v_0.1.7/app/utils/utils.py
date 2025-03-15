@@ -180,8 +180,11 @@ def delete_all_cookies(response: Response):
     try:
         response.delete_cookie(key="sub")
         response.delete_cookie(key="token")
+        print("ここまできた 2")
         #response.delete_cookie(key="max-age")
         response.delete_cookie(key="permission")
+        print("ここまできた 3")
+        
         response.delete_cookie(key="last_order_date")
         logger.debug("delete_all_cookies()", "all cookies deleted")
 

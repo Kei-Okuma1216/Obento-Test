@@ -361,6 +361,7 @@ async def regist_complete(request: Request, response: Response):
 @log_decorator
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
+    print("ここまできた 1")
     delete_all_cookies(response)
 
     return response
@@ -440,9 +441,7 @@ if __name__ == "__main__":
 
     # Uvicornの起動
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
-
-
-LOGS_DIR = "./logs"
+    LOGS_DIR = "./logs"
 
 @app.get("/logs", response_class=HTMLResponse)
 async def list_logs():
