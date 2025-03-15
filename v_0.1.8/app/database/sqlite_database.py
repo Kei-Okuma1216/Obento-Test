@@ -6,6 +6,8 @@ from pprint import pprint
 from typing import List, Optional
 import sqlite3
 from venv import logger
+
+import bcrypt
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
 from schemas.schemas import Order, User
@@ -1382,6 +1384,9 @@ async def init_database():
 
         logger.info("データベースファイル 'sample.db' が正常に作成されました。")
 
+        await update_existing_passwords()
+        logger.info("Userのパスワードが正常に暗号化されました。")
+
     except DatabaseConnectionException as e:
         raise
     except sqlite3.Error as e: 
@@ -1393,3 +1398,21 @@ async def init_database():
         raise CustomException(
             500, "init_database()", f"例外発生: {e}")
 
+async def update_existing_passwords():
+    """既存ユーザーのパスワードをハッシュ化"""
+    '''もしくはこれをroot()に組み込む
+    return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)'''
+    users = await get_all_users()  # すべてのユーザーを取得する関数が必要
+    for user in users:
+        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+
+            """パスワードをハッシュ化する"""
+            salt = bcrypt.gensalt()
+            password = user.get_password()
+            hashed_password = bcrypt.hashpw(password.encode(), salt)
+            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+            #new_hashed_password = hash_password(user.get_password())  # ハッシュ化
+
+            await update_user(
+                user.username, "password", new_hashed_password)  # DB更新
+            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
