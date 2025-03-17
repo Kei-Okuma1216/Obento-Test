@@ -54,6 +54,21 @@ async def update_existing_passwords():
                 user.username, "password", new_hashed_password)  # DB更新
             logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
+@admin_router.get("/me/check_device", response_class=HTMLResponse, tags=["admin"])
+async def check_device(request: Request):
+    '''使い方
+    #await init_database()
+    value = await check_device(request)
+    # JSON をテキストとして整形
+    text_value = json.dumps(value, ensure_ascii=False, indent=4)
+    logger.info(text_value)
+    '''
+    user_agent = request.headers.get("user-agent", "").lower()
+
+    # 簡単なスマホ判定
+    is_mobile = any(keyword in user_agent for keyword in ["iphone", "android", "mobile"])
+
+    return {"user_agent": user_agent, "is_mobile": is_mobile}
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる
