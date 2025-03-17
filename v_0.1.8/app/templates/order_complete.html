@@ -1,11 +1,12 @@
 <html>
     <head>
-        <title>ユーザー注文完了</title>
+        <title>一般ユーザー注文完了</title>
         <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
     </head>
     <body>
         <h1>お弁当の注文が完了しました</h1>
         <a href="/">トップに戻る</a>
+        <h2>一般ユーザー</h2>
         <h2>注文締切時刻：毎前日13時</h2>
         <table border="1">
             <thead>
@@ -13,7 +14,7 @@
                     <th>番号</th>
                     <th>会社</th>
                     <th>名前</th>
-                    <th>メニューID</th>
+                    <th>メニュー名</th>
                     <th>注文数</th>
                     <th>注文日時</th>
                     <th>キャンセル有無</th>

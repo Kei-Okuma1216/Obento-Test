@@ -1,8 +1,11 @@
+# crud.py
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 from models import User
 from passlib.context import CryptContext
+from user_schemas import UserResponse
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -14,12 +17,15 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
+
+
 # ユーザーを取得
 '''async def get_user(db: AsyncSession, username: str):
     result = await db.execute(select(User).filter(User.username == username))
     user = result.scalars().first()
     return user  # ✅ SQLAlchemyのUserオブジェクトを返す
 '''
+
 def get_user(db: Session, user_id: int) -> UserResponse:
     user = db.query(User).filter(User.user_id == user_id).first()
     if user is None:

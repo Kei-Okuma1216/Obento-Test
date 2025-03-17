@@ -16,7 +16,7 @@ from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
 
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
 
-from utils.utils import get_expires, prevent_order_twice, stop_twice_order, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator
+from utils.utils import get_token_expires, prevent_order_twice, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator, check_permission_and_stop_order
 from utils.exception import CustomException, TokenExpiredException
 
 #import schemas, models, crud, database
@@ -34,7 +34,7 @@ tracemalloc.start()
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
-from routers.admin import admin_router
+from routers.admin import admin_router, update_existing_passwords
 from routers.manager import manager_router
 from routers.shop import shop_router
 #from routers.user import user_router
@@ -53,18 +53,19 @@ from fastapi.staticfiles import StaticFiles
 from db_config import get_db
 #from crud import hash_password, verify_password, get_user, create_user 
 
-work_endpoint = 'https://192.168.3.19:8000'
+product_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
 
-endpoint = develop_endpoint
+endpoint = product_endpoint
 
-# login.htmlに戻る
 @log_decorator
 def redirect_login(request: Request, message: str):
+    '''login.htmlに戻る'''
     try:
         logger.debug("redirect_login()")
 
-        return templates.TemplateResponse("login.html", {"request": request, "message": message})
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "message": message})
     except HTTPException as e:
         raise
     except Exception as e:
@@ -83,18 +84,27 @@ async def root(request: Request, response: Response):
     # テストデータ作成
     # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
     #await init_database()
-    #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
 
-    print("v_0.1.7")
+    print("v_0.1.8")
+
 
     # 二重注文の排除
-    if(stop_twice_order(request)):
-        last_order = request.cookies.get('last_order_date')
-        message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+    result , last_order = await check_permission_and_stop_order(request)
+    print(f"result , last_order: {result , last_order}")
+    if result:
+        message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
         logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
         return HTMLResponse(message)
+    '''
+    if await check_permission(request, [1]):
+        if(stop_twice_order(request)):
+            last_order = request.cookies.get('last_order_date')
+            message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+            logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
+            return HTMLResponse(message)
+    '''
 
     ''' token チェック '''
     message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
@@ -112,7 +122,7 @@ async def root(request: Request, response: Response):
 
     ''' token の expires チェック '''
 
-    expires = get_expires(request)
+    expires = get_token_expires(request)
     '''if expires is None:
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})'''
@@ -120,7 +130,7 @@ async def root(request: Request, response: Response):
     try:
         if compare_expire_date(expires):
             #raise TokenExpiredException("compare_expire_date()")
-            redirect_login(request, "トークンの有効期限切れです")
+            redirect_login(request, "再登録をしてください")
 
         logger.debug("token is not expired.")
 
@@ -191,8 +201,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
 
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
-
-#from schemas.schemas import User
 
 @log_decorator
 async def authenticate_user(username, password) -> Optional[UserBase]:
@@ -289,7 +297,7 @@ async def login_post(response: Response,
         #await update_user(username, "max-age", user.get_exp())
 
         return response
-    
+
     except SQLException as e:
         raise
     except HTTPException as e:

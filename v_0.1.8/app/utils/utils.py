@@ -1,16 +1,18 @@
 # utils.py
 from datetime import datetime, timezone, timedelta
 
-from http.cookies import SimpleCookie
 from venv import logger
-from fastapi import Request, Response
+from fastapi import Request, Response, status
+from http.cookies import SimpleCookie
+
 from functools import wraps
 from typing import Dict, Optional
-from utils.exception import CookieException
 
 import functools
 import inspect
 import warnings
+
+from utils.exception import CookieException, CustomException
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
@@ -71,7 +73,7 @@ def get_datetime_str(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M")
 
 # 今日の日付取得 update_datetime用
-@log_decorator
+#@log_decorator
 def get_today_str(offset: int = 0, date_format: str = None):
     new_date = get_now(JST) + timedelta(days=offset)
     if date_format == "YMD":
@@ -183,6 +185,8 @@ def delete_all_cookies(response: Response):
         print("ここまできた 2")
         #response.delete_cookie(key="max-age")
         response.delete_cookie(key="permission")
+        response.delete_cookie(key="oreder_twice")
+        
         print("ここまできた 3")
         
         response.delete_cookie(key="last_order_date")
@@ -236,20 +240,22 @@ def compare_expire_date(expires: str) -> bool:
 @log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
 
-    end_of_day = get_end_of_today() 
+    end_of_day = get_end_of_today(JST)
     end_time = int(end_of_day.timestamp())
-    #end_time = convert_max_age(end_of_day)
-    current = datetime.now(JST)
-    #current_time = convert_max_age(current)
+
+    current = get_now(JST)
     current_time = int(current.timestamp())
+
     future_time = end_time - current_time
 
-    logger.debug(f"end_of_day: {end_of_day}")
+    '''logger.debug(f"end_of_day: {end_of_day}")
     logger.debug(f"max_time: {end_time}")
     logger.debug(f"now: {current}")
     logger.debug(f"current_time: {current_time}")
-    logger.debug(f"future_time: {future_time}")
-
+    logger.debug(f"future_time: {future_time}")'''
+    print(f"last_order_date: {last_order_date}")
+    print(f"future_time: {future_time}")
+    
     response.set_cookie(
         key="last_order_date", value=last_order_date,
         max_age=future_time, httponly=True)
@@ -257,75 +263,30 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
 
 # 期限として本日の23:59:59を作成
 #@log_decorator
-def get_end_of_today() -> datetime:
-    today = datetime.now(JST)  # JSTで現在時刻を取得
+def get_end_of_today(tz : timezone = None) -> datetime:
+    today = None
+    if tz == JST:
+        today = datetime.now(JST)
+    else:
+        today = datetime.now()
+
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     logger.debug(f"JST end_of_day: {end_of_day}")
 
     return end_of_day
 
-'''
-# UNIX時間に変換
-@log_decorator
-def convert_max_age(dt: datetime) -> int:
-    unix_time = int(dt.timestamp())
-    
-    logger.debug(f"unix_time: {unix_time}")
-    return unix_time
 
 @log_decorator
-def get_max_age(request: Request) -> int:
+def get_token_expires(request: Request) -> str:
     try:
-        set_cookie_header = request.headers.get("cookie")
-        # `Set-Cookie` をパース
+        set_cookie_header = request.headers.get("cookie")        # `Set-Cookie` をパース
         cookie = SimpleCookie()
-        print("ここまできた 3")
-        print(set_cookie_header)
         cookie.load(set_cookie_header)
-        print("ここまできた 4")
 
-        #print(f" token: {cookie["token"]}")
-        print(f" token, expires: {cookie["token"]["expires"]}")
-        print("ここまできた 5")
-        if cookie["token"]["expires"] is None:
-            print("token expires なし")
-            return None
-        # `max-age` を取得
-        exp = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
-
-        #max_age_int = int(max_age)
-        #return {"max_age": max_age}
-
-        logger.debug(f"expires: {exp}")
-
-        return exp
-
-    except Exception as e:
-        raise CookieException(
-            method_name="get_max_age()",
-            detail="max-age取得でエラーが発生しました。",
-            exception=e
-        )
-'''
-@log_decorator
-def get_expires(request: Request) -> str:
-    try:
-        set_cookie_header = request.headers.get("cookie")
-        # `Set-Cookie` をパース
-        cookie = SimpleCookie()
-        #print("ここまできた 3")
-        #print(set_cookie_header)
-        cookie.load(set_cookie_header)
-        #print("ここまできた 4")
-
-        #print(f" token: {cookie["token"]}")
-        #print(f" token, expires: {cookie["token"]["expires"]}")
-        #print("ここまできた 5")
         if cookie["token"]["expires"] is None:
             print("token expires なし")
             return None
 
-        # `expires` を取得
         expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
 
         logger.debug(f"expires: {expires}")
@@ -334,13 +295,43 @@ def get_expires(request: Request) -> str:
 
     except Exception as e:
         raise CookieException(
-            method_name="get_expires()",
+            method_name="get_token_expires()",
             detail="expires取得でエラーが発生しました。",
             exception=e
         )
 
 
 # チェックする
+@log_decorator
+async def check_permission_and_stop_order(request: Request):
+    ''' 権限と二重注文チェックを合体させた関数
+        - cookie permissionが1の場合に限り、last_order_dateが存在していればTrueを返す
+        - それ以外の場合はFalseを返す
+    '''
+    # Cookieからpermissionを取得
+    permission = request.cookies.get("cookie permission")
+    print(f"cookie permission: {permission}")
+    # Cookieに値がなければ空文字（または必要に応じて適切なデフォルト値）に
+    if permission is None:
+        permission = '1'#''
+
+    # permissionが数字の場合は整数に変換する
+    if permission != '' and permission.isdigit():
+        permission = int(permission)
+    print(f"permission: {permission}")
+    
+    
+    # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
+    if permission == 1:
+        last_order = request.cookies.get("last_order_date")
+        if last_order is not None:
+            return True, last_order
+    else:
+        # Cookieを全部消す
+        delete_all_cookies(request)
+        return False, None
+
+'''
 @log_decorator
 def stop_twice_order(request: Request):
     last_order = request.cookies.get("last_order_date")
@@ -350,32 +341,25 @@ def stop_twice_order(request: Request):
     else:
         return False
 '''
-# max-ageを取り出す関数
-def get_exp_value(set_cookie_header):
-    # ヘッダーを分割して各属性に分ける
-    parts = set_cookie_header.split(";")
-    for part in parts:
-        # 各属性をトリムして"max-age"が含まれているか確認
-        part = part.strip()
-        if part.lower().startswith("exp"):
-            # max-ageの値を取り出して返す
-            return part.split("=")[1]
-    # max-ageが見つからなかった場合
-    return None
-'''
-'''max-age変換
- 例えば、3600秒 (1時間)
- max_age = 3600
- days, hours, minutes, seconds = convert_max_age_to_dhms(max_age)
- print(f"{days}日 {hours}時間 {minutes}分 {seconds}秒")
-'''
-'''
-def convert_expired_time_to_expires(expired_time: datetime) -> str:
-    # expired_timeをUTCに変換
-    expired_time_utc = expired_time.astimezone(timezone.utc)
-    
-    # ISO形式の文字列に変換
-    expires = expired_time_utc.isoformat().replace('+00:00', 'Z')
-    
-    return expires
-'''
+
+@log_decorator
+async def check_permission(request: Request, permits):
+    ''' 権限チェック '''
+    '''raise CustomException(
+        status.HTTP_401_UNAUTHORIZED,
+        "check_permission()",
+        f"Not Authorized permission={permission}")'''
+    permission = request.cookies.get("cookie permission")
+    #print(f"permission: {permission}")
+    # Cookieに値がない場合はNoneとなるため、空文字に変換する
+    if permission is None:
+        permission = 0#''
+
+    # もし permits に数字が含まれる場合、permissionが数字なら変換する（例："1" → 1）
+    if permission != '' and permission.isdigit():
+        permission = int(permission)
+
+    if permission in permits:
+        return True
+
+    return False
