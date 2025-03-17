@@ -1,7 +1,6 @@
 # main.py
-# 1.8 完全スマホ接続対応 & NFC対応 & SQLAlchemy移行つづき
+# 1.7 SQLAlchemy移行
 import asyncio
-import json
 import os
 import sys
 from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
@@ -57,7 +56,7 @@ from db_config import get_db
 work_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
 
-endpoint = work_endpoint
+endpoint = develop_endpoint
 
 # login.htmlに戻る
 @log_decorator
@@ -74,36 +73,24 @@ def redirect_login(request: Request, message: str):
             "redirect_login()",
             f"Error: {e.detail}")
 
-
-#@app.get("/check-device")
-async def check_device(request: Request):
-    user_agent = request.headers.get("user-agent", "").lower()
-    
-    # 簡単なスマホ判定
-    is_mobile = any(keyword in user_agent for keyword in ["iphone", "android", "mobile"])
-
-    return {"user_agent": user_agent, "is_mobile": is_mobile}
-
 # -----------------------------------------------------
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def root(request: Request, response: Response):
 
-    logger.info(f"v_0.1.8 root() - ルートにアクセスしました")
-    ''' テストデータ作成
-     注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する'''
+    logger.info(f"root() - ルートにアクセスしました")
+    # テストデータ作成
+    # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
     #await init_database()
-    value = await check_device(request)
-    # JSON をテキストとして整形
-    text_value = json.dumps(value, ensure_ascii=False, indent=4)
-    logger.info(text_value)
-    #print("v_0.1.8")
+    #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
+
+    print("v_0.1.7")
 
     # 二重注文の排除
     if(stop_twice_order(request)):
         last_order = request.cookies.get('last_order_date')
-        message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+        message = f"<html><p>きょう２度目の注文です。</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
         logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
         return HTMLResponse(message)
