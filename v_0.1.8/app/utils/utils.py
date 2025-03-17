@@ -232,15 +232,15 @@ def compare_expire_date(expires: str) -> bool:
 
 
 # 二重注文の禁止
-# 注文の禁止は一日だけであるためmax-ageを使用する
 # 設定
 @log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
 
     end_of_day = get_end_of_today() 
     end_time = int(end_of_day.timestamp())
-
-    current = get_now(JST)#datetime.now(JST)
+    #end_time = convert_max_age(end_of_day)
+    current = datetime.now(JST)
+    #current_time = convert_max_age(current)
     current_time = int(current.timestamp())
     future_time = end_time - current_time
 
@@ -258,7 +258,7 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
 # 期限として本日の23:59:59を作成
 #@log_decorator
 def get_end_of_today() -> datetime:
-    today = get_now(JST)#datetime.now(JST)  # JSTで現在時刻を取得
+    today = datetime.now(JST)  # JSTで現在時刻を取得
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     logger.debug(f"JST end_of_day: {end_of_day}")
 

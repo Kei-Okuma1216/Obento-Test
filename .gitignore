@@ -5,5 +5,7 @@
 **env
 Documents/
 **/app/logs/
+**/不要
+v_*/app/database/example.db
 
 

@@ -34,7 +34,7 @@ tracemalloc.start()
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
-from routers.admin import admin_router
+from routers.admin import admin_router, update_existing_passwords
 from routers.manager import manager_router
 from routers.shop import shop_router
 #from routers.user import user_router
@@ -53,10 +53,10 @@ from fastapi.staticfiles import StaticFiles
 from db_config import get_db
 #from crud import hash_password, verify_password, get_user, create_user 
 
-work_endpoint = 'https://192.168.3.19:8000'
+product_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
 
-endpoint = develop_endpoint
+endpoint = product_endpoint
 
 # login.htmlに戻る
 @log_decorator
@@ -83,7 +83,7 @@ async def root(request: Request, response: Response):
     # テストデータ作成
     # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
     #await init_database()
-    #return RedirectResponse(url=f"{endpoint}/admin/me/update_existing_passwords", status_code=303)
+    
 
     print("v_0.1.7")
 
@@ -191,8 +191,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
 
     return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
-
-#from schemas.schemas import User
 
 @log_decorator
 async def authenticate_user(username, password) -> Optional[UserBase]:

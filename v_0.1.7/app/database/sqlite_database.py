@@ -6,6 +6,8 @@ from pprint import pprint
 from typing import List, Optional
 import sqlite3
 from venv import logger
+
+import bcrypt
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
 from schemas.schemas import Order, User
@@ -1325,6 +1327,24 @@ async def delete_all_menu():
     finally:
         if conn is not None:
             await conn.close()
+
+'''------------------------------------------------------'''
+async def update_existing_passwords():
+    """既存ユーザーのパスワードをハッシュ化"""
+    users = await get_all_users()  # すべてのユーザーを取得する関数が必要
+    for user in users:
+        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+
+            """パスワードをハッシュ化する"""
+            salt = bcrypt.gensalt()
+            password = user.get_password()
+            hashed_password = bcrypt.hashpw(password.encode(), salt)
+            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+            #new_hashed_password = hash_password(user.get_password())  # ハッシュ化
+
+            await update_user(
+                user.username, "password", new_hashed_password)  # DB更新
+            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
 '''------------------------------------------------------'''
 #@log_decorator
 async def init_database():
@@ -1346,8 +1366,10 @@ async def init_database():
         # 5
         await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
         await update_user("admin", "permission", 99)
-        
-        
+
+        #from routers.admin import update_existing_passwords
+        await update_existing_passwords() 
+
         await create_company_table()
         await insert_company("テンシステム", "083-999-9999", "shop01") # 1
 
