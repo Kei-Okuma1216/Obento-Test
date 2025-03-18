@@ -4,7 +4,7 @@ from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 
 from utils.exception import CookieException, CustomException
-from utils.utils import get_all_cookies, log_decorator
+from utils.utils import check_permission, get_all_cookies, log_decorator
 from database.sqlite_database import select_company_order
 from services.order_view import order_table_view
 
@@ -31,12 +31,13 @@ def check_manager_permission(request: Request):
 @log_decorator
 async def manager_view(request: Request, response: Response):
     try:
+        if await check_permission(request, [2, 99]) == False:
+            return templates.TemplateResponse(
+            "Unauthorized.html", {"request": request})
+
         cookies = get_all_cookies(request)
         if not cookies:
-            logger.debug('cookie userなし')
             raise CookieException(method_name="manager_view()")
-
-        check_manager_permission(request)
 
         # 昨日の全注文
         orders = await select_company_order(company_id=1)
@@ -49,6 +50,8 @@ async def manager_view(request: Request, response: Response):
         target_url = "manager_orders_today.html"
         return await order_table_view(request, response, orders, target_url)
 
+    except CookieException as e:
+        raise
     except Exception as e:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,

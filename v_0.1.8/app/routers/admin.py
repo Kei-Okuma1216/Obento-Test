@@ -5,13 +5,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database.sqlite_database import update_user, get_all_users
 from utils.exception import CustomException
-from utils.utils import log_decorator
+from utils.utils import check_permission, log_decorator
 from venv import logger
 
 templates = Jinja2Templates(directory="templates")
 
 admin_router = APIRouter()
-
+'''
 @log_decorator
 def check_admin_permission(request: Request):
     # 管理者の権限チェック
@@ -22,18 +22,19 @@ def check_admin_permission(request: Request):
             status.HTTP_401_UNAUTHORIZED,
             "check_admin_permission()",
             f"Not Authorized permission={permission}")
-
+'''
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
 @admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
 @log_decorator
-def admin_view(request: Request):    
+async def admin_view(request: Request):    
 
-    # 権限チェック
-    check_admin_permission(request)
-
-    return templates.TemplateResponse(
-        "admin.html", {"request": request})
+    if await check_permission(request, [99]):
+        return templates.TemplateResponse(
+            "admin.html", {"request": request})
+    else:
+        return templates.TemplateResponse(
+            "Unauthorized.html", {"request": request})
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])

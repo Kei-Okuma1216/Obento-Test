@@ -1,10 +1,39 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>401 Unauthorized</title> 
-  </head>
+  <html lang="ja">
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>401 Unauthorized</title>
+        <style>
+          body {
+              font-family: Arial, sans-serif;
+          }
+          h1 {
+              color: #2c3e50;
+          }
+          ul {
+              background: #ecf0f1;
+              list-style-type: square;
+              padding: 0;
+          }
+          li {
+              background: #ecf0f1;
+              margin: 0px 0;
+              padding: 0px;
+              border-radius: 4px;
+          }
+          </style>
+      </head>
+      <nav>
+        <!--<a href="/login">トップに戻る   注意：ログアウト時はフリーズする</a> |-->
+        <a href="/clear">ログアウト</a>
+      </nav>
  <body>
   <h1>アクセスが許可されていません</h1>
   <p>{{ error }}</p>
+  <p>ステータスコード: {{ status_code }}</p>
+  <p>エラーメッセージ: {{ message }}</p>
  </body>
 </html>
