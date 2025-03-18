@@ -324,7 +324,9 @@ async def check_permission_and_stop_order(request: Request):
     # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
     if permission == 1:
         last_order = request.cookies.get("last_order_date")
-        if last_order is not None:
+        if last_order is None:
+            return False, None
+        else:
             return True, last_order
     else:
         # Cookieを全部消す

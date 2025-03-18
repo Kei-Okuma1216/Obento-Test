@@ -80,54 +80,54 @@ def redirect_login(request: Request, message: str):
 @log_decorator
 async def root(request: Request, response: Response):
 
-    logger.info(f"root() - ルートにアクセスしました")
-    # テストデータ作成
-    # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
-    #await init_database()
+    try:
+        logger.info(f"root() - ルートにアクセスしました")
+        # テストデータ作成
+        # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
+        #await init_database()
 
-    print("v_0.1.8")
+        print("v_0.1.8")
 
-
-    # 二重注文の排除
-    result , last_order = await check_permission_and_stop_order(request)
-    print(f"result , last_order: {result , last_order}")
-    if result:
-        message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
-        logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
-
-        return HTMLResponse(message)
-    '''
-    if await check_permission(request, [1]):
-        if(stop_twice_order(request)):
-            last_order = request.cookies.get('last_order_date')
+        # 二重注文の排除
+        result , last_order = await check_permission_and_stop_order(request)
+        print(f"result , last_order: {result , str(last_order)}")
+        if result:
             message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
             logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
             return HTMLResponse(message)
-    '''
-
-    ''' token チェック '''
-    message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
-
-    token = request.cookies.get("token")
-    if token is None:
-        ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
-            理由：画面が停止するため
-        raise TokenExpiredException("check_cookie_token()")
         '''
-        logger.debug("token: ありません")
-        # redirect_login(request, message) # ここでこれは効かない
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message})
+        if await check_permission(request, [1]):
+            if(stop_twice_order(request)):
+                last_order = request.cookies.get('last_order_date')
+                message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+                logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
-    ''' token の expires チェック '''
+                return HTMLResponse(message)
+        '''
 
-    expires = get_token_expires(request)
-    '''if expires is None:
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message})'''
+        ''' token チェック '''
+        message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
 
-    try:
+        token = request.cookies.get("token")
+        if token is None:
+            ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
+                理由：画面が停止するため
+            raise TokenExpiredException("check_cookie_token()")
+            '''
+            logger.debug("token: ありません")
+            # redirect_login(request, message) # ここでこれは効かない
+            return templates.TemplateResponse(
+                "login.html", {"request": request, "message": message})
+
+        ''' token の expires チェック '''
+
+        expires = get_token_expires(request)
+        '''if expires is None:
+            return templates.TemplateResponse(
+                "login.html", {"request": request, "message": message})'''
+
+
         if compare_expire_date(expires):
             #raise TokenExpiredException("compare_expire_date()")
             redirect_login(request, "再登録をしてください")
