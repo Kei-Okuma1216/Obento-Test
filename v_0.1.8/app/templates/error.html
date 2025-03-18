@@ -25,10 +25,14 @@
       }
       </style>
   </head>
+  <nav>
+    <!--<a href="/login">トップに戻る   注意：ログアウト時はフリーズする</a> |-->
+    <a href="/clear">ログアウト</a>
+  </nav>
  <body>
       <h1>エラー発生</h1>
       <p>ステータスコード: {{ status_code }}</p>
       <p>エラーメッセージ: {{ message }}</p>
-      <a href="/">トップに戻る</a>
+      
 </body>
 </html>

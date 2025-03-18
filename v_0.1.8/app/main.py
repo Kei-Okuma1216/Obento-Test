@@ -17,7 +17,7 @@ from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
 from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
 
 from utils.utils import get_token_expires, prevent_order_twice, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator, check_permission_and_stop_order
-from utils.exception import CustomException, TokenExpiredException
+from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException
 
 #import schemas, models, crud, database
 #from schemas.schemas import User
@@ -62,7 +62,7 @@ endpoint = product_endpoint
 def redirect_login(request: Request, message: str):
     '''login.htmlに戻る'''
     try:
-        logger.debug("redirect_login()")
+        logger.debug(f"message: {message}")
 
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
@@ -88,27 +88,16 @@ async def root(request: Request, response: Response):
 
         print("v_0.1.8")
 
-        # 二重注文の排除
+        # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request)
-        print(f"result , last_order: {result , str(last_order)}")
+        logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
-            message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
-            logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
+            message = "きょう２度目の注文です。重複注文により注文できません"
+            message = f"<html><p>z{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
 
             return HTMLResponse(message)
-        '''
-        if await check_permission(request, [1]):
-            if(stop_twice_order(request)):
-                last_order = request.cookies.get('last_order_date')
-                message = f"<html><p>きょう２度目の注文です。重複注文により注文できません</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
-                logger.info(f"stop_twice_order() - きょう２度目の注文を阻止")
 
-                return HTMLResponse(message)
-        '''
-
-        ''' token チェック '''
-        message = f"token の有効期限が切れています。再登録をしてください。{endpoint}"
-
+        # cookies チェック
         token = request.cookies.get("token")
         if token is None:
             ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
@@ -116,34 +105,24 @@ async def root(request: Request, response: Response):
             raise TokenExpiredException("check_cookie_token()")
             '''
             logger.debug("token: ありません")
-            # redirect_login(request, message) # ここでこれは効かない
-            return templates.TemplateResponse(
-                "login.html", {"request": request, "message": message})
+            return redirect_login(request, "ようこそ")
 
-        ''' token の expires チェック '''
-
+        # token チェック
         expires = get_token_expires(request)
-        '''if expires is None:
-            return templates.TemplateResponse(
-                "login.html", {"request": request, "message": message})'''
-
 
         if compare_expire_date(expires):
-            #raise TokenExpiredException("compare_expire_date()")
-            redirect_login(request, "再登録をしてください")
+            # True expires無効
+            message = "登録有効期限が切れています。再登録をしてください。"
+            return redirect_login(request, message)
+        else:
+            # False expires有効
+            logger.debug("token is not expired.")
 
-        logger.debug("token is not expired.")
-
+        # token 解読
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        logger.debug(f"jwt.decode: {payload}")
 
         username = payload['sub']
         permission = payload['permission']
-
-
-        response = RedirectResponse(
-            url="/order_complete",
-            status_code=status.HTTP_303_SEE_OTHER)
 
         data = {
             "sub": username,
@@ -157,14 +136,20 @@ async def root(request: Request, response: Response):
             "expires": expires
         }
 
+        response = RedirectResponse(
+            url="/order_complete",
+            status_code=status.HTTP_303_SEE_OTHER)
+       
         set_all_cookies(response, new_data)
-
-        logger.debug(f"sub: {username}, permission: {permission}, token: {token}, expires: {expires}")
 
         return response
 
     except TokenExpiredException as e:
-        raise
+        logger.info(e.detail["message"])
+        return redirect_login(request, "ようこそ")
+    except CookieException as e:
+        # CookieException発生時はログイン画面へリダイレクトし、detailのmessageを表示
+        return redirect_login(request, e.detail["message"])
     except jwt.ExpiredSignatureError:
         raise TokenExpiredException("root()")
     except jwt.InvalidTokenError:
@@ -178,7 +163,7 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request):
     try:
-        redirect_login(request, "ようこそ")
+        return redirect_login(request, "ようこそ")
 
     except Exception as e:
         raise CustomException(
@@ -219,8 +204,11 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
         if not verify_password(password, user.get_password()):
             ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある　'''
             #logger.info("パスワードが一致しません")
-
-            return None
+            #return None
+            raise NotAuthorizedException(
+                method_name="authenticate_user",
+                detail="パスワードが一致しません"
+            )
 
         data = {
             "sub": user.get_username(),
@@ -234,6 +222,8 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
 
         return user
 
+    except NotAuthorizedException as e:
+        raise
     except SQLException as e:
         raise
     except Exception as e:
@@ -242,21 +232,22 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
             f"authenticate_user()",
             f"予期せぬエラー{e}")
 
-# ログインPOST
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def login_post(response: Response,
+async def login_post(request: Request, response: Response,                 
     form_data: OAuth2PasswordRequestForm = Depends()):
+    ''' ログインPOST '''
     try:
         username = form_data.username
         password = form_data.password
 
         user = await authenticate_user(username, password) 
-        if user is None:
-            raise CustomException(
+        #if user is None:
+        #    return redirect_login(response, "ログインに失敗しました")
+        '''raise CustomException(
                 status.HTTP_404_NOT_FOUND,
                 "login_post()",
-                f"user:{user} 取得に失敗しました")
+                f"user:{user} 取得に失敗しました")'''
 
         #logger.debug("username と password一致")
 
@@ -298,6 +289,8 @@ async def login_post(response: Response,
 
         return response
 
+    except NotAuthorizedException as e:
+        return redirect_login(request, e.detail["message"])
     except SQLException as e:
         raise
     except HTTPException as e:
@@ -320,10 +313,11 @@ async def regist_complete(request: Request, response: Response):
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
-            raise CustomException(
+            return redirect_login(response, "ログインに失敗しました")
+            '''raise CustomException(
                 status.HTTP_400_BAD_REQUEST,
                 "regist_complete()",
-                f"user:{user} 取得に失敗しました")
+                f"user:{user} 取得に失敗しました")'''
 
         await insert_order(
             user.company_id,

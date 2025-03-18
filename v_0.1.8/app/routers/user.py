@@ -1,7 +1,10 @@
-# 店舗の権限チェック
+# user.py
+# users/me
 from fastapi import Request, Response
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
+from utils.exception import CookieException
 
 templates = Jinja2Templates(directory="templates")
 
@@ -14,17 +17,16 @@ from fastapi import APIRouter
 
 user_router = APIRouter()
 
-# お弁当の注文完了　ユーザーのみ
-# users/todayになる
+
 @user_router.get("/order_complete",response_class=HTMLResponse, tags=["users"]) 
 @log_decorator
 async def regist_complete(request: Request, response: Response): 
+    # お弁当の注文完了　ユーザーのみ
     try:
         cookies = get_all_cookies(request)
-        '''if not cookies:
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)'''
+        if not cookies:
+            raise CookieException(method_name="regist_complete()")
 
-        # 注文追加
         user = await select_user(cookies['sub'])
 
         if user is None:
@@ -50,6 +52,8 @@ async def regist_complete(request: Request, response: Response):
         main_view = "order_complete.html"
         return await order_table_view(request, response, orders, main_view)
 
+    except CookieException as e:
+        raise
     except Exception as e:
         orders = []
         print(f"/order_complete Error: {str(e)}")

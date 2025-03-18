@@ -5,6 +5,10 @@
     <body>
         <h1>こんにちは！</h1>
         <h2>ここはユーザー登録ページです</h2>
+        <!-- エラーメッセージがある場合に表示 -->
+        {% if message %}
+            <p style="color: red;">{{ message }}</p>
+        {% endif %}
         <form action="/login" method="post">
             <label for="username">ユーザー名:</label>
             <br>

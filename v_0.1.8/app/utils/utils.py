@@ -105,11 +105,7 @@ def set_all_cookies(response: Response, user: Dict):
         response.set_cookie(key="sub", value=username, expires=new_expires)
         response.set_cookie(key="permission", value=permission, expires=new_expires)
 
-        logger.debug(f"set_all_cookies() - sub: {username}")
-        logger.debug(f"set_all_cookies() - token: {token}")
-        #logger.debug(f"set_all_cookies() - new_expires: {new_expires}")
-        logger.debug(f"set_all_cookies() - permission: {permission}")
-
+        logger.debug(f"sub: {username}, permission: {permission}, token: {token}, expires: {new_expires}")
         return new_expires
         
     except KeyError as e:
@@ -209,8 +205,10 @@ def compare_expire_date(expires: str) -> bool:
     :return: 期限が切れていれば True（無効）、まだ有効なら False（有効）
     """
     try:
-        if expires is None:
-            return True
+        # 初回アクセスなど、expires が空の場合は有効期限チェックをスキップする
+        if not expires:
+            logger.debug("expires が存在しないため、有効期限のチェックをスキップします")
+            return False
 
         # `expires` を datetime に変換
         expire_datetime = datetime.fromisoformat(expires.replace('Z', '+00:00')).astimezone(timezone.utc)
@@ -222,17 +220,18 @@ def compare_expire_date(expires: str) -> bool:
 
         # 有効期限をチェック
         logger.debug(f"現在: {now_utc_int} < expires: {expire_int}")
-        
+
         if now_utc_int > expire_int:
             logger.info("有効期限が無効です")  # 期限切れ
             return True
 
         logger.debug("有効期限は有効です")  # まだ有効
         return False
-    
+
+    except CookieException as e:
+        raise
     except Exception as e:
-        logger.error(f"compare_expire_date() でエラー発生: {str(e)}")
-        return True  # エラー時は期限切れとみなす
+        raise 
 
 
 # 二重注文の禁止
@@ -279,10 +278,25 @@ def get_end_of_today(tz : timezone = None) -> datetime:
 @log_decorator
 def get_token_expires(request: Request) -> str:
     try:
-        set_cookie_header = request.headers.get("cookie")        # `Set-Cookie` をパース
+        set_cookie_header = request.headers.get("cookie")
+        # Cookie ヘッダーが存在しない場合は初回アクセスとみなし、None を返す
+        if not set_cookie_header:
+            logger.debug("Cookie header が存在しないため、expires の取得をスキップします")
+            return None
+
         cookie = SimpleCookie()
         cookie.load(set_cookie_header)
 
+        '''# "token" が存在しない場合も None を返す
+        if "token" not in cookie:
+            logger.debug("Cookie 内に 'token' が存在しないため、expires の取得をスキップします")
+            return None
+
+        # token 内に "expires" 属性がなければ None を返す
+        if "expires" not in cookie["token"] or not cookie["token"]["expires"]:
+            logger.debug("Cookie の 'token' に有効な 'expires' 属性が存在しないため、スキップします")
+            return None
+        '''
         if cookie["token"]["expires"] is None:
             print("token expires なし")
             return None
@@ -296,7 +310,7 @@ def get_token_expires(request: Request) -> str:
     except Exception as e:
         raise CookieException(
             method_name="get_token_expires()",
-            detail="expires取得でエラーが発生しました。",
+            detail="expiresが正常に取得できませんでした。",
             exception=e
         )
 
@@ -327,6 +341,7 @@ async def check_permission_and_stop_order(request: Request):
         if last_order is None:
             return False, None
         else:
+            logger.info(f"check_permission_and_stop_order() - きょう２度目の注文を阻止")
             return True, last_order
     else:
         # Cookieを全部消す
@@ -345,22 +360,24 @@ def stop_twice_order(request: Request):
 '''
 
 @log_decorator
-async def check_permission(request: Request, permits):
-    ''' 権限チェック '''
+async def check_permission(request: Request, permits: list):
+    ''' 権限チェック
+    使用例 admin_view()を参考'''
     '''raise CustomException(
         status.HTTP_401_UNAUTHORIZED,
         "check_permission()",
         f"Not Authorized permission={permission}")'''
-    permission = request.cookies.get("cookie permission")
-    #print(f"permission: {permission}")
-    # Cookieに値がない場合はNoneとなるため、空文字に変換する
-    if permission is None:
-        permission = 0#''
+    permission = request.cookies.get("permission")
 
-    # もし permits に数字が含まれる場合、permissionが数字なら変換する（例："1" → 1）
-    if permission != '' and permission.isdigit():
+    #print(f"permission: {permission}")
+
+    if permission is None or permission == '':
+        permission = 0
+
+    if isinstance(permission, str) and permission.isdigit():
         permission = int(permission)
 
+    #print(f"permits: {permits}")
     if permission in permits:
         return True
 
