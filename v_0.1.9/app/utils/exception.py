@@ -49,7 +49,8 @@ class TokenExpiredException(CustomException):
 
 # 認証不許可例外クラス
 class NotAuthorizedException(CustomException):
-    ''' 例: raise NotAuthorizedException(method_name="access_protected_resource()")'''
+    ''' 例: raise NotAuthorizedException(
+                method_name="access_protected_resource()")'''
     def __init__(
         self,
         method_name: str,
