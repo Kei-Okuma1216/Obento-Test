@@ -124,6 +124,14 @@ async def root(request: Request, response: Response):
         username = payload['sub']
         permission = payload['permission']
 
+        # 権限に応じたリダイレクト先を決定
+        redirect_url = {
+            1: "/order_complete",
+            2: "/manager/me",
+            10: "/shops/me",
+            99: "/admin/me"
+        }.get(permission, "/error")
+
         data = {
             "sub": username,
             "permission": permission,
@@ -137,7 +145,7 @@ async def root(request: Request, response: Response):
         }
 
         response = RedirectResponse(
-            url="/order_complete",
+            url=redirect_url,
             status_code=status.HTTP_303_SEE_OTHER)
        
         set_all_cookies(response, new_data)
