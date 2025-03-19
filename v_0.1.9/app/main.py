@@ -128,7 +128,7 @@ def redirect_error(request: Request, message: str):
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def root(request: Request, response: Response):
+async def root(request: Request):
 
     try:
         logger.info(f"root() - ルートにアクセスしました")
@@ -143,7 +143,7 @@ async def root(request: Request, response: Response):
         logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
             message = "きょう２度目の注文です。重複注文により注文できません"
-            message = f"<html><p>z{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+            message = f"<html><p>{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
 
             return HTMLResponse(message)
 
@@ -170,27 +170,18 @@ async def root(request: Request, response: Response):
 
         # token 解読
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
         username = payload['sub']
         permission = payload['permission']
 
-        # 権限に応じたリダイレクト先を決定
         main_url = await get_main_url(permission)
 
         return await create_auth_response(username, permission, main_url)
 
-    except TokenExpiredException as e:
-        logger.info(e.detail["message"])
-        return redirect_login(request, "ようこそ")
-    except CookieException as e:
-        # CookieException発生時はログイン画面へリダイレクトし、detailのmessageを表示
-        return redirect_login(request, e.detail["message"])
-    except jwt.ExpiredSignatureError:
-        raise TokenExpiredException("root()")
-    except jwt.InvalidTokenError:
-        raise CustomException(
-            status.HTTP_400_BAD_REQUEST,
-            "root()", "無効なトークンです")
+    except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
+        return redirect_login(request, "有効期限が切れたので、再登録してください。")
+    except (CookieException, jwt.InvalidTokenError) as e:
+        return redirect_error(request, e.detail["message"])
+
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -198,11 +189,8 @@ async def root(request: Request, response: Response):
 async def login_get(request: Request):
     try:
         return redirect_login(request, "ようこそ")
-
     except Exception as e:
-        raise CustomException(
-            status.HTTP_404_NOT_FOUND,
-            "login_get()",f"Error:  {e.detail}")
+        return redirect_error(request, e.detail["message"])
 
 # -----------------------------------------------------
 import bcrypt
@@ -223,14 +211,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         raise CustomException("verify_password()", message=str(e))
 
 @log_decorator
-async def authenticate_user(username, password) -> Optional[UserBase]:
+async def authenticate_user(username, password, name) -> Optional[UserBase]:
     """ ログイン認証 """
     try:
         user : UserResponse = await select_user(username)
 
         if user is None:
             logger.debug(f"ユーザーが存在しません: {username}")
-            await insert_new_user(username, password, 'name')
+            await insert_new_user(username, password, name)
             user: UserResponse = await select_user(username)
 
         logger.info(f"authenticate_user() - 認証試行: {user.username}")
@@ -257,38 +245,36 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
 
         return user
 
-    except NotAuthorizedException as e:
-        raise
-    except SQLException as e:
+    except (NotAuthorizedException, SQLException) as e:
         raise
     except Exception as e:
         raise CustomException(
             status.HTTP_405_METHOD_NOT_ALLOWED,
             f"authenticate_user()",
             f"予期せぬエラー{e}")
-
+# -----------------------------------------------------
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def login_post(request: Request, response: Response,                 
+async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
     ''' ログインPOST '''
     try:
         username = form_data.username
         password = form_data.password
 
-        user = await authenticate_user(username, password) 
+        user = await authenticate_user(username, password, '') 
 
         permission = user.get_permission()
         main_url = await get_main_url(permission)
 
         return await create_auth_response(user.get_username(), permission, main_url)
 
-    except NotAuthorizedException as e:
-        return redirect_login(request, e.detail["message"])
-    except SQLException as e:
-        raise
-    except HTTPException as e:
-        raise
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException, NotAuthorizedException) as e:
+        logger.debug(f"{login_post() -  e.detail["message"]}")
+        return redirect_login(request, "有効期限が切れたので、再登録してください。")
+    except (CookieException, SQLException, HTTPException) as e:
+        logger.debug(f"{login_post() -  e.detail["message"]}")
+        return redirect_error(request, "内部で障害が発生しました")
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -307,7 +293,8 @@ async def regist_complete(request: Request, response: Response):
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
-            return redirect_login(response, "ログインに失敗しました")
+            #return redirect_error(response, "ログインに失敗しました")
+            raise SQLException("select_user()")
 
         await insert_order(
             user.company_id,
@@ -336,8 +323,8 @@ async def regist_complete(request: Request, response: Response):
         return await order_table_view(
             request, response, orders, "order_complete.html")
 
-    except SQLException as e:
-        raise
+    except (SQLException, HTTPException) as e:
+        return redirect_error(request, e.detail["message"])
     except HTTPException as e:
         raise
     except Exception as e:
