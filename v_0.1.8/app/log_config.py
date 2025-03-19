@@ -63,8 +63,8 @@ logger.addHandler(console_handler)  # 追加
 
 
 # -----------------------------------------------------
-'''
-C:\Windows\System32\cmd.exe /k "cd /d C:\Obento-Test\v_0.1.7\app & .\env\Scripts\activate & uvicorn main:app --host 192.168.3.19 --port 8000 --ssl-keyfile=C:\Obento-Test\v_0.1.7\app\my-local.key --ssl-certfile=C:\Obento-Test\v_0.1.7\app\my-local.crt --log-level info"
+''' 起動コマンド
+C:\Windows\System32\cmd.exe /k "cd /d C:\Obento-Test\v_0.1.8\app & .\env\Scripts\activate & uvicorn main:app --host 192.168.3.19 --port 8000 --ssl-keyfile=C:\Obento-Test\v_0.1.8\app\my-local.key --ssl-certfile=C:\Obento-Test\v_0.1.8\app\my-local.crt --log-level info"
 '''
 
 
