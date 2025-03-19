@@ -1,5 +1,5 @@
 # main.py
-# 1.7 SQLAlchemy移行
+# 1.8 テスト１回目完了後
 import asyncio
 import os
 import sys
@@ -84,7 +84,7 @@ async def root(request: Request, response: Response):
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
-        #await init_database()
+        #await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.1.8")
 
@@ -111,11 +111,11 @@ async def root(request: Request, response: Response):
         expires = get_token_expires(request)
 
         if compare_expire_date(expires):
-            # True expires無効
+            # expires 無効
             message = "登録有効期限が切れています。再登録をしてください。"
             return redirect_login(request, message)
         else:
-            # False expires有効
+            # expires 有効
             logger.debug("token is not expired.")
 
         # token 解読

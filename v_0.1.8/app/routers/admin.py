@@ -1,6 +1,7 @@
 # admin.py
 import bcrypt
-from fastapi import Request, APIRouter, status
+import os
+from fastapi import Request, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database.sqlite_database import update_user, get_all_users
@@ -11,18 +12,7 @@ from venv import logger
 templates = Jinja2Templates(directory="templates")
 
 admin_router = APIRouter()
-'''
-@log_decorator
-def check_admin_permission(request: Request):
-    # 管理者の権限チェック
-    permission = request.cookies.get("permission")
-    #print(f"permission: {permission}")
-    if permission != "99":
-        raise CustomException(
-            status.HTTP_401_UNAUTHORIZED,
-            "check_admin_permission()",
-            f"Not Authorized permission={permission}")
-'''
+
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
 @admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
@@ -70,6 +60,31 @@ async def check_device(request: Request):
     is_mobile = any(keyword in user_agent for keyword in ["iphone", "android", "mobile"])
 
     return {"user_agent": user_agent, "is_mobile": is_mobile}
+
+
+
+@admin_router.get("/logs", response_class=HTMLResponse)
+def list_logs():
+    # logsディレクトリ内のファイル一覧を取得
+    log_dir = "logs"
+    if not os.path.exists(log_dir):
+        return "<h1>ログディレクトリが存在しません</h1>"
+    log_files = sorted(os.listdir(log_dir), reverse=True)
+    # 各ログファイルへのリンクを作成
+    links = [f"<li><a href='/admin/logs/{file}'>{file}</a></li>" for file in log_files]
+    return f"<h1>ログ一覧</h1><ul>{''.join(links)}</ul>"
+
+@admin_router.get("/logs/{filename}", response_class=HTMLResponse)
+def view_log(filename: str):
+    log_path = os.path.join("logs", filename)
+    if os.path.exists(log_path):
+        with open(log_path, "r", encoding="utf-8") as f:
+            # 改行を<br>に置換してHTML上で見やすく表示
+            content = f.read().replace('\n', '<br>')
+        return f"<h1>{filename}</h1><pre>{content}</pre>"
+    else:
+        return "ログファイルが存在しません。"
+
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる
