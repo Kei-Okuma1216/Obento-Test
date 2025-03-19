@@ -89,17 +89,10 @@ def set_all_cookies(response: Response, user: Dict):
         username = user['sub']
         token = user['token']
         permission = user['permission']
-        #max_age = user['max-age']
 
         # expiresを30日後に設定する
         future_time = datetime.now(timezone.utc) + timedelta(days=30)
         new_expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
-
-        '''print("set all cookies")
-        print(f" UserName: {username}")
-        print(f" Token: {token}")
-        print(f" max-age: {max_age}")
-        print(f" Permission: {permission}")'''
 
         response.set_cookie(key="token", value=token, expires=new_expires)
         response.set_cookie(key="sub", value=username, expires=new_expires)
@@ -122,24 +115,11 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         print(f"cookies['sub']: {username}")
 
         if username is None:
-            logger.info("get_all_cookies() - cookies['sub']が存在しません")
-            #print("cookies['sub']が存在しません")
-            #return HTMLResponse("<html><p>ユーザー情報が取得できませんでした。</p></html>")
+            logger.info("get_all_cookies() - 初回アクセスは cookies['sub']が存在しません")
             return None
 
         token = request.cookies.get("token")
-        #exp = request.cookies.get("exp")
         permission = request.cookies.get("permission")
-
-        # いずれかが None の場合は例外を発生
-        ''' 実装しない。理由：初回アクセスはCookieがないから
-            if None in (username, token, exp, permission):
-            raise CookieException(
-                method_name="get_all_cookies",
-                detail="必須のクッキーが不足しています")'''
-
-        # permission は整数に変換
-        #permission = int(permission)
 
         set_cookie_header = request.headers.get("cookie")
         # `Set-Cookie` をパース
@@ -148,12 +128,6 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
 
         # `max-age` を取得
         expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
-
-        '''logger.debug(f"get_all_cookies() - sub: {username}")
-        logger.debug(f"get_all_cookies() - token: {token}")
-        logger.debug(f"get_all_cookies() - exp: {exp}")
-        logger.debug(f"get_all_cookies() - permission: {permission}")
-        logger.debug(f"get_all_cookies() - max-age: {max_age}")'''
 
         data = {
             "sub": username,
@@ -178,14 +152,10 @@ def delete_all_cookies(response: Response):
     try:
         response.delete_cookie(key="sub")
         response.delete_cookie(key="token")
-        print("ここまできた 2")
-        #response.delete_cookie(key="max-age")
         response.delete_cookie(key="permission")
-        response.delete_cookie(key="oreder_twice")
-        
-        print("ここまできた 3")
-        
+        #response.delete_cookie(key="order_twice")
         response.delete_cookie(key="last_order_date")
+
         logger.debug("delete_all_cookies()", "all cookies deleted")
 
     except KeyError as e:
@@ -247,11 +217,6 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
 
     future_time = end_time - current_time
 
-    '''logger.debug(f"end_of_day: {end_of_day}")
-    logger.debug(f"max_time: {end_time}")
-    logger.debug(f"now: {current}")
-    logger.debug(f"current_time: {current_time}")
-    logger.debug(f"future_time: {future_time}")'''
     print(f"last_order_date: {last_order_date}")
     print(f"future_time: {future_time}")
     
@@ -287,16 +252,6 @@ def get_token_expires(request: Request) -> str:
         cookie = SimpleCookie()
         cookie.load(set_cookie_header)
 
-        '''# "token" が存在しない場合も None を返す
-        if "token" not in cookie:
-            logger.debug("Cookie 内に 'token' が存在しないため、expires の取得をスキップします")
-            return None
-
-        # token 内に "expires" 属性がなければ None を返す
-        if "expires" not in cookie["token"] or not cookie["token"]["expires"]:
-            logger.debug("Cookie の 'token' に有効な 'expires' 属性が存在しないため、スキップします")
-            return None
-        '''
         if cookie["token"]["expires"] is None:
             print("token expires なし")
             return None
@@ -348,16 +303,6 @@ async def check_permission_and_stop_order(request: Request):
         delete_all_cookies(request)
         return False, None
 
-'''
-@log_decorator
-def stop_twice_order(request: Request):
-    last_order = request.cookies.get("last_order_date")
-    print(f"last_order: {last_order}")
-    if last_order != None:
-        return True # 注文処理をやめる
-    else:
-        return False
-'''
 
 @log_decorator
 async def check_permission(request: Request, permits: list):

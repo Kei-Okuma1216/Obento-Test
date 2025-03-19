@@ -96,7 +96,7 @@ async def create_auth_response(
 def redirect_login(request: Request, message: str):
     '''login.htmlに戻る'''
     try:
-        logger.debug(f"message: {message}")
+        logger.debug(f"login.html -  message: {message}")
 
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
@@ -106,6 +106,22 @@ def redirect_login(request: Request, message: str):
         raise CustomException(
             status.HTTP_404_NOT_FOUND,
             "redirect_login()",
+            f"Error: {e.detail}")
+
+@log_decorator
+def redirect_error(request: Request, message: str):
+    '''error.htmlに戻る'''
+    try:
+        logger.debug(f"error.html -  message: {message}")
+
+        return templates.TemplateResponse(
+            "error.html", {"request": request, "message": message})
+    except HTTPException as e:
+        raise
+    except Exception as e:
+        raise CustomException(
+            status.HTTP_404_NOT_FOUND,
+            "redirect_error()",
             f"Error: {e.detail}")
 
 # -----------------------------------------------------
@@ -120,7 +136,7 @@ async def root(request: Request, response: Response):
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
         #await init_database() # 昨日の二重注文禁止が有効か確認する
 
-        print("v_0.1.8")
+        print("v_0.1.9")
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request)
@@ -160,35 +176,7 @@ async def root(request: Request, response: Response):
 
         # 権限に応じたリダイレクト先を決定
         main_url = await get_main_url(permission)
-        '''
-        redirect_url = {
-            1: "/order_complete",
-            2: "/manager/me",
-            10: "/shops/me",
-            99: "/admin/me"
-        }.get(permission, "/error")
-        '''
-        '''data = {
-            "sub": username,
-            "permission": permission,
-        }
-        access_token, expires = get_new_token(data)
-        new_data = {
-            "sub": username,
-            "permission": permission,
-            "token": access_token,
-            "expires": expires
-        }
 
-        response = RedirectResponse(
-            url=redirect_url,
-            status_code=status.HTTP_303_SEE_OTHER)
-       
-        set_all_cookies(response, new_data)
-
-        return response'''
-
-        # ヘルパー関数を利用して新しいトークン生成と Cookie 設定・リダイレクトレスポンスを返す
         return await create_auth_response(username, permission, main_url)
 
     except TokenExpiredException as e:
@@ -214,8 +202,7 @@ async def login_get(request: Request):
     except Exception as e:
         raise CustomException(
             status.HTTP_404_NOT_FOUND,
-            "login_get()",
-            f"Error:  {e.detail}")
+            "login_get()",f"Error:  {e.detail}")
 
 # -----------------------------------------------------
 import bcrypt
@@ -230,8 +217,10 @@ def hash_password(password: str) -> str:
 @log_decorator
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
-
-    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except Exception as e:
+        raise CustomException("verify_password()", message=str(e))
 
 @log_decorator
 async def authenticate_user(username, password) -> Optional[UserBase]:
@@ -252,7 +241,7 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
             #logger.info("パスワードが一致しません")
             #return None
             raise NotAuthorizedException(
-                method_name="authenticate_user",
+                method_name="verify_password()",
                 detail="パスワードが一致しません"
             )
 
@@ -288,55 +277,10 @@ async def login_post(request: Request, response: Response,
         password = form_data.password
 
         user = await authenticate_user(username, password) 
-        #if user is None:
-        #    return redirect_login(response, "ログインに失敗しました")
-        '''raise CustomException(
-                status.HTTP_404_NOT_FOUND,
-                "login_post()",
-                f"user:{user} 取得に失敗しました")'''
 
-        #logger.debug("username と password一致")
-
-        # リダイレクト前
         permission = user.get_permission()
-        print("get_main_urlに入る")
         main_url = await get_main_url(permission)
-        '''
-        # prefix込みでリダイレクト
-        redirect_url = {
-            1: "/order_complete",
-            2: "/manager/me",
-            10: "/shops/me",
-            99: "/admin/me"}.get(permission, "/error")
-        logger.debug(f"redirect_url: {redirect_url}")'''
 
-        '''response = RedirectResponse(
-            url=redirect_url, status_code=303)
-
-        data = {
-            'sub': user.get_username(),
-            'token': user.get_token(),
-            'max-age': user.get_exp(),
-            'permission': user.get_permission()
-        }
-        #print(f" 'sub': {user.get_username()}")
-        #print(f" 'token': {user.get_token()}")
-        #print(f" 'max-age': {user.get_exp()}")
-        #print(f" 'permission': {user.get_permission()}")
-        logger.debug(f"login_post() - 'sub': {user.get_username()}")
-        logger.debug(f"login_post() - 'token': {user.get_token()}")
-        logger.debug(f"login_post() - 'expires': {user.get_exp()}")
-        logger.debug(f"login_post() - 'permission': {user.get_permission()}")
-
-        set_all_cookies(response, data)
-
-        return response'''
-        # トークンのsave
-        #username = user.get_username()
-        #await update_user(username, "token", user.get_token())
-        #await update_user(username, "max-age", user.get_exp())
-        
-        # ヘルパー関数を利用してレスポンスを生成
         return await create_auth_response(user.get_username(), permission, main_url)
 
     except NotAuthorizedException as e:
@@ -364,10 +308,6 @@ async def regist_complete(request: Request, response: Response):
 
         if user is None:
             return redirect_login(response, "ログインに失敗しました")
-            '''raise CustomException(
-                status.HTTP_400_BAD_REQUEST,
-                "regist_complete()",
-                f"user:{user} 取得に失敗しました")'''
 
         await insert_order(
             user.company_id,
@@ -393,9 +333,8 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
-        main_view = "order_complete.html"
         return await order_table_view(
-            request, response, orders, main_view)
+            request, response, orders, "order_complete.html")
 
     except SQLException as e:
         raise
@@ -413,7 +352,7 @@ async def regist_complete(request: Request, response: Response):
 @log_decorator
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
-    print("ここまできた 1")
+
     delete_all_cookies(response)
 
     return response
@@ -433,7 +372,6 @@ async def update_cancel_status(update: CancelUpdate):
         return await batch_update_orders(update.updates)
     except Exception as e:
         raise 
-
 
 
 # デバッグ用 例外ハンドラーの設定

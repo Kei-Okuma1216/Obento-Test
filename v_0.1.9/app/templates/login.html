@@ -6,6 +6,10 @@
         <h1>こんにちは！</h1>
         <h2>ここはユーザー登録ページです</h2>
         <!-- エラーメッセージがある場合に表示 -->
+        {% if error %}
+            <p style="color: red;">{{ error }}</p>
+        {% endif %}
+        <!-- messageがある場合に表示 -->
         {% if message %}
             <p style="color: red;">{{ message }}</p>
         {% endif %}
@@ -20,8 +24,7 @@
             <br>
             <input type="submit" value="OK" id="login_button">
         </form>
-        <h4>例外テスト</h4>
-        <a href="https://192.168.3.19:8000/test_exception">https://192.168.3.19:8000/test_exception</a>
+        <a href="https://192.168.3.19:8000/test_exception">例外テスト</a>
         <Script>
             /**
              * 
