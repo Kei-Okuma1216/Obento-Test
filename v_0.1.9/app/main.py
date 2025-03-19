@@ -49,6 +49,7 @@ from fastapi.staticfiles import StaticFiles
 product_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
 
+# エントリポイントの選択
 endpoint = product_endpoint
 
 
@@ -214,12 +215,12 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 async def authenticate_user(username, password, name) -> Optional[UserBase]:
     """ ログイン認証 """
     try:
-        user : UserResponse = await select_user(username)
+        user : UserResponse = await select_user(username) # UserCreateにするべき
 
         if user is None:
             logger.debug(f"ユーザーが存在しません: {username}")
             await insert_new_user(username, password, name)
-            user: UserResponse = await select_user(username)
+            user: UserResponse = await select_user(username) # UserResponseにするべき
 
         logger.info(f"authenticate_user() - 認証試行: {user.username}")
 
@@ -270,10 +271,10 @@ async def login_post(request: Request,
         return await create_auth_response(user.get_username(), permission, main_url)
 
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException, NotAuthorizedException) as e:
-        logger.debug(f"{login_post() -  e.detail["message"]}")
+        logger.debug(f"login_post() - {e.detail["message"]}")
         return redirect_login(request, "有効期限が切れたので、再登録してください。")
     except (CookieException, SQLException, HTTPException) as e:
-        logger.debug(f"{login_post() -  e.detail["message"]}")
+        logger.debug(f"login_post() - {e.detail["message"]}")
         return redirect_error(request, "内部で障害が発生しました")
     except Exception as e:
         raise CustomException(
@@ -294,7 +295,7 @@ async def regist_complete(request: Request, response: Response):
 
         if user is None:
             #return redirect_error(response, "ログインに失敗しました")
-            raise SQLException("select_user()")
+            raise SQLException("order_complete()")
 
         await insert_order(
             user.company_id,
@@ -325,8 +326,6 @@ async def regist_complete(request: Request, response: Response):
 
     except (SQLException, HTTPException) as e:
         return redirect_error(request, e.detail["message"])
-    except HTTPException as e:
-        raise
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
