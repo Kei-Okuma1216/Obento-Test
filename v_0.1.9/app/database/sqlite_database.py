@@ -214,7 +214,8 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
             INSERT INTO User (username, password, name, token, exp, company_id, shop_name, menu_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             '''
-            await conn.execute(sqlstr, (username, password, name, '', '', company_id, shop_name, menu_id))
+            hashed_password = get_hashed_password(password)
+            await conn.execute(sqlstr, (username, hashed_password, name, '', '', company_id, shop_name, menu_id))
 
             if not isinstance(conn, aiosqlite.Connection):  
                 await conn.commit()
@@ -239,6 +240,14 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
     finally:
         if conn is not None:
             await conn.close()
+
+async def get_hashed_password(password: str):
+    """パスワードをハッシュ化する"""
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
+    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+
+    return new_hashed_password
 
 # 新規ユーザーの登録
 @log_decorator

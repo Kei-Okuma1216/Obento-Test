@@ -280,15 +280,13 @@ async def check_permission_and_stop_order(request: Request):
     # Cookieからpermissionを取得
     permission = request.cookies.get("cookie permission")
     print(f"cookie permission: {permission}")
-    # Cookieに値がなければ空文字（または必要に応じて適切なデフォルト値）に
-    if permission is None:
-        permission = '1'#''
 
-    # permissionが数字の場合は整数に変換する
+    if permission is None:
+        permission = '1'
+
     if permission != '' and permission.isdigit():
         permission = int(permission)
     print(f"permission: {permission}")
-    
     
     # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
     if permission == 1:
@@ -315,7 +313,6 @@ async def check_permission(request: Request, permits: list):
     permission = request.cookies.get("permission")
 
     #print(f"permission: {permission}")
-
     if permission is None or permission == '':
         permission = 0
 
