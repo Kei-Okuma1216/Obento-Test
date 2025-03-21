@@ -97,7 +97,7 @@ async def create_auth_response(
 def redirect_login(request: Request, message: str):
     '''login.htmlに戻る'''
     try:
-        logger.debug(f"login.html -  message: {message}")
+        logger.info(f"login.html -  message: {message}")
 
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
@@ -129,7 +129,7 @@ def redirect_error(request: Request, message: str):
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def root(request: Request):
+async def root(request: Request, response: Response):
 
     token_expired_error_message = "有効期限が切れています。再登録をしてください。"
 
@@ -142,7 +142,7 @@ async def root(request: Request):
         print("v_0.1.9")
 
         # 二重注文の禁止
-        result , last_order = await check_permission_and_stop_order(request)
+        result , last_order = await check_permission_and_stop_order(request, response)
         logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
             message = "きょう２度目の注文です。重複注文により注文できません"

@@ -162,6 +162,7 @@ def delete_all_cookies(response: Response):
         print(f"Missing key: {e}")
     except Exception as e:
         raise CookieException(
+            method_name ="delete_all_cookies()",
             detail="クッキー削除中にエラーが発生しました。",
             exception=e  # `e` を追加
             )
@@ -170,7 +171,7 @@ def delete_all_cookies(response: Response):
 def compare_expire_date(expires: str) -> bool:
     """
     クッキーの有効期限 (`expires`) を現在の UTC 時刻と比較し、期限切れかどうかを判定する。
-    
+
     :param expires: ISO 8601 形式の UTC 日時 (`YYYY-MM-DDTHH:MM:SSZ`)
     :return: 期限が切れていれば True（無効）、まだ有効なら False（有効）
     """
@@ -219,7 +220,7 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
 
     print(f"last_order_date: {last_order_date}")
     print(f"future_time: {future_time}")
-    
+
     response.set_cookie(
         key="last_order_date", value=last_order_date,
         max_age=future_time, httponly=True)
@@ -272,13 +273,13 @@ def get_token_expires(request: Request) -> str:
 
 # チェックする
 @log_decorator
-async def check_permission_and_stop_order(request: Request):
+async def check_permission_and_stop_order(request: Request, response: Response):
     ''' 権限と二重注文チェックを合体させた関数
         - cookie permissionが1の場合に限り、last_order_dateが存在していればTrueを返す
         - それ以外の場合はFalseを返す
     '''
     # Cookieからpermissionを取得
-    permission = request.cookies.get("cookie permission")
+    permission = request.cookies.get("permission")
     print(f"cookie permission: {permission}")
 
     if permission is None:
@@ -287,7 +288,7 @@ async def check_permission_and_stop_order(request: Request):
     if permission != '' and permission.isdigit():
         permission = int(permission)
     print(f"permission: {permission}")
-    
+
     # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
     if permission == 1:
         last_order = request.cookies.get("last_order_date")
@@ -298,7 +299,7 @@ async def check_permission_and_stop_order(request: Request):
             return True, last_order
     else:
         # Cookieを全部消す
-        delete_all_cookies(request)
+        delete_all_cookies(response)
         return False, None
 
 
