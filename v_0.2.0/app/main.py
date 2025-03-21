@@ -1,16 +1,18 @@
 # main.py
-# 1.8 テスト１回目完了後
+# 2.0 SQLAlchemy移行開始
 import asyncio
 import os
 import sys
-from fastapi import Depends, FastAPI, Form, Header, Query, Response, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
-from fastapi.security import OAuth2PasswordRequestForm
-import tracemalloc
 import jwt
 from pydantic import BaseModel
 from starlette import status
-from typing import Optional
+import tracemalloc
+from typing import List, Optional
+
+from fastapi import Depends, FastAPI, Response, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
+from fastapi.security import OAuth2PasswordRequestForm
+
 
 from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
 
@@ -18,9 +20,9 @@ from database.sqlite_database import SQLException, init_database, insert_new_use
 
 from utils.utils import get_token_expires, prevent_order_twice, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator, check_permission_and_stop_order
 from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException
-
+from utils.helper import *
 from services.order_view import order_table_view
-from schemas.schemas import UserBase, UserCreate, UserResponse
+from schemas.schemas import UserBase, UserResponse
 
 # tracemallocを有効にする
 tracemalloc.start()
@@ -49,23 +51,11 @@ from fastapi.staticfiles import StaticFiles
 product_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
 
+# エントリポイントの選択
 endpoint = product_endpoint
 
-@log_decorator
-def redirect_login(request: Request, message: str):
-    '''login.htmlに戻る'''
-    try:
-        logger.debug(f"message: {message}")
 
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message})
-    except HTTPException as e:
-        raise
-    except Exception as e:
-        raise CustomException(
-            status.HTTP_404_NOT_FOUND,
-            "redirect_login()",
-            f"Error: {e.detail}")
+
 
 # -----------------------------------------------------
 # エントリポイント
@@ -73,20 +63,22 @@ def redirect_login(request: Request, message: str):
 @log_decorator
 async def root(request: Request, response: Response):
 
+    token_expired_error_message = "有効期限が切れています。再登録をしてください。"
+
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
-        #await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
 
-        print("v_0.1.8")
+        print("v_0.1.9")
 
         # 二重注文の禁止
-        result , last_order = await check_permission_and_stop_order(request)
+        result , last_order = await check_permission_and_stop_order(request, response)
         logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
             message = "きょう２度目の注文です。重複注文により注文できません"
-            message = f"<html><p>z{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+            message = f"<html><p>{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
 
             return HTMLResponse(message)
 
@@ -105,59 +97,30 @@ async def root(request: Request, response: Response):
 
         if compare_expire_date(expires):
             # expires 無効
-            message = "登録有効期限が切れています。再登録をしてください。"
-            return redirect_login(request, message)
+            return redirect_login(request, token_expired_error_message)
         else:
             # expires 有効
             logger.debug("token is not expired.")
 
         # token 解読
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-
         username = payload['sub']
         permission = payload['permission']
 
-        # 権限に応じたリダイレクト先を決定
-        redirect_url = {
-            1: "/order_complete",
-            2: "/manager/me",
-            10: "/shops/me",
-            99: "/admin/me"
-        }.get(permission, "/error")
+        main_url = await get_main_url(permission)
 
-        data = {
-            "sub": username,
-            "permission": permission,
-        }
-        access_token, expires = get_new_token(data)
-        new_data = {
-            "sub": username,
-            "permission": permission,
-            "token": access_token,
-            "expires": expires
-        }
+        return await create_auth_response(
+            username, permission, main_url)
 
-        response = RedirectResponse(
-            url=redirect_url,
-            status_code=status.HTTP_303_SEE_OTHER)
-       
-        set_all_cookies(response, new_data)
+    except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
+        logger.error(e.detail["message"])
+        return redirect_login(
+            request, token_expired_error_message)
+    except (CookieException, jwt.InvalidTokenError) as e:
+        logger.error(e.detail["message"])
+        return redirect_error(
+            request, token_expired_error_message)
 
-        return response
-
-    except TokenExpiredException as e:
-        logger.info(e.detail["message"])
-        return redirect_login(request, "ようこそ")
-    except CookieException as e:
-        # CookieException発生時はログイン画面へリダイレクトし、detailのmessageを表示
-        return redirect_login(request, e.detail["message"])
-    except jwt.ExpiredSignatureError:
-        raise TokenExpiredException("root()")
-    except jwt.InvalidTokenError:
-        raise CustomException(
-            status.HTTP_400_BAD_REQUEST,
-            "root()",
-            "無効なトークンです")
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -165,12 +128,8 @@ async def root(request: Request, response: Response):
 async def login_get(request: Request):
     try:
         return redirect_login(request, "ようこそ")
-
     except Exception as e:
-        raise CustomException(
-            status.HTTP_404_NOT_FOUND,
-            "login_get()",
-            f"Error:  {e.detail}")
+        return redirect_error(request, e.detail["message"])
 
 # -----------------------------------------------------
 import bcrypt
@@ -185,29 +144,31 @@ def hash_password(password: str) -> str:
 @log_decorator
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """入力されたパスワードがハッシュと一致するか検証"""
-
-    return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    try:
+        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+    except Exception as e:
+        raise CustomException("verify_password()", message=str(e))
 
 @log_decorator
-async def authenticate_user(username, password) -> Optional[UserBase]:
+async def authenticate_user(username, password, name) -> Optional[UserBase]:
     """ ログイン認証 """
     try:
-        user : UserResponse = await select_user(username)
+        user : UserResponse = await select_user(username) # UserCreateにするべき
 
         if user is None:
             logger.debug(f"ユーザーが存在しません: {username}")
-            await insert_new_user(username, password, 'name')
-            user: UserResponse = await select_user(username)
+            await insert_new_user(username, password, name)
+            user: UserResponse = await select_user(username) # UserResponseにするべき
 
-        logger.info(f"認証試行: {user.username}")
+        logger.info(f"authenticate_user() - 認証試行: {user.username}")
 
         # ハッシュ化されたパスワードと入力パスワードを比較
         if not verify_password(password, user.get_password()):
-            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある　'''
+            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
             #logger.info("パスワードが一致しません")
             #return None
             raise NotAuthorizedException(
-                method_name="authenticate_user",
+                method_name="verify_password()",
                 detail="パスワードが一致しません"
             )
 
@@ -223,79 +184,38 @@ async def authenticate_user(username, password) -> Optional[UserBase]:
 
         return user
 
-    except NotAuthorizedException as e:
-        raise
-    except SQLException as e:
+    except (NotAuthorizedException, SQLException) as e:
         raise
     except Exception as e:
         raise CustomException(
             status.HTTP_405_METHOD_NOT_ALLOWED,
             f"authenticate_user()",
             f"予期せぬエラー{e}")
-
+# -----------------------------------------------------
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def login_post(request: Request, response: Response,                 
+async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
     ''' ログインPOST '''
     try:
         username = form_data.username
         password = form_data.password
 
-        user = await authenticate_user(username, password) 
-        #if user is None:
-        #    return redirect_login(response, "ログインに失敗しました")
-        '''raise CustomException(
-                status.HTTP_404_NOT_FOUND,
-                "login_post()",
-                f"user:{user} 取得に失敗しました")'''
+        user = await authenticate_user(username, password, '') 
 
-        #logger.debug("username と password一致")
-
-        # リダイレクト前
         permission = user.get_permission()
+        main_url = await get_main_url(permission)
 
-        # prefix込みでリダイレクト
-        redirect_url = {
-            1: "/order_complete",
-            2: "/manager/me",
-            10: "/shops/me",
-            99: "/admin/me"}.get(permission, "/error")
-        logger.debug(f"redirect_url: {redirect_url}")
+        return await create_auth_response(user.get_username(), permission, main_url)
 
-        response = RedirectResponse(
-            url=redirect_url, status_code=303)
-
-        data = {
-            'sub': user.get_username(),
-            'token': user.get_token(),
-            'max-age': user.get_exp(),
-            'permission': user.get_permission()
-        }
-        #print(f" 'sub': {user.get_username()}")
-        #print(f" 'token': {user.get_token()}")
-        #print(f" 'max-age': {user.get_exp()}")
-        #print(f" 'permission': {user.get_permission()}")
-        logger.debug(f"login_post() - 'sub': {user.get_username()}")
-        logger.debug(f"login_post() - 'token': {user.get_token()}")
-        logger.debug(f"login_post() - 'expires': {user.get_exp()}")
-        logger.debug(f"login_post() - 'permission': {user.get_permission()}")
-
-        set_all_cookies(response, data)
-
-        # トークンのsave
-        #username = user.get_username()
-        #await update_user(username, "token", user.get_token())
-        #await update_user(username, "max-age", user.get_exp())
-
-        return response
-
-    except NotAuthorizedException as e:
-        return redirect_login(request, e.detail["message"])
-    except SQLException as e:
-        raise
-    except HTTPException as e:
-        raise
+    except (NotAuthorizedException) as e:
+        return redirect_login(request, "パスワードが間違っています。")
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
+        logger.info(f"login_post() - {e.detail["message"]}")
+        return redirect_login(request, "有効期限が切れたので、再登録してください。")
+    except (CookieException, SQLException, HTTPException) as e:
+        logger.error(f"login_post() - {e.detail["message"]}")
+        return redirect_error(request, "内部で障害が発生しました")
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -310,15 +230,10 @@ async def regist_complete(request: Request, response: Response):
     try:
         cookies = get_all_cookies(request)
 
-        # 注文追加
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
-            return redirect_login(response, "ログインに失敗しました")
-            '''raise CustomException(
-                status.HTTP_400_BAD_REQUEST,
-                "regist_complete()",
-                f"user:{user} 取得に失敗しました")'''
+            raise SQLException("regist_complete()")
 
         await insert_order(
             user.company_id,
@@ -344,14 +259,11 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
-        main_view = "order_complete.html"
         return await order_table_view(
-            request, response, orders, main_view)
+            request, response, orders, "order_complete.html")
 
-    except SQLException as e:
-        raise
-    except HTTPException as e:
-        raise
+    except (SQLException, HTTPException) as e:
+        return redirect_error(request, e.detail["message"])
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -364,14 +276,12 @@ async def regist_complete(request: Request, response: Response):
 @log_decorator
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
-    print("ここまできた 1")
+
     delete_all_cookies(response)
 
     return response
 
 
-
-from typing import List
 
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
@@ -386,7 +296,6 @@ async def update_cancel_status(update: CancelUpdate):
         return await batch_update_orders(update.updates)
     except Exception as e:
         raise 
-
 
 
 # デバッグ用 例外ハンドラーの設定
@@ -413,8 +322,7 @@ async def test_exception():
         "test_exception()",
         "これはテストエラーです")
 
-#app.mount("/static", StaticFiles(directory="static"), name="static")
-# Ensure favicon.ico is accessible
+
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
     # ブラウザが要求するfaviconのエラーを防ぐ
@@ -425,7 +333,6 @@ def favicon():
  
 # Mount the directory where favicon.ico is located 
 # faviconのマウント
-#app.mount("/static", StaticFiles(directory="static"), name="static")
 from fastapi.staticfiles import StaticFiles
 static_path = os.path.join(os.path.dirname(__file__), "static")  # 絶対パスに変換
 app.mount("/static", StaticFiles(directory=static_path), name="static")
