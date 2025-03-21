@@ -233,7 +233,7 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
 
         # ハッシュ化されたパスワードと入力パスワードを比較
         if not verify_password(password, user.get_password()):
-            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある　'''
+            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
             #logger.info("パスワードが一致しません")
             #return None
             raise NotAuthorizedException(
@@ -277,7 +277,9 @@ async def login_post(request: Request,
 
         return await create_auth_response(user.get_username(), permission, main_url)
 
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException, NotAuthorizedException) as e:
+    except (NotAuthorizedException) as e:
+        return redirect_login(request, "パスワードが間違っています。")
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
         logger.info(f"login_post() - {e.detail["message"]}")
         return redirect_login(request, "有効期限が切れたので、再登録してください。")
     except (CookieException, SQLException, HTTPException) as e:
