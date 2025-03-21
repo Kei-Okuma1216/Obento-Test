@@ -108,7 +108,8 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders_dict = [order.model_dump() for order in orders]
         orders_json = json.dumps(orders_dict, default=str)  # ← datetime を文字列に変換
 
-        return JSONResponse(content=json.loads(orders_json))  # JSON をパースしてレスポンス
+        #return JSONResponse(content=json.loads(orders_json))  # JSON をパースしてレスポンス
+        return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
     except DatabaseConnectionException as e:
         raise

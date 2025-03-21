@@ -109,11 +109,11 @@ def redirect_login(request: Request, message: str):
             "redirect_login()",
             f"Error: {e.detail}")
 
-@log_decorator
+@log_decorator # eも組み込みたい
 def redirect_error(request: Request, message: str):
     '''error.htmlに戻る'''
     try:
-        logger.debug(f"error.html -  message: {message}")
+        logger.error(f"error.html -  message: {message}")
 
         return templates.TemplateResponse(
             "error.html", {"request": request, "message": message})
@@ -130,6 +130,8 @@ def redirect_error(request: Request, message: str):
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def root(request: Request):
+
+    token_expired_error_message = "有効期限が切れています。再登録をしてください。"
 
     try:
         logger.info(f"root() - ルートにアクセスしました")
@@ -163,8 +165,8 @@ async def root(request: Request):
 
         if compare_expire_date(expires):
             # expires 無効
-            message = "登録有効期限が切れています。再登録をしてください。"
-            return redirect_login(request, message)
+            #message = "登録有効期限が切れています。再登録をしてください。"
+            return redirect_login(request, token_expired_error_message)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -176,12 +178,17 @@ async def root(request: Request):
 
         main_url = await get_main_url(permission)
 
-        return await create_auth_response(username, permission, main_url)
+        return await create_auth_response(
+            username, permission, main_url)
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        return redirect_login(request, "有効期限が切れたので、再登録してください。")
+        logger.error(e.detail["message"])
+        return redirect_login(
+            request, token_expired_error_message)
     except (CookieException, jwt.InvalidTokenError) as e:
-        return redirect_error(request, e.detail["message"])
+        logger.error(e.detail["message"])
+        return redirect_error(
+            request, token_expired_error_message)
 
 
 # ログイン画面を表示するエンドポイント
@@ -271,10 +278,10 @@ async def login_post(request: Request,
         return await create_auth_response(user.get_username(), permission, main_url)
 
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException, NotAuthorizedException) as e:
-        logger.debug(f"login_post() - {e.detail["message"]}")
+        logger.info(f"login_post() - {e.detail["message"]}")
         return redirect_login(request, "有効期限が切れたので、再登録してください。")
     except (CookieException, SQLException, HTTPException) as e:
-        logger.debug(f"login_post() - {e.detail["message"]}")
+        logger.error(f"login_post() - {e.detail["message"]}")
         return redirect_error(request, "内部で障害が発生しました")
     except Exception as e:
         raise CustomException(
@@ -290,12 +297,10 @@ async def regist_complete(request: Request, response: Response):
     try:
         cookies = get_all_cookies(request)
 
-        # 注文追加
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
-            #return redirect_error(response, "ログインに失敗しました")
-            raise SQLException("order_complete()")
+            raise SQLException("regist_complete()")
 
         await insert_order(
             user.company_id,
