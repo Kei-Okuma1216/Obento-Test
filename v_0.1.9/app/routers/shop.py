@@ -15,23 +15,6 @@ templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter()
 
-'''
-# お店の権限チェック
-@deprecated
-@log_decorator
-def check_store_permission(request: Request):
-    permission = request.cookies.get("permission")
-    logger.debug(f"check_store_permission: {permission}")
-    if permission is None:
-        raise CustomException(
-            status.HTTP_403_FORBIDDEN,
-            "order_json()",
-            "Permission Data is not Contained")
-
-    if permission == [10,99]:
-        raise CustomException(status.HTTP_401_UNAUTHORIZED, "Not Authorized")
-'''
-
 @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
 @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
 @log_decorator

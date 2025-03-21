@@ -214,12 +214,13 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
             INSERT INTO User (username, password, name, token, exp, company_id, shop_name, menu_id)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             '''
+            # hassing
             hashed_password = await get_hashed_password(password)
             await conn.execute(sqlstr, (username, hashed_password, name, '', '', company_id, shop_name, menu_id))
 
             if not isinstance(conn, aiosqlite.Connection):  
                 await conn.commit()
-            
+
             #await conn.commit()  # INSERT が実行されたときのみ commit()
             logger.info("ユーザー追加成功")        
             logger.debug(f"insert_user() - {sqlstr} , company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id})")
@@ -283,12 +284,12 @@ async def insert_shop(username, password, shop_name):
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             '''
 
-            await conn.execute(sqlstr, (username, password, shop_name, '', '9999-12-31 23:59', 1, username, 1, 10))
+            await conn.execute(sqlstr, (username, password, shop_name, '', '', 1, username, 1, 10))
 
         await conn.commit()
         
         logger.debug(f"insert_shop() - {sqlstr} , username: {username}, name: {shop_name}, shop_name: {username},  menu_id: 1, permission: 10)")
-        logger.info("ユーザー追加成功")
+        logger.info("店舗ユーザー追加成功")
 
     except DatabaseConnectionException as e:
         raise

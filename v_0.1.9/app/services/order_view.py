@@ -56,7 +56,7 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         #print(f"/order_table_view Error: {str(e)}")
         #return JSONResponse({"message": "エラーが発生しました"},
         #                    e.status_code)
-
+'''
 # 注文情報JSON取得
 @log_decorator
 async def get_order_json(request: Request, days_ago: str = Query(None)):
@@ -75,17 +75,18 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
             logger.debug(f"user:{user} 取得に失敗しました")
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
+        # 履歴取得処理
         if days_ago is not None:
             logger.debug(f"days_ago: {int(days_ago)}")
 
         #print(f"days_ago: {days_ago}")
         # 履歴取得
-        if days_ago is None:
+        if days_ago is None or days_ago == '':
             logger.debug("全履歴を取得する") 
             orders = await select_shop_order(user.shop_name)
 
         elif days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit()):
-            logger.debug(f"{days_ago} 日前までの履歴を取得する")
+            logger.info(f"{days_ago} 日前までの履歴を取得する")
 
             orders = await select_shop_order(user.shop_name, days_ago)
         else:
@@ -119,6 +120,50 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders = []
         logger.warning(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+'''
+@log_decorator
+async def get_order_json(request: Request, days_ago: str = Query(None)):
+    try:
+        cookies = get_all_cookies(request)
+        if not cookies:
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+        user = await select_user(cookies['sub'])
+        if user is None:
+            logger.debug(f"user:{user} 取得に失敗しました")
+            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+        # days_ago の値が None、空文字、または数値形式でなければエラーを返す
+        if days_ago is None or days_ago.strip() == "":
+            logger.debug("days_ago の値が無効です (空文字または未指定)")
+            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+        if not (days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit())):
+            logger.debug("days_ago の値が無効です (半角数値以外)")
+            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+
+        # 正常な場合は整数に変換
+        days_ago_int = int(days_ago)
+        logger.debug(f"days_ago: {days_ago_int}")
+
+        # 履歴取得処理（days_ago_intを使って履歴を取得）
+        orders = await select_shop_order(user.shop_name, days_ago_int)
+
+        if not orders:
+            logger.info("No orders found or error occurred.")
+            return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
+
+        # 日時で逆順にソート
+        orders.sort(key=lambda x: x.created_at, reverse=True)
+
+        orders_dict = [order.model_dump() for order in orders]
+        orders_json = json.dumps(orders_dict, default=str)
+
+        return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
+
+    except Exception as e:
+        logger.warning(f"/order_json Error: {str(e)}")
+        return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+
 
 # キャンセルチェック状態を更新
 async def batch_update_orders(updates: list[dict]):
