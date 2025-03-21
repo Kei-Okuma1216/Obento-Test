@@ -148,6 +148,12 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         # 履歴取得処理（days_ago_intを使って履歴を取得）
         orders = await select_shop_order(user.shop_name, days_ago_int)
 
+        # days_agoが0の場合は、当日の注文のみを抽出する
+        if days_ago_int == 0:
+            from utils.utils import get_now, JST
+            today_date = get_now(JST).date()
+            orders = [order for order in orders if order.created_at.date() == today_date]
+
         if not orders:
             logger.info("No orders found or error occurred.")
             return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
@@ -163,6 +169,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
     except Exception as e:
         logger.warning(f"/order_json Error: {str(e)}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+
 
 
 # キャンセルチェック状態を更新
