@@ -21,8 +21,8 @@ from database.sqlite_database import SQLException, init_database, insert_new_use
 from utils.utils import get_token_expires, prevent_order_twice, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator, check_permission_and_stop_order
 from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException
 from utils.helper import *
-from services.order_view import order_table_view
-from schemas.schemas import UserBase, UserResponse
+from services.order_view import order_table_view, batch_update_orders
+from schemas.schemas import UserResponse
 
 # tracemallocを有効にする
 tracemalloc.start()
@@ -30,7 +30,7 @@ tracemalloc.start()
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
-from routers.admin import admin_router, update_existing_passwords
+from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
 #from routers.user import user_router
@@ -46,7 +46,6 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from fastapi.staticfiles import StaticFiles
 
-#from crud import hash_password, verify_password, get_user, create_user 
 
 product_endpoint = 'https://192.168.3.19:8000'
 develop_endpoint = 'https://127.0.0.1:8000'
@@ -56,8 +55,8 @@ endpoint = product_endpoint
 
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません"
-
+forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。"
+login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
 # エントリポイント
@@ -69,7 +68,7 @@ async def root(request: Request, response: Response):
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        #await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.2.0")
 
@@ -77,9 +76,16 @@ async def root(request: Request, response: Response):
         result , last_order = await check_permission_and_stop_order(request, response)
         logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
-            message = f"<html><p>{forbid_second_order_message}</p><a>last order: {last_order} </a><br><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+            return templates.TemplateResponse(
+                "duplicate_order.html",
+                {
+                    "request": request,
+                    "forbid_second_order_message": forbid_second_order_message,
+                    "last_order": last_order,
+                    "endpoint": endpoint
+                }
+            )
 
-            return HTMLResponse(message)
 
         # cookies チェック
         token = request.cookies.get("token")
@@ -112,11 +118,9 @@ async def root(request: Request, response: Response):
             username, permission, main_url)
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        logger.error(e.detail["message"])
         return redirect_login(
             request, token_expired_error_message)
     except (CookieException, jwt.InvalidTokenError) as e:
-        #logger.error(e.detail["message"])
         return redirect_error(
             request, token_expired_error_message, e)
 
@@ -129,7 +133,7 @@ async def login_get(request: Request):
         pass
         return redirect_login(request, "ようこそ")
     except Exception as e:
-        return redirect_error(request, "ログインに失敗しました", e)
+        return redirect_error(request, login_error_message, e)
 
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
@@ -152,7 +156,7 @@ async def login_post(request: Request,
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
         return redirect_login(request, token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
-        return redirect_error(request, "login_post()", e)
+        return redirect_error(request, login_error_message, e)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -219,11 +223,8 @@ async def clear_cookie(response: Response):
     return response
 
 
-
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
-
-from services.order_view import batch_update_orders
 
 @app.post("/update_cancel_status")
 @log_decorator
@@ -231,7 +232,7 @@ async def update_cancel_status(update: CancelUpdate):
     ''' チェックの更新 '''
     try:
         return await batch_update_orders(update.updates)
-    except Exception as e:
+    except Exception:
         raise 
 
 

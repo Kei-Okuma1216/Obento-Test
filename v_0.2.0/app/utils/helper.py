@@ -7,8 +7,9 @@ from database.sqlite_database import insert_new_user, select_user
 from local_jwt_module import get_new_token
 from utils.utils import log_decorator, set_all_cookies
 from utils.exception import CustomException, NotAuthorizedException, SQLException
-from ..log_config import logger
+from log_config import logger
 from schemas.schemas import UserBase, UserResponse
+import bcrypt
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
@@ -44,9 +45,10 @@ async def create_auth_response(
             "token": access_token,
             "expires": expires
         }
-        print(f"create_auth_response")
         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
+
         set_all_cookies(response, new_data)
+
         return response
 
     except Exception as e:
@@ -75,7 +77,7 @@ def redirect_error(request: Request, message: str, e: Exception):
         logger.error(f"{message} - detail:{e.detail["message"]}")
         #logger.error(e.detail["message"])
         return templates.TemplateResponse(
-            "error.html", {"request": request, "message": message})
+            "error.html", {"request": request, "error": message})
     except HTTPException as e:
         raise
     except Exception as e:
@@ -84,7 +86,6 @@ def redirect_error(request: Request, message: str, e: Exception):
             "redirect_error()",
             f"Error: {e.detail}")
 
-import bcrypt
 @log_decorator
 def hash_password(password: str) -> str:
     """パスワードをハッシュ化する"""

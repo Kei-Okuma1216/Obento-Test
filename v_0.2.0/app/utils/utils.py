@@ -102,7 +102,7 @@ def set_all_cookies(response: Response, user: Dict):
         return new_expires
         
     except KeyError as e:
-        print(f"Missing key: {e}")
+        logger.error(f"Missing key: {e}")
     except Exception as e:
         raise CookieException(
             method_name="set_all_cookies()",
@@ -218,8 +218,8 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
 
     future_time = end_time - current_time
 
-    print(f"last_order_date: {last_order_date}")
-    print(f"future_time: {future_time}")
+    logger.debug(f"last_order_date: {last_order_date}")
+    logger.debug(f"future_time: {future_time}")
 
     response.set_cookie(
         key="last_order_date", value=last_order_date,
@@ -274,34 +274,42 @@ def get_token_expires(request: Request) -> str:
 # チェックする
 @log_decorator
 async def check_permission_and_stop_order(request: Request, response: Response):
-    ''' 権限と二重注文チェックを合体させた関数
-        - cookie permissionが1の場合に限り、last_order_dateが存在していればTrueを返す
-        - それ以外の場合はFalseを返す
-    '''
-    # Cookieからpermissionを取得
-    permission = request.cookies.get("permission")
-    print(f"cookie permission: {permission}")
+    try:
+        ''' 権限と二重注文チェックを合体させた関数
+            - cookie permissionが1の場合に限り実行する。
+            - last_order_dateが存在していればTrueを返す
+            - それ以外の場合はFalseを返す
+        '''
+        # Cookieからpermissionを取得
+        permission = request.cookies.get("permission")
+        print(f"cookie permission: {permission}")
 
-    if permission is None:
-        permission = '1'
+        if permission is None:
+            permission = '1'
 
-    if permission != '' and permission.isdigit():
-        permission = int(permission)
-    print(f"permission: {permission}")
+        if permission != '' and permission.isdigit():
+            permission = int(permission)
+        #print(f"permission: {permission}")
 
-    # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
-    if permission == 1:
-        last_order = request.cookies.get("last_order_date")
-        if last_order is None:
-            return False, None
+        # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
+        if permission == 1:
+            last_order = request.cookies.get("last_order_date")
+            if last_order is None:
+                return False, None
+            else:
+                logger.info(f"check_permission_and_stop_order() - きょう２度目の注文を阻止 - 最終注文日: {last_order}")
+                return True, last_order
         else:
-            logger.info(f"check_permission_and_stop_order() - きょう２度目の注文を阻止")
-            return True, last_order
-    else:
-        # Cookieを全部消す
-        delete_all_cookies(response)
-        return False, None
+            # Cookieを全部消す
+            delete_all_cookies(response)
+            return False, None
 
+    except (KeyError, Exception) as e:
+        raise CookieException(
+            method_name="check_permission_and_stop_order()",
+            detail="last_order_dateが正常に取得できませんでした。",
+            exception=e
+        )
 
 @log_decorator
 async def check_permission(request: Request, permits: list):
