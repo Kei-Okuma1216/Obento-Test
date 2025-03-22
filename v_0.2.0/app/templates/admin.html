@@ -1,50 +1,124 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
   <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>管理者メイン画面</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <style>
       body {
-          font-family: Arial, sans-serif;
+        font-family: Arial, sans-serif;
       }
       h1 {
-          color: #2c3e50;
+        color: #2c3e50;
       }
-      ul {
-          background: #ecf0f1;
-          list-style-type: square;
-          padding: 0;
+      /* モードレスウィンドウ用スタイル */
+      #logWindow {
+        display: none; /* 初期状態は非表示 */
+        position: fixed;
+        top: 10%;
+        left: 10%;
+        width: 80%;
+        height: 400px;
+        background-color: #fff;
+        border: 1px solid #ccc;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        z-index: 1050;
+        overflow: hidden;
       }
-      li {
-          background: #ecf0f1;
-          margin: 0px 0;
-          padding: 0px;
-          border-radius: 4px;
+      #logWindowHeader {
+        background: #f8f9fa;
+        padding: 10px;
       }
-  </style>
+      /* ヘッダー右側のボタングループ */
+      #logWindowHeader .btn-group {
+        float: right;
+      }
+      #logWindowContent {
+        height: calc(100% - 50px);
+        overflow-y: auto;
+      }
+    </style>
   </head>
-  <nav>
-    <a href="/login">トップに戻る</a> |
-    <a href="/clear">ログアウト</a>
-  </nav>
-  <!-- ボタンを使ったログアウトの実装
-  <form action="/clear" method="get" style="display: inline;">
-    <button type="submit">ログアウト</button>
-  </form>
-
-  -->
- <body>
-  <h1>ここは管理者画面です</h1>
-  <p>admin</p>
-  <!--<a href="https://192.168.3.19:8000/login">トップに戻る</a>-->
-  <a>未実装</a>
-  <ul>
-    <li>注文一覧</li>
-    <li>FAX送信ボタン</li>
-    <li>予定表編集UI</li>
-    <li><a href="https://192.168.3.19:8000/admin/me/update_existing_passwords">DBにあるユーザーパスワードをすべて暗号化する</a></li>
-    <!-- 管理者画面の適当な位置に追加 -->
-    <li><a href="/admin/logs">ログファイル一覧</a></li>
-    <li><a href="https://192.168.3.19:8000/admin/logs/2025-03-19.log?highlight=DEBUG"></a></li>
-  </ul>
-</body>
+  <body>
+    <!-- ナビゲーションバー -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="/login">トップに戻る</a>
+        <div class="collapse navbar-collapse">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/clear">ログアウト</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    
+    <!-- メインコンテンツ -->
+    <div class="container mt-4">
+      <h1>管理者メイン画面</h1>
+      <p>admin</p>
+      <a class="btn btn-secondary" href="#">未実装</a>
+      <ul class="list-group mt-3">
+        <li class="list-group-item">注文一覧</li>
+        <li class="list-group-item">FAX送信ボタン</li>
+        <li class="list-group-item">予定表編集UI</li>
+        <li class="list-group-item">
+          <a href="https://192.168.3.19:8000/admin/me/update_existing_passwords">
+            DBにあるユーザーパスワードをすべて暗号化する
+          </a>
+        </li>
+        <li class="list-group-item">
+          <a href="/admin/logs">ログファイル一覧</a>
+        </li>
+        <li class="list-group-item">
+          <a href="https://192.168.3.19:8000/admin/logs/2025-03-19.log?highlight=DEBUG">
+            ログファイル詳細
+          </a>
+        </li>
+      </ul>
+      
+      <!-- ログ表示モードレスウィンドウを開くボタン -->
+      <button onclick="openLogWindow()" class="btn btn-primary mt-3">ログ表示ウィンドウを開く</button>
+    </div>
+    
+    <!-- モードレスウィンドウのHTML構造 -->
+    <div id="logWindow">
+      <div id="logWindowHeader">
+        ログ表示
+        <div class="btn-group">
+          <!-- 戻るボタン -->
+          <button onclick="goBackInIframe()" class="btn btn-sm btn-secondary me-2">戻る</button>
+          <!-- 閉じるボタン -->
+          <button onclick="closeLogWindow()" class="btn btn-sm btn-secondary">閉じる</button>
+        </div>
+      </div>
+      <div id="logWindowContent">
+        <!-- /admin/logs の内容をiframeで表示 -->
+        <iframe src="/admin/logs" width="100%" height="100%" frameborder="0"></iframe>
+      </div>
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <script>
+      function openLogWindow() {
+        console.log("openLogWindow() called");
+        document.getElementById('logWindow').style.display = 'block';
+      }
+      function closeLogWindow() {
+        console.log("closeLogWindow() called");
+        document.getElementById('logWindow').style.display = 'none';
+      }
+      // 戻るボタン用：iframe内の前のページに戻る
+      function goBackInIframe() {
+        var iframe = document.querySelector('#logWindowContent iframe');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.history.back();
+        }
+      }
+    </script>
+  </body>
 </html>
