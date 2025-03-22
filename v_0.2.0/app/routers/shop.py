@@ -50,7 +50,17 @@ async def shop_today_order(request: Request, response: Response):
 
 @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
 @log_decorator
+async def order_json(request: Request, days_ago: str = Query("-5")):
+    try:
+        # days_ago を整数に変換（例外が発生したらデフォルト値を使用）
+        days = int(days_ago)
+    except ValueError:
+        days = -5
+    # get_order_json も days を数値として扱うようにする
+    return await get_order_json(request, str(days))
+'''
 async def order_json(request: Request, days_ago: str = Query(None)):
-    ''' 注文情報を取得する
-    例 https://127.0.0.1:8000/today/order_json?days_ago=-5'''
+    # 注文情報を取得する
+    #例 https://127.0.0.1:8000/today/order_json?days_ago=-5
     return await get_order_json(request, days_ago)
+'''
