@@ -1,4 +1,5 @@
-# 1. ヘルパー関数の作成
+# helper.py
+# 必ずmain.pyとセットにすること
 from typing import Optional
 from fastapi import HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -55,7 +56,7 @@ async def create_auth_response(
 def redirect_login(request: Request, message: str):
     '''login.htmlに戻る'''
     try:
-        logger.info(f"login.html -  message: {message}")
+        logger.info(f"Redirect Login - {message}")
 
         return templates.TemplateResponse(
             "login.html", {"request": request, "message": message})
@@ -68,11 +69,11 @@ def redirect_login(request: Request, message: str):
             f"Error: {e.detail}")
 
 @log_decorator # eも組み込みたい
-def redirect_error(request: Request, message: str):
+def redirect_error(request: Request, message: str, e: Exception):
     '''error.htmlに戻る'''
     try:
-        logger.error(f"error.html -  message: {message}")
-
+        logger.error(f"{message} - detail:{e.detail["message"]}")
+        #logger.error(e.detail["message"])
         return templates.TemplateResponse(
             "error.html", {"request": request, "message": message})
     except HTTPException as e:
@@ -94,9 +95,14 @@ def hash_password(password: str) -> str:
 
 @log_decorator
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """入力されたパスワードがハッシュと一致するか検証"""
+    """入力されたパスワードがハッシュと一致するか検証
+       True: 一致, False: 不一致"""
     try:
-        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+        if(bcrypt.checkpw(plain_password.encode(), hashed_password.encode())):
+            return True
+        else:
+            return False
+        #return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
     except Exception as e:
         raise CustomException("verify_password()", message=str(e))
 

@@ -1,5 +1,5 @@
 # main.py
-# 2.0 SQLAlchemy移行開始
+# 2.0 Bootstrap適用開始
 import asyncio
 import os
 import sys
@@ -7,7 +7,7 @@ import jwt
 from pydantic import BaseModel
 from starlette import status
 import tracemalloc
-from typing import List, Optional
+from typing import List
 
 from fastapi import Depends, FastAPI, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -55,6 +55,8 @@ develop_endpoint = 'https://127.0.0.1:8000'
 endpoint = product_endpoint
 
 
+token_expired_error_message = "有効期限が切れています。再登録をしてください。"
+forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません"
 
 
 # -----------------------------------------------------
@@ -63,22 +65,19 @@ endpoint = product_endpoint
 @log_decorator
 async def root(request: Request, response: Response):
 
-    token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
         await init_database() # 昨日の二重注文禁止が有効か確認する
 
-        print("v_0.1.9")
+        print("v_0.2.0")
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request, response)
         logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
-            message = "きょう２度目の注文です。重複注文により注文できません"
-            message = f"<html><p>{message}</p><a>last order: {last_order} </a><a href='{endpoint}/clear'>Cookieを消去</a></html>"
+            message = f"<html><p>{forbid_second_order_message}</p><a>last order: {last_order} </a><br><a href='{endpoint}/clear'>Cookieを消去</a></html>"
 
             return HTMLResponse(message)
 
@@ -117,9 +116,9 @@ async def root(request: Request, response: Response):
         return redirect_login(
             request, token_expired_error_message)
     except (CookieException, jwt.InvalidTokenError) as e:
-        logger.error(e.detail["message"])
+        #logger.error(e.detail["message"])
         return redirect_error(
-            request, token_expired_error_message)
+            request, token_expired_error_message, e)
 
 
 # ログイン画面を表示するエンドポイント
@@ -127,71 +126,11 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request):
     try:
+        pass
         return redirect_login(request, "ようこそ")
     except Exception as e:
-        return redirect_error(request, e.detail["message"])
+        return redirect_error(request, "ログインに失敗しました", e)
 
-# -----------------------------------------------------
-import bcrypt
-@log_decorator
-def hash_password(password: str) -> str:
-    """パスワードをハッシュ化する"""
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-
-    return hashed_password.decode()  # バイト列を文字列に変換
-
-@log_decorator
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """入力されたパスワードがハッシュと一致するか検証"""
-    try:
-        return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
-    except Exception as e:
-        raise CustomException("verify_password()", message=str(e))
-
-@log_decorator
-async def authenticate_user(username, password, name) -> Optional[UserBase]:
-    """ ログイン認証 """
-    try:
-        user : UserResponse = await select_user(username) # UserCreateにするべき
-
-        if user is None:
-            logger.debug(f"ユーザーが存在しません: {username}")
-            await insert_new_user(username, password, name)
-            user: UserResponse = await select_user(username) # UserResponseにするべき
-
-        logger.info(f"authenticate_user() - 認証試行: {user.username}")
-
-        # ハッシュ化されたパスワードと入力パスワードを比較
-        if not verify_password(password, user.get_password()):
-            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
-            #logger.info("パスワードが一致しません")
-            #return None
-            raise NotAuthorizedException(
-                method_name="verify_password()",
-                detail="パスワードが一致しません"
-            )
-
-        data = {
-            "sub": user.get_username(),
-            "permission": user.get_permission()
-        }
-        access_token, expires = get_new_token(data)
-        user.set_token(access_token)        
-        user.set_exp(expires)
-
-        logger.info(f"認証成功: {user.username}")
-
-        return user
-
-    except (NotAuthorizedException, SQLException) as e:
-        raise
-    except Exception as e:
-        raise CustomException(
-            status.HTTP_405_METHOD_NOT_ALLOWED,
-            f"authenticate_user()",
-            f"予期せぬエラー{e}")
-# -----------------------------------------------------
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def login_post(request: Request,
@@ -209,13 +148,11 @@ async def login_post(request: Request,
         return await create_auth_response(user.get_username(), permission, main_url)
 
     except (NotAuthorizedException) as e:
-        return redirect_login(request, "パスワードが間違っています。")
+        return redirect_login(request, "アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-        logger.info(f"login_post() - {e.detail["message"]}")
-        return redirect_login(request, "有効期限が切れたので、再登録してください。")
+        return redirect_login(request, token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
-        logger.error(f"login_post() - {e.detail["message"]}")
-        return redirect_error(request, "内部で障害が発生しました")
+        return redirect_error(request, "login_post()", e)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -263,7 +200,7 @@ async def regist_complete(request: Request, response: Response):
             request, response, orders, "order_complete.html")
 
     except (SQLException, HTTPException) as e:
-        return redirect_error(request, e.detail["message"])
+        return redirect_error(request, "注文確定に失敗しました", e)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
