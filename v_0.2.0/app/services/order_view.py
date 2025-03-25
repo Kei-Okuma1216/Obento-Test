@@ -1,4 +1,4 @@
-# 管理者の権限チェック
+# order_view.py
 import json
 from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
@@ -21,7 +21,7 @@ view_router = APIRouter(
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str):
     try:
         logger.debug(f"ordersあり")
-   
+
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
 
@@ -66,7 +66,8 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         # days_ago の値が None、空文字、または数値形式でなければエラーを返す
-        if days_ago is None or days_ago.strip() == "":
+        #if days_ago is None or days_ago.strip() == "":
+        if days_ago.__len__ == 0:
             logger.debug("days_ago の値が無効です (空文字または未指定)")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
         if not (days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit())):
