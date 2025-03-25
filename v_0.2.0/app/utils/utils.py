@@ -121,8 +121,8 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         token = request.cookies.get("token")
         permission = request.cookies.get("permission")
 
-        set_cookie_header = request.headers.get("cookie")
         # `Set-Cookie` をパース
+        set_cookie_header = request.headers.get("cookie")
         cookie = SimpleCookie()
         cookie.load(set_cookie_header)
 

@@ -699,6 +699,7 @@ async def select_shop_order(shopid: str,
         '''
         #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
 
+        print(f"days_ago_str: {days_ago_str}")
         # 期間が指定されている場合、条件を追加
         if days_ago_str:
             days_ago = int(days_ago_str)
@@ -715,20 +716,15 @@ async def select_shop_order(shopid: str,
         else:
             sqlstr += f" AND (O.username = '{username}')"
 
-        #logger.debug(f"sqlstr: {sqlstr}")
         result = await cursor.execute(sqlstr)
         rows = await result.fetchall()
-        #print("ここまで 1")
-        #print("rows: " + str(rows))
         logger.debug(f"select_shop_order() - {sqlstr}")
         if rows is None:
             logger.warning("No order found with the given shopid")
             return None
         else:
             orders = appendOrder(rows)
-            # ここからList<Order>クラスにキャストする
-            #print(f"ordersの型: {str(type(orders))}")
-            #print(f"orders.count(): {len(orders)}")
+
             orderlist = []
             for o in orders:
                 json_data = json.dumps(o, ensure_ascii=False)
