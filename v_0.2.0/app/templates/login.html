@@ -9,28 +9,27 @@
   </head>
   <body>
     <!-- ナビゲーションバー -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <!--<nav class="navbar navbar-expand-lg navbar-light bg-light style="display:none;">
       <div class="container">
-        <a class="navbar-brand" href="/">ホーム</a>
+        <a class="navbar-brand style="display:none;" href="/">ホーム</a>
       </div>
-    </nav>
+    </nav>-->
 
     <div class="container mt-4">
-      <h1 class="text-dark">ログイン</h1>
-      <h2>ユーザー登録ページ</h2>
+      <h1 class="text-dark">ユーザー登録ページ</h1>
+      <h2>お弁当注文アプリ</h2>
 
       <!-- エラーメッセージの表示（Bootstrapのalertクラスを利用） -->
-      {% if error %}
-        <div class="alert alert-danger">
-          {{ error }}
-        </div>
-      {% endif %}
       {% if message %}
         <div class="alert alert-info">
           {{ message }}
         </div>
       {% endif %}
-
+      {% if error %}
+        <div class="alert alert-danger">
+          {{ error }}
+        </div>
+      {% endif %}
       <!-- フォーム -->
       <form action="/login" method="post">
         <div class="mb-3">
