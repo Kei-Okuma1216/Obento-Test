@@ -33,14 +33,14 @@ from routers.router import sample_router
 from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
-#from routers.user import user_router
+from routers.user import user_router
 app = FastAPI()
 
 app.include_router(sample_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
-#app.include_router(user_router, prefix="/users")
+app.include_router(user_router, prefix="/users")
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
@@ -161,54 +161,6 @@ async def login_post(request: Request,
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "/login_post()",
-            f"予期せぬエラーが発生しました: {str(e)}")
-
-
-# お弁当の注文完了　ユーザーのみ
-@app.get("/order_complete",response_class=HTMLResponse, tags=["users"]) 
-@log_decorator
-async def regist_complete(request: Request, response: Response): 
-    try:
-        cookies = get_all_cookies(request)
-
-        user: UserResponse = await select_user(cookies['sub'])
-
-        if user is None:
-            raise SQLException("regist_complete()")
-
-        await insert_order(
-            user.company_id,
-            user.username,
-            user.shop_name,
-            user.menu_id,
-            amount=1)
-
-        orders = await select_shop_order(
-            user.shop_name, -7, user.username)
-
-        #logger.debug(f"orders: {orders}")
-        if orders is None or len(orders) == 0:
-            logger.debug("No orders found or error occurred.")
-            raise CustomException(
-                status.HTTP_400_BAD_REQUEST,
-                "regist_complete()",
-                "注文が見つかりません")
-
-        #await show_all_orders()
-        order_count = len(orders) - 1
-        last_order_date = orders[order_count].created_at
-        #last_order_date = orders[0].created_at # DESCの場合
-        prevent_order_twice(response, last_order_date)
-
-        return await order_table_view(
-            request, response, orders, "order_complete.html")
-
-    except (SQLException, HTTPException) as e:
-        return redirect_error(request, "注文確定に失敗しました", e)
-    except Exception as e:
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "regist_complete()",
             f"予期せぬエラーが発生しました: {str(e)}")
 
 
