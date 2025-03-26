@@ -30,7 +30,7 @@ async def order_table_view(request: Request, response: Response, orders, redirec
             #print(order)
         #print("ここまできた 1")
         context = {'request': request, 'orders': orders}
-        inner_table = "table.html"
+        inner_table = "order_table.html"
 
         templates.TemplateResponse(inner_table,context)
         #print("ここまできた 2")
