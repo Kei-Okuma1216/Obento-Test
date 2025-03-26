@@ -298,6 +298,7 @@ async def check_permission_and_stop_order(request: Request, response: Response):
                 return False, None
             else:
                 logger.info(f"check_permission_and_stop_order() - きょう２度目の注文を阻止 - 最終注文日: {last_order}")
+                logger.debug(f"result , last_order: {True , str(last_order)}")
                 return True, last_order
         else:
             # Cookieを全部消す

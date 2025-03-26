@@ -6,10 +6,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from database.sqlite_database import SQLException, select_shop_order
-from utils.utils import get_all_cookies, check_permission, deprecated, log_decorator
+from utils.utils import get_all_cookies, check_permission, log_decorator
 from utils.exception import CookieException, CustomException
-from main import order_table_view
-from services.order_view import get_order_json
+from services.order_view import order_table_view, get_order_json
 
 templates = Jinja2Templates(directory="templates")
 
@@ -37,9 +36,8 @@ async def shop_today_order(request: Request, response: Response):
 
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
-        main_view = "shop_main.html"
-        #main_view = "store_orders_today.html"
-        return await order_table_view(request, response, orders, main_view)
+        return await order_table_view(request, response, orders, "shop_main.html")
+        #return await order_table_view(request, response, orders, "order_page.html")
 
     except SQLException as e:
         raise

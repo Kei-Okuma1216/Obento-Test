@@ -14,16 +14,16 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 
-from local_jwt_module import SECRET_KEY, ALGORITHM, get_new_token
+from local_jwt_module import SECRET_KEY, ALGORITHM
 
-from database.sqlite_database import SQLException, init_database, insert_new_user, select_user, update_user, select_shop_order, select_user, insert_order
+from database.sqlite_database import SQLException
 
-from utils.utils import get_token_expires, prevent_order_twice, compare_expire_date, delete_all_cookies, log_decorator, set_all_cookies, get_all_cookies, log_decorator, check_permission_and_stop_order
+from utils.utils import get_token_expires, compare_expire_date, delete_all_cookies, log_decorator, log_decorator, check_permission_and_stop_order
 from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException
 from utils.helper import *
-from services.order_view import order_table_view, batch_update_orders
-from schemas.schemas import UserResponse
+from services.order_view import batch_update_orders
 
+from fastapi.staticfiles import StaticFiles
 # tracemallocを有効にする
 tracemalloc.start()
 
@@ -34,6 +34,7 @@ from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
 from routers.user import user_router
+
 app = FastAPI()
 
 app.include_router(sample_router, prefix="/api")
@@ -44,7 +45,7 @@ app.include_router(user_router, prefix="/users")
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
-from fastapi.staticfiles import StaticFiles
+
 
 
 product_endpoint = 'https://192.168.3.19:8000'
@@ -74,7 +75,7 @@ async def root(request: Request, response: Response):
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request, response)
-        logger.debug(f"result , last_order: {result , str(last_order)}")
+        #logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
             return templates.TemplateResponse(
                 "duplicate_order.html",
