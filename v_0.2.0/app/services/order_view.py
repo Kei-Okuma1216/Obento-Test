@@ -6,10 +6,10 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from database.sqlite_database import get_connection, select_shop_order, select_user
-from main import get_all_cookies
-templates = Jinja2Templates(directory="templates")
 from database.sqlite_database import CustomException
-from utils.utils import log_decorator 
+from utils.utils import log_decorator, get_all_cookies
+
+templates = Jinja2Templates(directory="templates")
 
 view_router = APIRouter(
     prefix="/orders",
