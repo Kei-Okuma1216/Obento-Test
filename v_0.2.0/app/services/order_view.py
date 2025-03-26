@@ -25,11 +25,17 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
 
+        # チェックが入っている注文の件数をカウント（order.canceled が True の場合）
+        checked_count = sum(1 for order in orders if order.canceled)
         # ソート結果を確認
         #for order in orders:
             #print(order)
         #print("ここまできた 1")
-        context = {'request': request, 'orders': orders}
+        #context = {'request': request, 'orders': orders}
+        context = {'request': request, 'orders': orders,
+                   'order_count': len(orders),
+                   'checked_count': checked_count}
+        
         inner_table = "order_table.html"
 
         templates.TemplateResponse(inner_table,context)

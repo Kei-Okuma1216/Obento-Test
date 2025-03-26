@@ -1,41 +1,37 @@
 <!DOCTYPE html>
-<html>
-  <html lang="ja">
-    <html>
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>401 Unauthorized</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-whatever-integrity-value" crossorigin="anonymous">
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-whatever-integrity-value" crossorigin="anonymous"></script>
-        <style>
-          body {
-              font-family: Arial, sans-serif;
-          }
-          h1 {
-              color: #2c3e50;
-          }
-          ul {
-              background: #ecf0f1;
-              list-style-type: square;
-              padding: 0;
-          }
-          li {
-              background: #ecf0f1;
-              margin: 0px 0;
-              padding: 0px;
-              border-radius: 4px;
-          }
-          </style>
-      </head>
-      <nav>
-        <!--<a href="/login">トップに戻る   注意：ログアウト時はフリーズする</a> |-->
-        <a href="/clear">ログアウト</a>
-      </nav>
- <body>
-  <h1>アクセスが許可されていません</h1>
-  <p>{{ error }}</p>
-  <p>ステータスコード: {{ status_code }}</p>
-  <p>エラーメッセージ: {{ message }}</p>
- </body>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>401 Unauthorized</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  </head>
+  <body>
+    <!-- Bootstrapのナビゲーションバー -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="/login">トップに戻る</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/clear">ログアウト</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- エラーメッセージ表示用コンテナ -->
+    <div class="container mt-4">
+      <h1 class="text-dark">アクセスが許可されていません</h1>
+      <p>{{ error }}</p>
+      <p>ステータスコード: {{ status_code }}</p>
+      <p>エラーメッセージ: {{ message }}</p>
+    </div>
+  </body>
 </html>

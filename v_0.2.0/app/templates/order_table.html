@@ -1,76 +1,66 @@
 {% for order in orders %}
-<tr>
-  <td>{{ order.order_id }}</td>
-  <td>{{ order.company_name }}</td>
-  <td>{{ order.username }}</td>
-  <td>{{ order.menu_name }}</td>
-  <td>{{ order.amount }}</td>
-  <td>{{ order.created_at }}</td>
-  <td>
-    <!-- Bootstrapのフォームチェック用クラスを適用 -->
+<tr class="text-center">
+  <td style="width: 7%;">{{ order.order_id }}</td>
+  <td style="width: 15%;">{{ order.company_name }}</td>
+  <td style="width: 15%;">{{ order.username }}</td>
+  <td style="width: 20%;">{{ order.menu_name }}</td>
+  <td style="width: 10%;">{{ order.amount }}</td>
+  <td style="width: 25%;">{{ order.created_at }}</td>
+  <td style="width: 10%;">
+    <!-- Bootstrapのフォームチェック用クラス -->
     <input type="checkbox" class="form-check-input cancel-checkbox" data-order-id="{{ order.order_id }}"
       {% if order.canceled %} checked {% endif %}>
   </td>
 </tr>
 {% endfor %}
 
-<script>
-  let startOrders = {};
-
-  // 初期状態を取得して保存する関数
-  function getOrdersFromTable() {
-    let orders = {};
-    document.querySelectorAll("tbody tr").forEach(row => {
-      let orderId = row.cells[0].textContent.trim();
-      let canceledCheckbox = row.querySelector(".cancel-checkbox");
-      if (orderId) {
-        orders[orderId] = {
-          order_id: parseInt(orderId, 10),
-          canceled: canceledCheckbox.checked
-        };
-      }
-    });
-    return orders;
+<!-- 打消し線用のCSS -->
+<style>
+  .strikethrough {
+    text-decoration: line-through;
+    color: #4410f1;
   }
+</style>
 
-  document.addEventListener("DOMContentLoaded", function () {
-    // ページロード時に初期状態を保存
-    startOrders = getOrdersFromTable();
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // チェックボックスの変更と打消し線処理、注文数更新の関数をまとめる
 
-    // 保存ボタン（例：ID "save-changes-button"）のクリックイベントを設定
-    const saveButton = document.getElementById("save-changes-button");
-    if (saveButton) {
-      saveButton.addEventListener("click", function() {
-        let endOrders = getOrdersFromTable();
-        let changes = [];
-
-        // 各注文について、初期状態と現在の状態が異なる場合に差分を記録
-        for (let orderId in endOrders) {
-          if (startOrders[orderId] === undefined || startOrders[orderId].canceled !== endOrders[orderId].canceled) {
-            changes.push({
-              order_id: endOrders[orderId].order_id,
-              canceled: endOrders[orderId].canceled
-            });
-          }
-        }
-
-        if (changes.length > 0) {
-          fetch("/update_cancel_status", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ updates: changes }),
-          })
-          .then(response => response.json())
-          .then(data => {
-            console.log("更新結果:", data);
-          })
-          .catch(error => console.error("エラー:", error));
-        } else {
-          console.log("変更はありません。");
-        }
-      });
+  // 各チェックボックスに対して、親の<tr>に打消し線を付与／解除する
+  const checkboxes = document.querySelectorAll('input.cancel-checkbox');
+  checkboxes.forEach(function(checkbox) {
+    const tr = checkbox.closest("tr");
+    // 初期状態でチェックが入っていればクラスを追加
+    if (checkbox.checked) {
+      tr.classList.add("strikethrough");
     }
+    // 変更イベントの登録
+    checkbox.addEventListener("change", function() {
+      if (this.checked) {
+        tr.classList.add("strikethrough");
+      } else {
+        tr.classList.remove("strikethrough");
+      }
+      updateOrderCount();
+    });
   });
+  
+  // 注文数表示を更新する関数
+  function updateOrderCount() {
+    // shop_main.html にある注文数表示用のspan要素
+    const orderCountElem = document.getElementById("orderCount");
+    if (!orderCountElem) return; // 存在しない場合は処理しない
+    // 全件数はdata-total属性から取得
+    const totalOrders = parseInt(orderCountElem.getAttribute("data-total"), 10);
+    // 現在チェックが入っている件数
+    const checkedCount = document.querySelectorAll("input.cancel-checkbox:checked").length;
+    // 残りは全件数からチェック済み件数を引く
+    const remaining = totalOrders - checkedCount;
+    // 表示を更新（例： "残り/チェック済み" の形式）
+    orderCountElem.textContent = `${remaining}/${checkedCount}`;
+  }
+  
+  // 初回読み込み時の更新
+  updateOrderCount();
+});
 </script>
