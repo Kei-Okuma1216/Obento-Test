@@ -55,7 +55,8 @@ async def create_auth_response(
         raise NotAuthorizedException(method_name="create_auth_response()")
 
 @log_decorator
-def redirect_login(request: Request, message: str):
+def redirect_login(request: Request, message: str,
+                   e: Exception=None):
     '''login.htmlに戻る'''
     try:
         logger.info(f"Redirect Login - {message}")
