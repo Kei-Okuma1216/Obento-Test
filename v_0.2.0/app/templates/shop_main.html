@@ -8,27 +8,10 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-      }
-      h1 {
-        color: #2c3e50;
-      }
-      ul {
-        background: #ecf0f1;
-        list-style-type: square;
-        padding: 0;
-      }
-      li {
-        background: #ecf0f1;
-        margin: 0px 0;
-        padding: 0px;
-        border-radius: 4px;
-      }
-    </style>
   </head>
   <body>
+    <!-- ランチ画像 C:\Obento-Test\v_0.2.0\app\static\shops\menu-->
+
     <!-- ナビゲーションバー -->
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
       <div class="container">
@@ -45,8 +28,7 @@
     
     <!-- メインコンテンツ -->
     <div class="container mt-4">
-      <h1>店舗注文一覧</h1>
-
+      <h1 class="text-dark">店舗注文一覧</h1>
       <!-- タブナビゲーション -->
       <ul class="nav nav-tabs" id="storeTab" role="tablist">
         <li class="nav-item" role="presentation">
@@ -108,7 +90,7 @@
             <div style="max-height: 300px; overflow-y: auto;">
               <table class="table table-striped table-bordered mb-0">
                 <tbody>
-                  {% include 'table.html' %}
+                  {% include 'order_table.html' %}
                 </tbody>
               </table>
             </div>
@@ -127,10 +109,10 @@
           </div>
           <!-- JSON取得ボタン -->
           <button id="fetch-json-btn" class="btn btn-primary mb-3">JSON取得</button>
-          <!-- JSON取得リンク（aタグ、クリック時に更新） -->
+          <!-- JSON取得リンク -->
           <a id="jsonLink" href="https://192.168.3.19:8000/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
           <!-- JSON表示エリア -->
-          <pre id="jsonOutput" style="background-color: #f8f9fa; padding: 10px; max-height: 300px; overflow-y: auto;"></pre>
+          <pre id="jsonOutput" class="bg-light p-2" style="max-height: 300px; overflow-y: auto;"></pre>
         </div>
       </div>
       

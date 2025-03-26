@@ -17,9 +17,9 @@ templates = Jinja2Templates(directory="templates")
 @log_decorator
 async def get_main_url(permission: int) -> str:
     try:
-        # リダイレクト先の選択
+        # リダイレクト先の選択 1: "/order_complete",
         redirect_url = {
-            1: "/order_complete",
+            1: "/users/order_complete",
             2: "/manager/me",
             10: "/shops/me",
             99: "/admin/me"}.get(permission, "/error")

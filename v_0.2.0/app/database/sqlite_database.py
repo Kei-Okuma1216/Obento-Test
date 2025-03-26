@@ -1083,12 +1083,12 @@ async def insert_menu(
 async def select_menu(shop_name: str)-> Optional[dict]:
     try:
         conn = await get_connection()
-        cursor = conn.cursor()
-
+        cursor = await conn.cursor()
+        
         sqlstr = f"SELECT * FROM Menu WHERE shop_name = '{shop_name}'"
 
         await cursor.execute(sqlstr)
-        rows = cursor.fetchall()
+        rows = await cursor.fetchall()
         #print("rows: " + str(rows))
         logger.debug(f"select_menu() - sqlstr: {sqlstr}")
 
@@ -1111,7 +1111,7 @@ async def select_menu(shop_name: str)-> Optional[dict]:
             })
             print(f"menuのクラスは {str(type(items))}")
             logger.debug(f"select_menu() - items: {items}")
-            #return items
+            return items
 
     except DatabaseConnectionException as e:
         raise
@@ -1381,7 +1381,9 @@ async def init_database():
         await insert_company("テンシステム", "083-999-9999", "shop01") # 1
 
         await create_menu_table()
-        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='c:\\picture') # 1
+
+        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
+        picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
         
         await create_orders_table()
         '''INSERT INTO Orders (company_id, username, shop_name, menu_id,  amount, created_at)
