@@ -166,7 +166,7 @@ async def login_post(request: Request,
 
 
 # cookieを削除してログアウト
-@app.get("/clear")
+@app.get("/clear", tags=["users"])
 @log_decorator
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
@@ -179,7 +179,7 @@ async def clear_cookie(response: Response):
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
 
-@app.post("/update_cancel_status")
+@app.post("/update_cancel_status", tags=["shops"])
 @log_decorator
 async def update_cancel_status(update: CancelUpdate):
     ''' チェックの更新 '''
@@ -205,7 +205,7 @@ async def custom_exception_handler(
     )
 
 # デバッグ用 例外テスト
-@app.get("/test_exception")
+@app.get("/test_exception", tags=["admin"])
 async def test_exception():
     logger.error("test_exception() testエラーが発生しました!")
     raise CustomException(
@@ -244,7 +244,7 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
     LOGS_DIR = "./logs"
 
-@app.get("/logs", response_class=HTMLResponse)
+@app.get("/logs", response_class=HTMLResponse, tags=["admin"])
 async def list_logs():
     # 入力例 https://127.0.0.0.1:8000/logs/2025-03-10
     # 備考　現在誰でもログにアクセスできる
@@ -257,7 +257,7 @@ async def list_logs():
 
     return "<h1>Log Files</h1>" + "".join(file_links)
 
-@app.get("/logs/{filename}")
+@app.get("/logs/{filename}", tags=["admin"])
 async def read_log(filename: str):
     """指定されたログファイルの内容をHTMLで表示"""
     filepath = os.path.join(LOGS_DIR, filename)
