@@ -42,7 +42,8 @@ async def order_table_view(request: Request, response: Response, orders, redirec
             'orders': orders,
             'order_count': len(orders),
             'checked_count': checked_count,
-            'aggregated_orders': aggregated_orders
+            'aggregated_orders': aggregated_orders,
+            "base_url": "https://192.168.3.19:8000"
         }
 
         '''context = {'request': request, 'orders': orders,

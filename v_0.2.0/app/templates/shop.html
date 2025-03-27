@@ -62,7 +62,7 @@
             <ul class="list-group mb-3">
               <li class="list-group-item"><del>受注情報を集計</del></li>
               <li class="list-group-item">
-                <a href="https://192.168.3.19:8000/admin/order_logs">
+                <a href="{{ base_url }}/admin/order_logs">
                   注文ログファイル一覧
                 </a>
               </li>
@@ -139,7 +139,7 @@
           <!-- JSON取得ボタン -->
           <button id="fetch-json-btn" class="btn btn-primary mb-3">JSON取得</button>
           <!-- JSON取得リンク -->
-          <a id="jsonLink" href="https://192.168.3.19:8000/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
+          <a id="jsonLink" href="{{ base_url }}/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
           <!-- JSON表示エリア -->
           <pre id="jsonOutput" class="bg-light p-2" style="max-height: 300px; overflow-y: auto;"></pre>
         </div>
@@ -192,12 +192,12 @@
             document.getElementById("jsonOutput").textContent = "エラー: " + error;
           });
         // リンクのhrefを更新
-        document.getElementById("jsonLink").href = "https://192.168.3.19:8000/shops/me/order_json?days_ago=" + encodeURIComponent(days);
+        document.getElementById("jsonLink").href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
       });
       // クリック時にもリンクのhrefを更新（念のため）
       document.getElementById("jsonLink").addEventListener("click", function(){
         var days = document.getElementById("daysAgoInput").value.trim();
-        this.href = "https://192.168.3.19:8000/shops/me/order_json?days_ago=" + encodeURIComponent(days);
+        this.href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
       });
     </script>
   </body>

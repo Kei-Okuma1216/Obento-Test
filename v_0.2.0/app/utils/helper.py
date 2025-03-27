@@ -51,8 +51,10 @@ async def create_auth_response(
 
         return response
 
+    except NotAuthorizedException as e:
+        raise
     except Exception as e:
-        raise NotAuthorizedException(method_name="create_auth_response()")
+        raise CustomException(method_name="create_auth_response()")
 
 @log_decorator
 def redirect_login(request: Request, message: str,
