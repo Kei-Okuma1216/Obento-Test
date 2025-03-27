@@ -88,7 +88,7 @@ async def test_exception():
     raise CustomException(400, "test_exception()", "これはテストエラーです")
 '''
 # logsディレクトリ内のファイル一覧を取得
-@admin_router.get("/logs", response_class=HTMLResponse)
+@admin_router.get("/logs", response_class=HTMLResponse, tags=["admin"])
 def list_logs():
 
     log_dir = "logs"
@@ -101,7 +101,7 @@ def list_logs():
     return f"<h1>ログ一覧</h1><ul>{''.join(links)}</ul>"
 
 # ログファイル表示
-@admin_router.get("/logs/{filename}", response_class=HTMLResponse)
+@admin_router.get("/logs/{filename}", response_class=HTMLResponse, tags=["admin"])
 def view_log(filename: str):
     log_path = os.path.join("logs", filename)
     if os.path.exists(log_path):
@@ -113,7 +113,7 @@ def view_log(filename: str):
         return "ログファイルが存在しません。"
 
 # 注文ログファイル一覧を表示するエンドポイント
-@admin_router.get("/order_logs", response_class=HTMLResponse)
+@admin_router.get("/order_logs", response_class=HTMLResponse, tags=["admin","shops"])
 def list_order_logs():
     log_dir = "order_logs"  # order_log_config.py と同じディレクトリ名
     if not os.path.exists(log_dir):
@@ -123,7 +123,7 @@ def list_order_logs():
     return f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
 
 # 注文ログファイルの内容を表示するエンドポイント
-@admin_router.get("/order_logs/{filename}", response_class=HTMLResponse)
+@admin_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["admin","shops"])
 def view_order_log(filename: str):
     log_path = os.path.join("order_logs", filename)
     if os.path.exists(log_path):
