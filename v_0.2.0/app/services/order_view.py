@@ -1,4 +1,5 @@
 # order_view.py
+from collections import Counter
 import json
 from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
@@ -27,18 +28,30 @@ async def order_table_view(request: Request, response: Response, orders, redirec
 
         # チェックが入っている注文の件数をカウント（order.canceled が True の場合）
         checked_count = sum(1 for order in orders if order.canceled)
-        # ソート結果を確認
-        #for order in orders:
-            #print(order)
-        #print("ここまできた 1")
-        #context = {'request': request, 'orders': orders}
-        context = {'request': request, 'orders': orders,
+
+        # company_nameごとに注文件数を集計
+        company_counts = Counter(order.company_name for order in orders)
+        # ２件以上の注文がある会社のみを抽出
+        # aggregated_orders = [[company, count] for company, count in company_counts.items() if count >= 2]
+        # ※全件数を集計したい場合は、以下のようにフィルタを外します
+        aggregated_orders = [[company, count] for company, count in company_counts.items()]
+
+        # コンテキストに集計結果も追加
+        context = {
+            'request': request,
+            'orders': orders,
+            'order_count': len(orders),
+            'checked_count': checked_count,
+            'aggregated_orders': aggregated_orders
+        }
+
+        '''context = {'request': request, 'orders': orders,
                    'order_count': len(orders),
-                   'checked_count': checked_count}
+                   'checked_count': checked_count}'''
         
         inner_table = "order_table.html"
 
-        templates.TemplateResponse(inner_table,context)
+        templates.TemplateResponse(inner_table, context)
         #print("ここまできた 2")
         template_response = templates.TemplateResponse(
             redirect_url, context)
