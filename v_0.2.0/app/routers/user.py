@@ -9,6 +9,7 @@ from utils.helper import redirect_error
 from utils.utils import get_all_cookies, log_decorator, check_permission, prevent_order_twice
 from utils.exception import CustomException, CookieException, SQLException
 from log_config import logger
+from order_log_config import order_logger
 
 from services.menu_view import menu_cards_view
 from services.order_view import order_table_view
@@ -24,7 +25,7 @@ user_router = APIRouter()
 async def regist_complete(request: Request, response: Response): 
     try:
         cookies = get_all_cookies(request)
-        print("こっちがuser.py")
+        #print("こっちがuser.py")
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
@@ -36,7 +37,7 @@ async def regist_complete(request: Request, response: Response):
             user.shop_name,
             user.menu_id,
             amount=1)
-
+        
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
@@ -84,7 +85,7 @@ async def get_user_shop_menu(request: Request, response: Response):
 
         # メニュー一覧
         menus = await select_menu('shop01')
-        logger.debug(f"shop_name: {'shop01'}")
+        #logger.debug(f"shop_name: {'shop01'}")
 
         if menus is None:
             logger.debug('get_user_shop_menu - menusなし')
@@ -93,13 +94,12 @@ async def get_user_shop_menu(request: Request, response: Response):
 
         logger.debug(f"menus取得 {menus}")
 
-        main_view = "shop_menu.html"
-        return await menu_cards_view(request, response, menus, main_view)
+        return await menu_cards_view(request, response, menus, "shop_menu.html")
 
     except SQLException as e:
         raise
     except Exception as e:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
-            f"/shop_today_order()",
+            f"/get_user_shop_menu()",
             f"Error: {str(e)}")

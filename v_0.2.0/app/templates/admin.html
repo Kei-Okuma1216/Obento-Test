@@ -59,8 +59,13 @@
               <a href="/admin/logs">ログファイル一覧</a>
             </li>
             <li class="list-group-item">
+              <a href="https://192.168.3.19:8000/admin/order_logs">
+                注文ログファイル一覧
+              </a>
+            </li>
+            <li class="list-group-item">
               <a href="https://192.168.3.19:8000/admin/logs/2025-03-19.log?highlight=DEBUG">
-                ログファイル詳細
+                <del>ログファイル詳細</del>
               </a>
             </li>
           </ul>
@@ -74,9 +79,14 @@
             ログ表示ウィンドウを開く
           </button>
         </div>
+        <!-- 注文ログ表示ボタン -->
+        <button type="button" class="btn btn-primary mt-3" onclick="location.href='/admin/order_logs'">
+          注文ログ表示
+        </button>        
       </div>
     </div>
-    
+
+    <!-- ログ -->
     <!-- Bootstrap Modal for log display -->
     <div class="modal fade" id="logModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-xl">
@@ -97,6 +107,29 @@
         </div>
       </div>
     </div>
+
+    <!-- 注文ログ -->
+    <!-- Bootstrap Modal for log display -->
+    <div class="modal fade" id="orderlogModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="logModalLabel">注文ログ表示</h5>
+            <div class="btn-group">
+              <!-- 戻るボタン -->
+              <button type="button" class="btn btn-sm btn-secondary me-2" onclick="goBackInIframe()">戻る</button>
+              <!-- 閉じるボタン -->
+              <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">閉じる</button>
+            </div>
+          </div>
+          <div class="modal-body p-0">
+            <!-- /admin/logs の内容を iframe で表示 -->
+            <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+    
 
     <!-- フッター -->
     <footer class="bg-dark text-light py-4">

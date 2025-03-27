@@ -5,8 +5,9 @@ from fastapi import Request, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database.sqlite_database import update_user, get_all_users
-from utils.exception import CustomException
-from utils.utils import log_decorator
+from utils.exception import CustomException, NotAuthorizedException
+from utils.helper import redirect_login
+from utils.utils import check_permission, deprecated, log_decorator
 from venv import logger
 
 templates = Jinja2Templates(directory="templates")
@@ -14,6 +15,7 @@ templates = Jinja2Templates(directory="templates")
 admin_router = APIRouter()
 
 @log_decorator
+@deprecated
 def check_admin_permission(request: Request):
     # 管理者の権限チェック
     permission = request.cookies.get("permission")
@@ -29,12 +31,19 @@ def check_admin_permission(request: Request):
 @admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
 @log_decorator
 def admin_view(request: Request):    
+    try:
+        if not(check_permission(request, ["99"])):
+            raise NotAuthorizedException("管理者権限がありません。")
 
-    # 権限チェック
-    check_admin_permission(request)
-
-    return templates.TemplateResponse(
-        "admin.html", {"request": request})
+        return templates.TemplateResponse(
+            "admin.html", {"request": request})
+    except NotAuthorizedException as e:
+        return redirect_login(request, "アクセス権限がありません。", e)
+    except Exception as e:
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "/admin_view()",
+            f"予期せぬエラーが発生しました: {str(e)}")
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
@@ -102,3 +111,24 @@ def view_log(filename: str):
         return f"<h1>{filename}</h1><pre>{content}</pre>"
     else:
         return "ログファイルが存在しません。"
+
+# 注文ログファイル一覧を表示するエンドポイント
+@admin_router.get("/order_logs", response_class=HTMLResponse)
+def list_order_logs():
+    log_dir = "order_logs"  # order_log_config.py と同じディレクトリ名
+    if not os.path.exists(log_dir):
+        return "<h1>注文ログディレクトリが存在しません</h1>"
+    log_files = sorted(os.listdir(log_dir), reverse=True)
+    links = [f"<li><a href='/admin/order_logs/{file}'>{file}</a></li>" for file in log_files]
+    return f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
+
+# 注文ログファイルの内容を表示するエンドポイント
+@admin_router.get("/order_logs/{filename}", response_class=HTMLResponse)
+def view_order_log(filename: str):
+    log_path = os.path.join("order_logs", filename)
+    if os.path.exists(log_path):
+        with open(log_path, "r", encoding="utf-8") as f:
+            content = f.read().replace('\n', '<br>')
+        return f"<h1>{filename}</h1><pre>{content}</pre>"
+    else:
+        return "注文ログファイルが存在しません。"

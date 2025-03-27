@@ -15,11 +15,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 
 from local_jwt_module import SECRET_KEY, ALGORITHM
+from database.sqlite_database import init_database
 
-from database.sqlite_database import SQLException, init_database
-
-from utils.utils import get_token_expires, compare_expire_date, delete_all_cookies, log_decorator, log_decorator, check_permission_and_stop_order
-from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException
+from utils.utils import *
+from utils.exception import *
 from utils.helper import *
 from services.order_view import batch_update_orders
 
@@ -150,10 +149,11 @@ async def login_post(request: Request,
         permission = user.get_permission()
         main_url = await get_main_url(permission)
 
-        return await create_auth_response(user.get_username(), permission, main_url)
+        return await create_auth_response(
+            user.get_username(), permission, main_url)
 
-    except (NotAuthorizedException) as e:
-        return redirect_login(request, "アクセス権限がありません。")
+    except NotAuthorizedException as e:
+        return redirect_login(request, "アクセス権限がありません。", e)
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
         return redirect_login(request, token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:

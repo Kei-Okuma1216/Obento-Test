@@ -315,7 +315,7 @@ async def check_permission_and_stop_order(request: Request, response: Response):
 @log_decorator
 async def check_permission(request: Request, permits: list):
     ''' 権限チェック
-    使用例 admin_view()を参考'''
+    使用例 '''
     '''raise CustomException(
         status.HTTP_401_UNAUTHORIZED,
         "check_permission()",
