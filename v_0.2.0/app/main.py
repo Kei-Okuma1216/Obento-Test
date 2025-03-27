@@ -16,7 +16,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 
 from local_jwt_module import SECRET_KEY, ALGORITHM
 
-from database.sqlite_database import SQLException
+from database.sqlite_database import SQLException, init_database
 
 from utils.utils import get_token_expires, compare_expire_date, delete_all_cookies, log_decorator, log_decorator, check_permission_and_stop_order
 from utils.exception import CookieException, CustomException, NotAuthorizedException, TokenExpiredException

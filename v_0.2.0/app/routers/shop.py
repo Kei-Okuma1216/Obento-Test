@@ -37,7 +37,6 @@ async def shop_today_order(request: Request, response: Response):
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         return await order_table_view(request, response, orders, "shop_main.html")
-        #return await order_table_view(request, response, orders, "order_page.html")
 
     except SQLException as e:
         raise

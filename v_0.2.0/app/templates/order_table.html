@@ -57,7 +57,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // 残りは全件数からチェック済み件数を引く
     const remaining = totalOrders - checkedCount;
     // 表示を更新（例： "残り/チェック済み" の形式）
-    orderCountElem.textContent = `${remaining}/${checkedCount}`;
+    //orderCountElem.textContent = `${remaining}/${checkedCount}`;
+    orderCountElem.textContent = `完了済: ${checkedCount} / 残: ${remaining} (合計: ${totalOrders})`;
+
   }
   
   // 初回読み込み時の更新
