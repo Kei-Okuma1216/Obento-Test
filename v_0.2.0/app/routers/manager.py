@@ -47,7 +47,7 @@ async def manager_view(request: Request, response: Response):
             return HTMLResponse("<html><p>注文は0件です</p></html>")
             #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        target_url = "manager_main.html"
+        target_url = "manager.html"
         return await order_table_view(request, response, orders, target_url)
 
     except CookieException as e:
