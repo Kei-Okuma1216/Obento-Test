@@ -21,7 +21,7 @@ view_router = APIRouter(
 @log_decorator
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str):
     try:
-        logger.debug(f"ordersあり")
+        #logger.debug(f"ordersあり")
 
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)

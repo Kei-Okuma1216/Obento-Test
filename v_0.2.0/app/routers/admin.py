@@ -34,7 +34,7 @@ def admin_view(request: Request):
     check_admin_permission(request)
 
     return templates.TemplateResponse(
-        "admin.html", {"request": request})
+        "admin_main.html", {"request": request})
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])

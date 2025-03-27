@@ -28,7 +28,6 @@ async def shop_today_order(request: Request, response: Response):
         if not cookies:
             raise CookieException(method_name="get_all_cookies()")
 
-        # 昨日の全注文
         orders = await select_shop_order('shop01')
 
         if orders is None:
