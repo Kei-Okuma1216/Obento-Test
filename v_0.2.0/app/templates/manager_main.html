@@ -26,27 +26,32 @@
         padding: 0px;
         border-radius: 4px;
       }
+      /* 追加: 注文タブ内のテーブルセルのフォントサイズをshop_main.htmlに合わせる */
+      #order table th,
+      #order table td {
+        font-size: 14px;
+      }
     </style>
   </head>
   <body>
-  <!-- ナビゲーションバー -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <div class="container">
-      <a class="navbar-brand" href="/login">トップに戻る</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav ms-auto">
-          <li class="nav-item">
-            <a class="nav-link" href="/clear">ログアウト</a>
-          </li>
-        </ul>
+    <!-- ナビゲーションバー -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+      <div class="container">
+        <a class="navbar-brand" href="/login">トップに戻る</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="/clear">ログアウト</a>
+            </li>
+          </ul>
+        </div>
       </div>
-    </div>
-  </nav>
-    
+    </nav>
+      
     <!-- メインコンテンツ -->
     <div class="container mt-4">
       <h1>顧客担当者注文一覧</h1>
@@ -71,15 +76,14 @@
           <div class="mb-3">
             <h4>実装済</h4>
             <ul class="list-group mb-3">
+              <li class="list-group-item"><del>注文確認</del></li>
               <li class="list-group-item"><del>受注情報を集計</del></li>
             </ul>
             <h4>未実装</h4>
             <ul class="list-group">
-              <li class="list-group-item">受注情報を集計</li>
-              <li class="list-group-item">所定の時刻（前日13時）にFAX送信する</li>
               <li class="list-group-item">注文ログ・キャンセルログ</li>
+              <li class="list-group-item">所定の時刻（前日13時）にFAX送信する</li>
               <li class="list-group-item">ユーザごとのデバイス識別</li>
-              <li class="list-group-item">注文確認</li>
             </ul>
           </div>
         </div>
@@ -90,14 +94,13 @@
             <table class="table table-striped table-bordered mb-0">
               <thead class="table-light">
                 <tr>
-                  <!-- カラム幅をtable.htmlの内容に合わせて調整（例） -->
-                  <th style="width:10%;">番号</th>
-                  <th style="width:15%;">会社</th>
-                  <th style="width:15%;">名前</th>
-                  <th style="width:25%;">メニュー名</th>
-                  <th style="width:10%;">注文数</th>
-                  <th style="width:15%;">注文時刻</th>
-                  <th style="width:10%;">キャンセル有無</th>
+                  <th style="width: 7%;">番号</th>
+                  <th style="width: 15%;">会社</th>
+                  <th style="width: 15%;">名前</th>
+                  <th style="width: 18%;">メニュー名</th>
+                  <th style="width: 10%;">注文数</th>
+                  <th style="width: 25%;">注文日時</th>
+                  <th style="width: 10%;">☑</th>
                 </tr>
               </thead>
             </table>
