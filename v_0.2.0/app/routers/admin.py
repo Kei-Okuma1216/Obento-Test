@@ -36,7 +36,9 @@ def admin_view(request: Request):
             raise NotAuthorizedException("管理者権限がありません。")
 
         return templates.TemplateResponse(
-            "admin.html", {"request": request})
+            "admin.html", {
+                "request": request,
+                "base_url": "https://192.168.3.19:8000"})
     except NotAuthorizedException as e:
         return redirect_login(request, "アクセス権限がありません。", e)
     except Exception as e:
