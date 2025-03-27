@@ -8,6 +8,7 @@ import sqlite3
 from venv import logger
 
 import bcrypt
+from order_log_config import order_logger
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
 from schemas.schemas import Order, User
@@ -934,17 +935,21 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         '''
         
         # ここで created_at をデバッグ出力
-        print(f"DEBUG: insert_order() called with created_at = {created_at}")
+        logger.debug(f"insert_order() called with created_at = {created_at}")
 
         #created_at = get_today_str()
         # created_at が None の場合のみデフォルト値を設定する
         created_at = created_at if created_at else get_today_str()
-        
+
         values = (company_id, username, shop_name, menu_id, amount, created_at)
-        await conn.execute(sqlstr, values)
+        cursor = await conn.execute(sqlstr, values)
         await conn.commit()
+
+        # ここで lastrowid を取得
+        order_id = cursor.lastrowid
         logger.info("注文追加成功")
         logger.debug(f"insert_order() - {sqlstr} , values: {values}")
+        order_logger("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username},{shop_name}:{menu_id},{amount}")
 
     except DatabaseConnectionException as e:
         raise
