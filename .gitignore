@@ -1,11 +1,28 @@
 .env
 # すべての __pycache__ フォルダを無視する
-**/__pycache__/
 **.pytest_cache
+**/__pycache__/
 **env
-Documents/
-**/app/logs/
 **/不要
+**Obento-Test Prompt.lnk
+**.key
+**.csr
+**.crt
+**.cnf
+**.pem
+**.ini
+**.DS_Store
+**.vscode
 v_*/app/database/example.db
 v_*/app/database/_example.db
-**Obento-Test Prompt.lnk
+v_*/app/logs/
+v_*/app/order_logs/
+**/app/logs/
+**/app/order_logs/
+Documents/
+**/app/1. Obento-Test Prompt.lnk
+**/app/2. Obento-Test SmartPhone.lnk
+**/app/3. Obento-Test curl用.lnk
+**/app/4. DB Browser.lnk
+**/app/5. Obento-Test Prompt用.lnk
+
