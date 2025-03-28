@@ -949,6 +949,7 @@ async def insert_order(company_id, username, shop_name, menu_id, amount, created
         order_id = cursor.lastrowid
         logger.info("注文追加成功")
         logger.debug(f"insert_order() - {sqlstr} , values: {values}")
+
         order_logger("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username},{shop_name}:{menu_id},{amount}")
 
     except DatabaseConnectionException as e:

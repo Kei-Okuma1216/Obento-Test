@@ -39,6 +39,7 @@ def admin_view(request: Request):
             "admin.html", {
                 "request": request,
                 "base_url": "https://192.168.3.19:8000"})
+
     except NotAuthorizedException as e:
         return redirect_login(request, "アクセス権限がありません。", e)
     except Exception as e:
