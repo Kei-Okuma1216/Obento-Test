@@ -1,0 +1,60 @@
+# 登録完了画面
+@app.post("/register", response_class=HTMLResponse)
+async def register(username: str = Form(...),password: str = Form(...)):
+    try:
+        # 使用例
+        today_date = datetime.today()
+        token = create_jwt(username, password, today_date)
+        print(f"Generated JWT: {token}")
+        
+     
+        
+        # IDとパスワードに基づいてメッセージを生成 
+        #message = username + password 
+        
+        # 署名を生成 
+        #today_date = date.today()
+        #signature = sign_message(private_key, message, today_date) 
+        #signature_hex = signature.hex()
+        
+        return f"""
+        <html>
+            <head>
+                <title>登録完了</title>
+            </head>
+            <body>
+                <h1>OKです</h1>
+                <h2>ユーザー登録が完了しました。</h2>
+                <p>f"Generated JWT: {token}"</p>
+                <h2>次の書式でtokenを渡してください</h2>
+                <a href="https://localhost:8000/abc?token={token}" target="_blank" alt="説明文">リンクテキスト</a>
+            
+            https://localhost:8000/abc?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6Imsub2t1bWFAdGVuLXN5c3RlbS5jb20iLCJwYXNzd29yZCI6ImFhYSIsImRhdGUiOiIyMDI1LTAxLTA5IDExOjI2OjA0Ljg0MzQyNiIsImV4cCI6MTczNjQ3NTk2NH0.MQxMEO6SNLt3jFU31224De2kT6fajeFg3KDWwzMAsLc
+            </body>
+        </html>"""
+    except Exception as e: 
+        return f"<html><body><h2>エラー: {str(e)}</h2></body></html>"
+
+
+
+# ユーザー登録ページ
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root():
+    return """
+    <html>
+        <head>
+            <title>ここはユーザー登録ページです</title>
+        </head>
+        <body>
+            <h1>こんにちは！</h1>
+            <form action="/register" method="post">
+                <label for="username">ID:</label><br>
+                <input type="text" id="username" name="username"><br>
+                <label for="password">パスワード:</label><br>
+                <input type="password" id="password" name="password"><br>
+                <input type="submit" value="OK">
+            </form>
+        </body>
+    </html>
+    """
