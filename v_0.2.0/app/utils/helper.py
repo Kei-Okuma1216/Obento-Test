@@ -57,14 +57,19 @@ async def create_auth_response(
         raise CustomException(method_name="create_auth_response()")
 
 @log_decorator
-def redirect_login(request: Request, message: str,
-                   e: Exception=None):
+def redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
     '''login.htmlに戻る'''
     try:
-        logger.info(f"Redirect Login - {message}")
+        if error:
+            logger.error(f"Redirect Login - {error}")
+        if message:
+            logger.info(f"Redirect Login - {message}")
 
         return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message})
+            "login.html", {
+                "request": request,
+                "message": message,
+                "error": error})
     except HTTPException as e:
         raise
     except Exception as e:
