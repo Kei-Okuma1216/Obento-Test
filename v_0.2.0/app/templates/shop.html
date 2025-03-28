@@ -8,157 +8,183 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <style>
+      /* 固定フッターの初期状態は少し下に隠す */
+      .fixed-footer {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: -10px; /* ※必要に応じて調整 */
+        transition: bottom 0.3s ease;
+        z-index: 1030;
+      }
+      /* ホバー時にフッターを完全に表示 */
+      .fixed-footer:hover {
+        bottom: 0;
+      }
+      /* コンテンツ部分に下余白を追加（フッターの高さ分を確保） */
+      .content-wrapper {
+        padding-bottom: 80px; /* ※フッターの高さに合わせて調整 */
+      }
+    </style>
   </head>
   <body>
     <!-- ランチ画像 C:\Obento-Test\v_0.2.0\app\static\shops\1\menu\ランチ01.jpg-->
     {% include 'components/header.html' %}
 
     <!-- メインコンテンツ -->
-    <div class="container mt-4">
-      <h1 class="text-dark">店舗注文一覧</h1>
-      <!-- タブナビゲーション -->
-      <ul class="nav nav-tabs" id="storeTab" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">情報</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab" aria-controls="order" aria-selected="false">注文</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json" type="button" role="tab" aria-controls="json" aria-selected="false">注文情報取得</button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab" aria-controls="log" aria-selected="false">ログ</button>
-        </li>
-      </ul>
+    <div class="container mt-4 content-wrapper">
+      <div class="container mt-4">
+        <h1 class="text-dark">店舗注文一覧</h1>
+        <!-- タブナビゲーション -->
+        <ul class="nav nav-tabs" id="storeTab" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">情報</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab" aria-controls="order" aria-selected="false">注文</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="json-tab" data-bs-toggle="tab" data-bs-target="#json" type="button" role="tab" aria-controls="json" aria-selected="false">注文情報取得</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab" aria-controls="log" aria-selected="false">ログ</button>
+          </li>
+        </ul>
 
-      <!-- タブコンテンツ -->
-      <div class="tab-content" id="storeTabContent">
-        <!-- 情報タブ -->
-        <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
-          <h2 class="mt-3">備考</h2>
-          <p>注文締切時刻：前日13時</p>
-          <h3 class="mt-3">機能状況</h3>
-          <div class="mb-3">
-            <h4>実装済</h4>
-            <ul class="list-group mb-3">
-              <li class="list-group-item"><del>受注情報を集計</del></li>
-              <li class="list-group-item">
-                <a href="{{ base_url }}/admin/order_logs">
-                  注文ログファイル一覧
-                </a>
-              </li>
-            </ul>
-            <h4>未実装</h4>
-            <ul class="list-group">
-              <li class="list-group-item">注文キャンセル処理</li>
-              <li class="list-group-item">注文ログ・キャンセルログの分析</li>
-              <li class="list-group-item">ユーザごとのデバイス識別</li>
-              <li class="list-group-item">所定の時刻にFAX送信する</li>
-              <li class="list-group-item">注文確認メール送信</li>
-            </ul>
+        <!-- タブコンテンツ -->
+        <div class="tab-content" id="storeTabContent">
+
+          <!-- 情報タブ -->
+          <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
+            <h2 class="mt-3">備考</h2>
+            <p>注文締切時刻：前日13時</p>
+            <h3 class="mt-3">機能状況</h3>
+            <div class="mb-3">
+              <h4>実装済</h4>
+              <ul class="list-group mb-3">
+                <li class="list-group-item"><del>受注情報を集計</del></li>
+                <li class="list-group-item">
+                  <a href="{{ base_url }}/admin/order_logs">
+                    注文ログファイル一覧
+                  </a>
+                </li>
+              </ul>
+              <h4>未実装</h4>
+              <ul class="list-group">
+                <li class="list-group-item">注文キャンセル処理</li>
+                <li class="list-group-item">注文ログ・キャンセルログの分析</li>
+                <li class="list-group-item">ユーザごとのデバイス識別</li>
+                <li class="list-group-item">所定の時刻にFAX送信する</li>
+                <li class="list-group-item">注文確認メール送信</li>
+              </ul>
+            </div>
           </div>
-        </div>
-        
-        <!-- 注文タブ -->
-        <div class="tab-pane fade" id="order" role="tabpanel" aria-labelledby="order-tab">
-          <div class="mt-3 text-end">
-            <!-- 会社別の注文件数を表示 -->
-            <p>
-              <span id="companyOrderCount" data-total="{{ aggregated_orders }}">
-                {% for company, count in aggregated_orders %}
-                  {{ company }}: {{ count }}件<br>
-                {% endfor %}
-              </span>
-            </p>
+          
+          <!-- 注文タブ -->
+          <div class="tab-pane fade" id="order" role="tabpanel" aria-labelledby="order-tab">
+            <div class="mt-3 text-end">
+              <!-- 会社別の注文件数を表示 -->
+              <p>
+                <span id="companyOrderCount" data-total="{{ aggregated_orders }}">
+                  {% for company, count in aggregated_orders %}
+                    {{ company }}: {{ count }}件<br>
+                  {% endfor %}
+                </span>
+              </p>
 
-            <!-- 注文の残り/全件数を表示 -->
-            <p>
-              <span id="orderCount" data-total="{{ order_count }}">
-                {{ order_count - checked_count }}/{{ checked_count }}
-              </span>
-            </p>
+              <!-- 注文の残り/全件数を表示 -->
+              <p>
+                <span id="orderCount" data-total="{{ order_count }}">
+                  {{ order_count - checked_count }}/{{ checked_count }}
+                </span>
+              </p>
 
-            <!-- 保存ボタン -->
-            <button id="save-changes-button" class="btn btn-primary mb-3">保存</button>
-          </div>
-          <div class="table-responsive">
-            <!-- テーブルヘッダー（各カラムの幅を指定） -->
-            <table class="table table-striped table-bordered mb-0">
-              <thead class="table-light  text-center">
-                <tr>
-                  <th style="width: 7%; font-size: 14px;">番号</th>
-                  <th style="width: 15%;">会社</th>
-                  <th style="width: 15%;">名前</th>
-                  <th style="width: 18%;">メニュー名</th>
-                  <th style="width: 10%;">注文数</th>
-                  <th style="width: 25%;">注文日時</th>
-                  <th style="width: 10%;">☑</th>
-                </tr>
-              </thead>
-            </table>
-            <!-- テーブルボディをスクロール可能な枠に -->
-            <div style="max-height: 300px; overflow-y: auto;">
+              <!-- 保存ボタン -->
+              <button id="save-changes-button" class="btn btn-primary mb-3">保存</button>
+            </div>
+            <div class="table-responsive">
+              <!-- テーブルヘッダー（各カラムの幅を指定） -->
               <table class="table table-striped table-bordered mb-0">
-                <tbody>
-                  {% include 'order_table.html' %}
-                </tbody>
+                <thead class="table-light  text-center">
+                  <tr>
+                    <th style="width: 7%; font-size: 14px;">番号</th>
+                    <th style="width: 15%;">会社</th>
+                    <th style="width: 15%;">名前</th>
+                    <th style="width: 18%;">メニュー名</th>
+                    <th style="width: 10%;">注文数</th>
+                    <th style="width: 25%;">注文日時</th>
+                    <th style="width: 10%;">☑</th>
+                  </tr>
+                </thead>
               </table>
+              <!-- テーブルボディをスクロール可能な枠に -->
+              <div style="max-height: 300px; overflow-y: auto;">
+                <table class="table table-striped table-bordered mb-0">
+                  <tbody>
+                    {% include 'order_table.html' %}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <!-- 注文情報取得タブ -->
-        <div class="tab-pane fade" id="json" role="tabpanel" aria-labelledby="json-tab">
-          <h2 class="mt-3">注文情報取得</h2>
-          <h3>JSONで注文情報を取得する</h3>
-          <p>例: /order_json?days_ago=-5</p>
-          <!-- 日付入力用テキストボックス -->
-          <div class="mb-3">
-            <label for="daysAgoInput" class="form-label">日付 (days_ago):</label>
-            <input type="text" id="daysAgoInput" value="-5" class="form-control w-auto d-inline-block">
-          </div>
-          <!-- JSON取得ボタン -->
-          <button id="fetch-json-btn" class="btn btn-primary mb-3">JSON取得</button>
-          <!-- JSON取得リンク -->
-          <a id="jsonLink" href="{{ base_url }}/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
-          <!-- JSON表示エリア -->
-          <pre id="jsonOutput" class="bg-light p-2" style="max-height: 300px; overflow-y: auto;"></pre>
-        </div>
 
-        <!-- ログタブ -->
-        <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
-          <h1 class="mt-3">ログ</h1>
-          <!-- Bootstrap の Modal を利用してログ表示ウィンドウを開く -->
-          <!-- 注文ログ表示ボタン -->
-          <button type="button" class="btn btn-primary mt-3" onclick="location.href='/admin/order_logs'">
-            注文ログ表示
-          </button>
-        </div>    
-      </div>
-    </div>
-    
-    <!-- 注文ログ ダイアログ-->
-    <!-- Bootstrap Modal for log display -->
-    <div class="modal fade" id="orderlogModal" tabindex="-1" aria-labelledby="logModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-xl">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="logModalLabel">注文ログ表示</h5>
-            <div class="btn-group">
-              <!-- 戻るボタン -->
-              <button type="button" class="btn btn-sm btn-secondary me-2" onclick="goBackInIframe()">戻る</button>
-              <!-- 閉じるボタン -->
-              <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">閉じる</button>
+          <!-- 注文情報取得タブ -->
+          <div class="tab-pane fade" id="json" role="tabpanel" aria-labelledby="json-tab">
+            <h2 class="mt-3">注文情報取得</h2>
+            <h3>JSONで注文情報を取得する</h3>
+            <p>例: /order_json?days_ago=-5</p>
+            <!-- 日付入力用テキストボックス -->
+            <div class="mb-3">
+              <label for="daysAgoInput" class="form-label">日付 (days_ago):</label>
+              <input type="text" id="daysAgoInput" value="-5" class="form-control w-auto d-inline-block">
             </div>
+            <!-- JSON取得ボタン -->
+            <button id="fetch-json-btn" class="btn btn-primary mb-3">JSON取得</button>
+            <!-- JSON取得リンク -->
+            <a id="jsonLink" href="{{ base_url }}/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
+            <!-- JSON表示エリア -->
+            <pre id="jsonOutput" class="bg-light p-2" style="max-height: 300px; overflow-y: auto;"></pre>
           </div>
-          <div class="modal-body p-0">
-            <!-- /admin/logs の内容を iframe で表示 -->
-            <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe>
+
+          <!-- ログタブ -->
+          <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
+            <h1 class="mt-3">ログ</h1>
+            <!-- Bootstrap の Modal を利用してログ表示ウィンドウを開く -->
+            <!-- 注文ログ表示ボタン -->
+            <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#orderlogModal">
+              注文ログ表示
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 注文ログ Dialog -->
+      <div class="modal fade" id="orderlogModal" tabindex="-1" aria-labelledby="orderlogModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="orderlogModalLabel">注文ログ表示</h5>
+              <div class="btn-group">
+                <!-- 戻るボタン -->
+                <button type="button" class="btn btn-sm btn-secondary me-2" onclick="goBackInIframe()">戻る</button>
+                <!-- 閉じるボタン -->
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">閉じる</button>
+              </div>
+            </div>
+            <div class="modal-body p-0">
+              <!-- /admin/order_logs の内容を iframe で表示 -->
+              <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe>
+            </div>
           </div>
         </div>
       </div>
+
     </div>
+    <!-- フッター -->
+    <!-- フッターの上に余白を追加 -->
+    <div class="mt-5"></div>
     {% include 'components/footer.html' %}
 
     <!-- JavaScript: JSON取得処理とリンク更新 -->

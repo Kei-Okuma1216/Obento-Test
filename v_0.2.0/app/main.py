@@ -94,14 +94,14 @@ async def root(request: Request, response: Response):
             raise TokenExpiredException("check_cookie_token()")
             '''
             logger.debug("token: ありません")
-            return redirect_login(request, "ようこそ")
+            return redirect_login(request, message="ようこそ")
 
         # token チェック
         expires = get_token_expires(request)
 
         if compare_expire_date(expires):
             # expires 無効
-            return redirect_login(request, token_expired_error_message)
+            return redirect_login(request, error=token_expired_error_message)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -118,7 +118,7 @@ async def root(request: Request, response: Response):
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
         return redirect_login(
-            request, token_expired_error_message)
+            request, error=token_expired_error_message)
     except (CookieException, jwt.InvalidTokenError) as e:
         return redirect_error(
             request, token_expired_error_message, e)
@@ -130,7 +130,7 @@ async def root(request: Request, response: Response):
 async def login_get(request: Request):
     try:
         pass
-        return redirect_login(request, "ようこそ")
+        return redirect_login(request, message="ようこそ")
     except Exception as e:
         return redirect_error(request, login_error_message, e)
 
@@ -152,11 +152,11 @@ async def login_post(request: Request,
             user.get_username(), permission, main_url)
 
     except NotAuthorizedException as e:
-        return redirect_login(request, "アクセス権限がありません。", e)
+        return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-        return redirect_login(request, token_expired_error_message)
+        return redirect_login(request, error=token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
-        return redirect_error(request, login_error_message, e)
+        return redirect_error(request, error=login_error_message)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
