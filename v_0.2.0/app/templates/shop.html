@@ -11,25 +11,7 @@
   </head>
   <body>
     <!-- ランチ画像 C:\Obento-Test\v_0.2.0\app\static\shops\1\menu\ランチ01.jpg-->
-    <header>
-      <!-- ナビゲーションバー -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-light">
-        <div class="container">
-          <a class="navbar-brand" href="/login">トップに戻る</a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
-            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="navbarSupportedContent">
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item">
-                <a class="nav-link" href="/clear">ログアウト</a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-    </header>
+    {% include 'components/header.html' %}
 
     <!-- メインコンテンツ -->
     <div class="container mt-4">
@@ -91,7 +73,7 @@
             </p>
 
             <!-- 注文の残り/全件数を表示 -->
-            <p> 
+            <p>
               <span id="orderCount" data-total="{{ order_count }}">
                 {{ order_count - checked_count }}/{{ checked_count }}
               </span>
@@ -177,6 +159,7 @@
         </div>
       </div>
     </div>
+    {% include 'components/footer.html' %}
 
     <!-- JavaScript: JSON取得処理とリンク更新 -->
     <script>

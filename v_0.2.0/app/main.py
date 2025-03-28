@@ -86,7 +86,6 @@ async def root(request: Request, response: Response):
                 }
             )
 
-
         # cookies チェック
         token = request.cookies.get("token")
         if token is None:

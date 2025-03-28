@@ -1,7 +1,0 @@
-README.md
-setup.py
-obento_test.egg-info/PKG-INFO
-obento_test.egg-info/SOURCES.txt
-obento_test.egg-info/dependency_links.txt
-obento_test.egg-info/requires.txt
-obento_test.egg-info/top_level.txt

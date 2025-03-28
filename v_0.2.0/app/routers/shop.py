@@ -5,9 +5,9 @@ from fastapi import Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from database.sqlite_database import SQLException, select_shop_order
+from database.sqlite_database import select_shop_order
 from utils.utils import get_all_cookies, check_permission, log_decorator
-from utils.exception import CookieException, CustomException
+from utils.exception import SQLException, CookieException, CustomException
 from services.order_view import order_table_view, get_order_json
 
 templates = Jinja2Templates(directory="templates")
