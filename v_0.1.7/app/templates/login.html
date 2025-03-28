@@ -1,0 +1,43 @@
+<html>
+    <head>
+        <title>ログイン</title>
+    </head>
+    <body>
+        <h1>こんにちは！</h1>
+        <h2>ここはユーザー登録ページです</h2>
+        <form action="/login" method="post">
+            <label for="username">ユーザー名:</label>
+            <br>
+            <input type="text" id="username" name="username" required>
+            <br>
+            <label for="password">パスワード:</label>
+            <br>
+            <input type="password" id="password" name="password">
+            <br>
+            <input type="submit" value="OK" id="login_button">
+        </form>
+        <h4>例外テスト</h4>
+        <a href="https://192.168.3.19:8000/test_exception">https://192.168.3.19:8000/test_exception</a>
+        <Script>
+            /**
+             * 
+             */
+            function checkCookie() {
+                 let cookieValue = document.cookie 
+                    .split('; ') 
+                    .find(row => row.startsWith('token=')) 
+                    .split('=')[1]; 
+                    if (cookieValue) {
+                        let tokenPayload = JSON.parse(atob(cookieValue.split('.')[1])); 
+                        let exp = tokenPayload.exp; 
+                        let now = Math.floor(Date.now() / 1000); if (now > exp) {
+                            alert('Token has expired. Please log in again.');
+                        }
+                     }
+            }
+            //checkCookie()
+            // 必要なアクションを実行（例：ログインページにリダイレクト）
+            //setInterval(checkCookie, 1000); // 1秒ごとにクッキーの有効期限をチェック
+        </Script>
+    </body>
+</html>

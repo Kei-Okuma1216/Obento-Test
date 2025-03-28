@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <title>店舗担当者注文一覧</title>
+    </head>
+    <body>
+        <h1>店舗担当者注文一覧</h1>
+        <h2>備考</h2>
+            <a>注文締切時刻：前日13時</a>
+            <a href="/">トップに戻る</a>
+        <h2>注文情報取得</h2>
+            <a>JSONで注文情報を取得する</a>
+            <a>例 /order_json?days_ago=-5</a>
+            <a href="https://192.168.3.19:8000/shops/me/order_json?days_ago=-5">https://192.168.3.19:8000/shops/today/order_json?days_ago=-5</a>
+            <a><button id="save-changes-button">保存</button></a>
+        <table border="1">
+            <thead>
+                <tr>
+                    <th>番号</th>
+                    <th>会社</th>
+                    <th>名前</th>
+                    <th>メニュー名</th>
+                    <th>注文数</th>
+                    <th>注文時刻</th>
+                    <th>キャンセル有無</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% include 'table.html' %}
+            </tbody>
+        </table>
+    </body>
+</html>
