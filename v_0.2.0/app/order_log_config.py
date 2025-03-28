@@ -52,5 +52,5 @@ def order_logger(log_type: str, message: str):
 #order_logger("CANCEL", "注文がキャンセルされました")
 
 # insert_order()を参照されたし
-#order_logger("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username},{shop_name}:{menu_id},{amount}")
+#order_logger("ORDER", f"注文完了 - order_id:{order_id} - shop_name:{shop_name}:{menu_id} - {company_id}:{username},{amount}")
 
