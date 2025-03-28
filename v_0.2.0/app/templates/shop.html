@@ -29,7 +29,7 @@
     </style>
   </head>
   <body>
-    <!-- ランチ画像 C:\Obento-Test\v_0.2.0\app\static\shops\1\menu\ランチ01.jpg-->
+    <!-- ヘッダー -->
     {% include 'components/header.html' %}
 
     <!-- メインコンテンツ -->
@@ -102,6 +102,9 @@
 
               <!-- 保存ボタン -->
               <button id="save-changes-button" class="btn btn-primary mb-3">保存</button>
+              <!-- order_log_filter_config.pyボタン -->
+              <button id="my-order-log-button" class="btn btn-primary mb-3">注文ログ抽出</button>
+
             </div>
             <div class="table-responsive">
               <!-- テーブルヘッダー（各カラムの幅を指定） -->
@@ -209,5 +212,23 @@
         this.href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
       });
     </script>
+    <script>
+      document.getElementById("my-order-log-button").addEventListener("click", function() {
+        // 抽出対象のショップ名。必要に応じて他の値に変更可能
+        var shopName = "shop01";
+        fetch("/filter_order_logs?shop=" + encodeURIComponent(shopName))
+          .then(response => response.json())
+          .then(data => {
+            // 結果をコンソールに出力
+            console.log("stdout:", data.stdout);
+            console.log("stderr:", data.stderr);
+            alert("注文ログの抽出が完了しました。");
+          })
+          .catch(error => {
+            console.error("Error:", error);
+            alert("エラーが発生しました。");
+          });
+      });
+      </script>
   </body>
 </html>

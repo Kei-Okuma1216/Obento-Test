@@ -1,0 +1,6 @@
+{% macro input(name, value='', type='text') %}
+  <input type="{{ type }}" name="{{ name }}" value="{{ value }}">
+{% endmacro %}
+
+{{ input('username') }}
+{{ input('password', type='password') }}
