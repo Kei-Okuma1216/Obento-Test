@@ -151,6 +151,8 @@ async def login_post(request: Request,
         return await create_auth_response(
             user.get_username(), permission, main_url)
 
+    except HTTPException as e:
+        return redirect_login(request, error="パスワードが違います。")
     except NotAuthorizedException as e:
         return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:

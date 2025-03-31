@@ -272,7 +272,7 @@ def get_token_expires(request: Request) -> str:
 
 
 # チェックする
-@log_decorator
+#@log_decorator
 async def check_permission_and_stop_order(request: Request, response: Response):
     try:
         ''' 権限と二重注文チェックを合体させた関数
@@ -282,7 +282,7 @@ async def check_permission_and_stop_order(request: Request, response: Response):
         '''
         # Cookieからpermissionを取得
         permission = request.cookies.get("permission")
-        print(f"cookie permission: {permission}")
+        #print(f"cookie permission: {permission}")
 
         if permission is None:
             permission = '1'

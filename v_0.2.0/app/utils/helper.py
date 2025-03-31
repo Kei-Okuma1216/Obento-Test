@@ -133,10 +133,14 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
             ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
             #logger.info("パスワードが一致しません")
             #return None
-            raise NotAuthorizedException(
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="パスワードが一致しません"
+                )
+            '''raise NotAuthorizedException(
                 method_name="verify_password()",
                 detail="パスワードが一致しません"
-            )
+            )'''
 
         data = {
             "sub": user.get_username(),
@@ -150,7 +154,7 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
 
         return user
 
-    except (NotAuthorizedException, SQLException) as e:
+    except (NotAuthorizedException, SQLException, HTTPException) as e:
         raise
     except Exception as e:
         raise CustomException(
