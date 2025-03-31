@@ -41,16 +41,7 @@ async def regist_complete(request: Request, response: Response):
             user.shop_name,
             user.menu_id,
             amount=1)
-        
-        # 挿入時に使用した引数を辞書にまとめる
-        order_details = {
-            "company_id": user.company_id,
-            "username": user.username,
-            "shop_name": user.shop_name,
-            "menu_id": user.menu_id,
-            "amount": 1
-        }
-        
+
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
@@ -67,8 +58,6 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
-        '''return await order_table_view(
-            request, response, orders, order_details, "order_complete.html")'''
         return await order_table_view(
             request, response, orders, "order_complete.html")
 

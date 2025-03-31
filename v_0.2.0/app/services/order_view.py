@@ -19,7 +19,6 @@ view_router = APIRouter(
 
 # 注文一覧テーブル表示
 @log_decorator
-#async def order_table_view(request: Request, response: Response, orders, order_details , redirect_url: str):
 async def order_table_view(request: Request, response: Response, orders , redirect_url: str):
 
     try:
@@ -37,7 +36,7 @@ async def order_table_view(request: Request, response: Response, orders , redire
         aggregated_orders = [[company, count] for company, count in company_counts.items()]
 
 
-        print(f"orders.model_dump(): {orders[0].model_dump()}")
+        logger.debug(f"orders.model_dump(): {orders[0].model_dump()}")
         # コンテキストに集計結果も追加
         context = {
             'request': request,
@@ -50,16 +49,13 @@ async def order_table_view(request: Request, response: Response, orders , redire
         }
 
         templates.TemplateResponse("order_table.html", context)
-        #print("ここまできた 2")
+
         template_response = templates.TemplateResponse(
             redirect_url, context)
-        #print("ここまできた 3")
         # 必須！　Set-CookieヘッダーがNoneでないことを確認
         set_cookie_header = response.headers.get("Set-Cookie")
-        #print("ここまできた 4")
         if set_cookie_header:
             template_response.headers["Set-Cookie"] = set_cookie_header
-        #print("ここまできた 5")
         return template_response
 
     except HTTPException as e:
