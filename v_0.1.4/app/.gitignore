@@ -1,6 +1,0 @@
-"__pycache__/" 
-".pytest_cache" 
-# .gitignore 自体を無視しないようにする
-!.gitignore
-# pytest のキャッシュを無視
-.pytest_cache/
