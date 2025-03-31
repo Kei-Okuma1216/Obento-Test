@@ -19,10 +19,10 @@ view_router = APIRouter(
 
 # 注文一覧テーブル表示
 @log_decorator
-async def order_table_view(request: Request, response: Response, orders, redirect_url: str):
-    try:
-        #logger.debug(f"ordersあり")
+#async def order_table_view(request: Request, response: Response, orders, order_details , redirect_url: str):
+async def order_table_view(request: Request, response: Response, orders , redirect_url: str):
 
+    try:
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
 
@@ -36,6 +36,8 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         # ※全件数を集計したい場合は、以下のようにフィルタを外します
         aggregated_orders = [[company, count] for company, count in company_counts.items()]
 
+
+        print(f"orders.model_dump(): {orders[0].model_dump()}")
         # コンテキストに集計結果も追加
         context = {
             'request': request,
@@ -43,16 +45,11 @@ async def order_table_view(request: Request, response: Response, orders, redirec
             'order_count': len(orders),
             'checked_count': checked_count,
             'aggregated_orders': aggregated_orders,
-            "base_url": "https://192.168.3.19:8000"
+            "base_url": "https://192.168.3.19:8000",
+            "order_details": orders[0].model_dump() if orders else None
         }
 
-        '''context = {'request': request, 'orders': orders,
-                   'order_count': len(orders),
-                   'checked_count': checked_count}'''
-        
-        inner_table = "order_table.html"
-
-        templates.TemplateResponse(inner_table, context)
+        templates.TemplateResponse("order_table.html", context)
         #print("ここまできた 2")
         template_response = templates.TemplateResponse(
             redirect_url, context)

@@ -24,6 +24,10 @@ user_router = APIRouter()
 @log_decorator
 async def regist_complete(request: Request, response: Response): 
     try:
+        if await check_permission(request, [1, 2, 10, 99]) == False:
+            return templates.TemplateResponse(
+            "Unauthorized.html", {"request": request})
+
         cookies = get_all_cookies(request)
         #print("こっちがuser.py")
         user: UserResponse = await select_user(cookies['sub'])
@@ -38,6 +42,15 @@ async def regist_complete(request: Request, response: Response):
             user.menu_id,
             amount=1)
         
+        # 挿入時に使用した引数を辞書にまとめる
+        order_details = {
+            "company_id": user.company_id,
+            "username": user.username,
+            "shop_name": user.shop_name,
+            "menu_id": user.menu_id,
+            "amount": 1
+        }
+        
         orders = await select_shop_order(
             user.shop_name, -7, user.username)
 
@@ -49,14 +62,16 @@ async def regist_complete(request: Request, response: Response):
                 "regist_complete()",
                 "注文が見つかりません")
 
-        #await show_all_orders()
         order_count = len(orders) - 1
         last_order_date = orders[order_count].created_at
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
+        '''return await order_table_view(
+            request, response, orders, order_details, "order_complete.html")'''
         return await order_table_view(
             request, response, orders, "order_complete.html")
+
 
     except (SQLException, HTTPException) as e:
         return redirect_error(request, "注文確定に失敗しました", e)
