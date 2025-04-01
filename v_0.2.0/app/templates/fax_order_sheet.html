@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>はーとあーす勝谷 日替わり弁当注文書</title>
+  <style>
+    /* 全体を黒のボーダーで囲む */
+    .container {
+      border: 1px solid #000;
+      padding: 20px;
+      margin: 20px auto;
+      width: 80%;
+    }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 5px;
+    }
+    /* FAX情報はタイトルより少し小さいフォントサイズ */
+    .fax-info {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    /* ご注文日・お届け日・施設名（ご担当）に下線を引く */
+    .underline-group {
+      border-bottom: 1px solid #000;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
+      vertical-align: top;
+      text-align: right;
+      margin-right: 10px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 5px;
+      width: 75px;
+      text-align: left;
+    }
+    /* 静的に表示する日付用 */
+    .static-date {
+      font-weight: bold;
+      padding: 5px;
+    }
+    /* 施設名と日替わり弁当の間に空欄を作成（高さはご注文日等と同じ） */
+    .spacer {
+      height: 40px;
+    }
+    /* form と table の幅を３分の２に設定し中央に配置 */
+    form, table {
+      width: 66.66%;
+      margin: 0 auto;
+      text-align: left;
+    }
+    /* テーブルに外周および内部の枠線・罫線を設定 */
+    table {
+      border-collapse: collapse;
+      border: 1px solid #000;
+    }
+    td {
+      padding: 5px;
+      border: 1px solid #000;
+      vertical-align: middle;
+    }
+    #facility {
+        width: 120px;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>はーとあーす勝谷 日替わり弁当注文書</h1>
+    <div class="fax-info">FAX: 083-263-0231</div>
+    
+    <form>
+      <!-- ご注文日：年、月、日を静的に表示（例：2025/4/1） -->
+      <div class="form-group underline-group">
+        <label>ご注文日</label>
+        <span class="static-date">2025</span> 年
+        <span class="static-date">4</span> 月
+        <span class="static-date">1</span> 日
+        <span class="static-date">(火)</span>
+      </div>
+  
+      <!-- お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
+      <div class="form-group underline-group">
+        <label>お届け日</label>
+        <span class="static-date">2025</span> 年
+        <span class="static-date">4</span> 月
+        <span class="static-date">2</span> 日
+        <select id="delivery-date-weekday" name="delivery_date_weekday">
+          <option value="">曜日</option>
+          <option value="月">月</option>
+          <option value="火">火</option>
+          <option value="水">水</option>
+          <option value="木">木</option>
+          <option value="金">金</option>
+          <option value="土">土</option>
+          <!--<option value="日">日</option>-->
+        </select>
+      </div>
+  
+      <!-- 施設名（ご担当） -->
+      <div class="form-group underline-group">
+        <label for="facility">施設名（ご担当）</label>
+        <input type="text" id="facility" name="facility" placeholder="施設名">
+        <input type="text" id="POC" name="POC" placeholder="担当者名">
+      </div>
+      
+      <!-- 空欄スペーサー -->
+      <div class="spacer"></div>
+      
+      <!-- 日替わり弁当と合計金額を2列のテーブルに配置 -->
+      <table>
+        <tr>
+          <td style="width:300px; white-space: nowrap;">日替わり弁当（450円）</td>
+          <td>
+            <input type="number" id="bento-count" name="bento_count" min="0" value="0" style="width:40px;"> 個
+          </td>
+        </tr>
+        <tr>
+          <td>合計金額</td>
+          <td>
+            <input type="text" id="total-amount" name="total_amount" value="0 円" readonly>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </div>
+  
+  <script>
+    // 1個あたりの価格
+    const pricePerBento = 450;
+    
+    // 個数入力欄の変更時に合計金額を更新する関数
+    function updateTotal() {
+      let count = parseInt(document.getElementById('bento-count').value, 10) || 0;
+      let total = count * pricePerBento;
+      // 個数が0の場合は「0円」、それ以外はtoLocaleStringでカンマ区切り
+      let formattedTotal = total === 0 ? "0" : total.toLocaleString();
+      document.getElementById('total-amount').value = formattedTotal + " 円";
+    }
+    
+    // 個数入力欄での直接入力時に更新
+    document.getElementById('bento-count').addEventListener('input', updateTotal);
+  </script>
+</body>
+</html>
