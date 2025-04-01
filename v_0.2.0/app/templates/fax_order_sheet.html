@@ -76,7 +76,6 @@
     #facility {
         width: 120px;
     }
-
   </style>
 </head>
 <body>
@@ -157,16 +156,18 @@
     document.getElementById('bento-count').addEventListener('input', updateTotal);
 
     // URLのクエリパラメータを取得する例
-    // 例: ?aaa=2025-04-01&facility=施設名&name=名前&count=3
-    // fax_order_sheet.html?aaa=2025-04-01&facility=〇〇&poc=ExampleName&count=3
+    // 例: ?shop_name=店名&menu_name=メニュー名&price=450&order_count=1&total_amount=450&facility_name=施設名&POC=担当者名
+    // https://192.168.3.19:8000/manager/me/fax_order_sheet?shop_name=はーとあーす勝谷11&menu_name=お昼のお弁当22&price=450&order_count=21&total_amount=2700&facility_name=テンシステム&POC=林1
 
     const params = new URLSearchParams(window.location.search);
-    const aaa = params.get('aaa');
-    const facility = params.get('facility');
-    const name = params.get('poc');
-    const count = params.get('count');
-
-    console.log('aaa:', aaa, 'facility:', facility, 'poc:', name, 'count:', count);
+    const shopName = params.get('shop_name');
+    const menuName = params.get('menu_name');
+    const price = params.get('price');
+    const orderCount = params.get('order_count');
+    const totalAmount = params.get('total_amount');
+    const facilityName = params.get('facility_name');
+    const POC = params.get('POC');
+    console.log(shopName, menuName, price, orderCount, totalAmount, facilityName, POC);
     // 必要に応じて画面上の表示などに利用
 </script>
 

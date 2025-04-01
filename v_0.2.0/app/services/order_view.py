@@ -47,6 +47,18 @@ async def order_table_view(request: Request, response: Response, orders , redire
             "base_url": "https://192.168.3.19:8000",
             "order_details": orders[0].model_dump() if orders else None
         }
+        fax_context = {
+            "shop_name": "はーとあーす勝谷",
+            "menu_name": "お昼のお弁当",
+            "price": 450,
+            "order_count": 2,
+            "total_amount": 450*len(orders),
+            "facility_name": "テンシステム",
+            "POC": "林"
+        }
+
+        # context2 の値を context に追加
+        context.update(fax_context)
 
         templates.TemplateResponse("order_table.html", context)
 

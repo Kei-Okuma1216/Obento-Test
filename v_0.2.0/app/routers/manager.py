@@ -45,7 +45,6 @@ async def manager_view(request: Request, response: Response):
         if orders is None:
             logger.debug('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
-            #return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         target_url = "manager.html"
         return await order_table_view(request, response, orders, target_url)
@@ -58,3 +57,18 @@ async def manager_view(request: Request, response: Response):
             "/manager_view()",
             f"Error: {str(e)}")
 
+
+@manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
+@log_decorator
+async def fax_order_sheet_view(request: Request):
+    # 仮にハードコートしておく
+    fax_context = {
+         "shop_name": "はーとあーす勝谷",
+         "menu_name": "お昼のお弁当",
+         "price": 450,
+         "order_count": 3,
+         "total_amount": 2700,  # 例: 450 * 6 など、実際の計算結果
+         "facility_name": "テンシステム",
+         "POC": "林"
+    }
+    return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **fax_context})

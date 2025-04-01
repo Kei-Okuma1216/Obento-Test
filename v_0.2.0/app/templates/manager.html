@@ -60,25 +60,6 @@
         }
       }
     </style>
-    <script>
-      function openFaxOrderSheet() {
-        // 例: 変数を取得または定義
-        const order_date = new Date().toISOString().split('T')[0]; // 今日の日付（YYYY-MM-DD形式）
-        const delivery_date = new Date(Date.now() + 86400000).toISOString().split('T')[0]; // 明日の日付（YYYY-MM-DD形式）
-        const facility = document.getElementById('facility').value || 'defaultFacility';
-        const name = 'ExampleName'; // 実際の名前を取得する処理に置き換えてください
-        const count = document.getElementById('bento-count').value || 0;
-        
-        // URLにクエリパラメータとして付加
-        const url = 'fax_order_sheet.html' +
-          '?order_date=' + encodeURIComponent(order_date) +
-          '&facility=' + encodeURIComponent(facility) +
-          '&poc=' + encodeURIComponent(name) +
-          '&count=' + encodeURIComponent(count);
-        
-        window.open(url, '_blank');
-      }
-    </script>
   </head>
   <body>
     <!-- ヘッダー -->
@@ -154,29 +135,29 @@
               <!-- １．店名 -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">店名：</label>
-                <span>〇〇〇</span>
+                <span>{{shop_name}}</span>
               </div>
               <!-- ２．メニュー選択リストボックス -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">メニュー：</label>
                 <select id="fax-menu">
-                  <option>お昼の弁当</option>
+                  <option>{{menu_name}}</option>
                 </select>
               </div>
               <!-- ３．値段 -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">値段：</label>
-                <span>450円</span>
+                <span>{{price}}円</span>
               </div>
               <!-- ４．個数指定 -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">個数：</label>
-                <input type="number" id="fax-count" value="0" min="0" style="width:60px;">
+                <input type="number" id="bento-count" name="bento_count" min="0" value="0" style="width:40px;"> 個
               </div>
               <!-- ５．合計金額（個数×450円） -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">合計金額：</label>
-                <input type="text" id="fax-total" value="0円" readonly>
+                <input type="text" id="total-amount" name="total_amount" value="0 円" readonly>
               </div>
             </div>
           </div>
@@ -188,4 +169,38 @@
     <!-- フッター -->
     {% include 'components/footer.html' %}
   </body>
-</html>
+  <script>
+    // Jinja2 の変数を用いて、faxContext オブジェクトに値を埋め込みます
+    const faxContext = {
+        shop_name: "{{ shop_name }}",
+        menu_name: "{{ menu_name }}",
+        price: "{{ price }}",
+        order_count: "{{ order_count }}",
+        total_amount: "{{ total_amount }}",
+        facility_name: "{{ facility_name }}",
+        POC: "{{ POC }}"
+    };
+  
+    function openFaxOrderSheet() {
+        // 絶対パスで新しく作成したエンドポイントにアクセス
+        const base_url = "https://192.168.3.19:8000"
+        const url = base_url + "/manager/me/fax_order_sheet";
+        window.open(url, "_blank");
+    }
+    // 1個あたりの価格
+    const pricePerBento = 450;
+    
+    // 個数入力欄の変更時に合計金額を更新する関数
+    function updateTotal() {
+      let count = parseInt(document.getElementById('bento-count').value, 10) || 0;
+      let total = count * pricePerBento;
+      // 個数が0の場合は「0円」、それ以外はtoLocaleStringでカンマ区切り
+      let formattedTotal = total === 0 ? "0" : total.toLocaleString();
+      document.getElementById('total-amount').value = formattedTotal + " 円";
+    }
+  
+  // 個数入力欄での直接入力時に更新
+  document.getElementById('bento-count').addEventListener('input', updateTotal);
+  </script>
+
+  </html>
