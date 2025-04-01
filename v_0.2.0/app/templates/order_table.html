@@ -1,3 +1,14 @@
+<thead class="table-light text-center">
+  <tr>
+    <th style="width: 7%; font-size: 14px;">番号</th>
+    <th style="width: 15%;">会社</th>
+    <th style="width: 15%;">名前</th>
+    <th style="width: 18%;">メニュー名</th>
+    <th style="width: 10%;">注文数</th>
+    <th style="width: 25%;">注文日時</th>
+    <th style="width: 10%;">☑</th>
+  </tr>
+</thead>
 {% for order in orders %}
 <tr class="text-center">
   <td style="width: 7%;">{{ order.order_id }}</td>
