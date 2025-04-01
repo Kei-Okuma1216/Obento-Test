@@ -48,6 +48,11 @@
       .content-wrapper {
         padding-bottom: 80px; /* ※フッターの高さに合わせて調整 */
       }
+      @media (max-width: 576px) { /* スマホサイズ（576px以下）の場合 */
+        .fixed-footer { /* footer のクラス名を指定 */
+            display: none;
+        }
+      }
     </style>
   </head>
   <body>

@@ -45,6 +45,11 @@
       .custom-table td {
         width: 50%; /* カラム2は50% */
       }
+      @media (max-width: 576px) { /* スマホサイズ（576px以下）の場合 */
+        .fixed-footer { /* footer のクラス名を指定 */
+            display: none;
+        }
+      }
     </style>
   </head>
   <body class="bg-light">
