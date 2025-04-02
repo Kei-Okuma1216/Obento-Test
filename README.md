@@ -3,19 +3,15 @@
 
 ## venv簡易実行マニュアル
 0. OpenSSLで秘密鍵→CSR→自己署名証明書の順につくる
-1. main.pyのあるディレクトリでcmdを押してエンターを押す
-2. 仮想環境の作成 ```python -m venv env```
-3. activateする
+1. 仮想環境の作成 ```python -m venv env```
+2. activateする
 ```.\env\Scripts\activate```
-4. uvicornを使ってHTTPSサーバーを起動する
-生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
+3. 生成した証明書と秘密鍵を使用して、uvicornでHTTPSサーバーを起動します
 ```uvicorn main:app --host (PCのIPアドレス) --port 8000 --ssl-keyfile=./＊＊local.key --ssl-certfile=./＊＊local.crt```
-5. ブラウザで、以下にアクセスする もしくは
+4. ブラウザ表示
 ```https://localhost:8000```
 ```http://127.0.0.1:8000```
-5. もしエラーになれば、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
-- [ ] 未完了のタスク
-- [x] 完了したタスク
+5. 初回アクセスでは、詳細設定ボタン押下後、Localhostにすすむ（安全ではありません）のリンクをクリックする。 
 
 ## OpenSSLの設定
 - OpenSSLのインストール
