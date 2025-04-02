@@ -76,73 +76,93 @@
     #facility {
         width: 120px;
     }
+    #delivery-date-day {
+      width: 30px;
+    }
+    #delivery-date-weekday {
+      width: 50px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>はーとあーす勝谷 日替わり弁当注文書</h1>
+    <h1>はーとあーす勝谷 日替わり弁当 注文書</h1>
     <div class="fax-info">FAX: 083-263-0231</div>
-    
+
+    <!-- 空欄スペーサー -->
+    <div class="spacer"></div>
+
     <form>
       <!-- ご注文日：年、月、日を静的に表示（例：2025/4/1） -->
       <div class="form-group underline-group">
         <label>ご注文日</label>
-        <span class="static-date">2025</span> 年
-        <span class="static-date">4</span> 月
-        <span class="static-date">1</span> 日
-        <span class="static-date">(火)</span>
+        <span id="order-year" class="static-date"></span> 年
+        <span id="order-month" class="static-date"></span> 月
+        <span id="order-day" class="static-date"></span> 日
+        <span id="order-weekday" class="static-date"></span>
       </div>
   
       <!-- お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
       <div class="form-group underline-group">
         <label>お届け日</label>
-        <span class="static-date">2025</span> 年
-        <span class="static-date">4</span> 月
-        <span class="static-date">2</span> 日
-        <select id="delivery-date-weekday" name="delivery_date_weekday">
-          <option value="">曜日</option>
-          <option value="月">月</option>
-          <option value="火">火</option>
-          <option value="水">水</option>
-          <option value="木">木</option>
-          <option value="金">金</option>
-          <option value="土">土</option>
-          <!--<option value="日">日</option>-->
-        </select>
+        <span id="delivery-year" class="static-date">{{ delivery_year }}</span> 年
+        <span id="delivery-month" class="static-date">{{ delivery_month }}</span> 月
+        <span id="delivery-day" class="static-date">{{ delivery_day }}</span> 日
+        <span id="delivery-weekend" class="static-date">({{ delivery_weekday }})</span>
       </div>
-  
+
       <!-- 施設名（ご担当） -->
       <div class="form-group underline-group">
         <label for="facility">施設名（ご担当）</label>
-        <input type="text" id="facility" name="facility" placeholder="施設名">
-        <input type="text" id="POC" name="POC" placeholder="担当者名">
+        <span id="facility" class="static-date">{{ facility_name }}</span> 
+        <span id="POC" class="static-date">{{ POC }}</span> 
       </div>
-      
+
       <!-- 空欄スペーサー -->
       <div class="spacer"></div>
-      
+
       <!-- 日替わり弁当と合計金額を2列のテーブルに配置 -->
       <table>
         <tr>
-          <td style="width:300px; white-space: nowrap;">日替わり弁当（450円）</td>
+          <td style="width:300px; white-space: nowrap;">{{menu_name}}（{{price}}円）</td>
           <td>
-            <input type="number" id="bento-count" name="bento_count" min="0" value="0" style="width:40px;"> 個
+            <input type="number" id="bento-count" name="bento_count" min="0" value="{{order_count}}" style="width:40px;"> 個
           </td>
         </tr>
         <tr>
           <td>合計金額</td>
           <td>
-            <input type="text" id="total-amount" name="total_amount" value="0 円" readonly>
+            <input type="text" id="total-amount" name="total_amount" value="{{ total_amount }} 円" readonly>
           </td>
         </tr>
       </table>
     </form>
   </div>
-  
   <script>
+    // ページ読み込み時に今日の日付を取得して表示
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;  // 月は0始まりのため+1
+      const day = today.getDate();
+      const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+      const weekday = weekdays[today.getDay()];
+      const delivery_day = day + 1; // 翌日の日付を表示
+      const delivery_weekday = weekdays[(today.getDay() + 1) % 7]; // 翌日の曜日を表示
+      
+      document.getElementById("order-year").textContent = year;
+      document.getElementById("order-month").textContent = month;
+      document.getElementById("order-day").textContent = day;
+      document.getElementById("order-weekday").textContent = "(" + weekday + ")";
+      document.getElementById("delivery-year").value = year;
+      document.getElementById("delivery-month").value = month;
+      document.getElementById("delivery-day").value = delivery_day;
+      document.getElementById("delivery-weekday").value = delivery_weekday;
+    });
+
     // 1個あたりの価格
     const pricePerBento = 450;
-    
+
     // 個数入力欄の変更時に合計金額を更新する関数
     function updateTotal() {
       let count = parseInt(document.getElementById('bento-count').value, 10) || 0;
@@ -155,10 +175,7 @@
     // 個数入力欄での直接入力時に更新
     document.getElementById('bento-count').addEventListener('input', updateTotal);
 
-    // URLのクエリパラメータを取得する例
-    // 例: ?shop_name=店名&menu_name=メニュー名&price=450&order_count=1&total_amount=450&facility_name=施設名&POC=担当者名
-    // https://192.168.3.19:8000/manager/me/fax_order_sheet?shop_name=はーとあーす勝谷11&menu_name=お昼のお弁当22&price=450&order_count=21&total_amount=2700&facility_name=テンシステム&POC=林1
-
+    // 個数入力欄の初期値を設定
     const params = new URLSearchParams(window.location.search);
     const shopName = params.get('shop_name');
     const menuName = params.get('menu_name');

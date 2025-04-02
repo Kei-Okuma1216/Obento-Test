@@ -19,7 +19,9 @@ view_router = APIRouter(
 
 # 注文一覧テーブル表示
 @log_decorator
-async def order_table_view(request: Request, response: Response, orders , redirect_url: str):
+async def order_table_view(
+    request: Request, response: Response,
+    orders , redirect_url: str, context: dict = None):
 
     try:
         # ordersリストをin-placeで降順にソート
@@ -37,28 +39,12 @@ async def order_table_view(request: Request, response: Response, orders , redire
 
 
         logger.debug(f"orders.model_dump(): {orders[0].model_dump()}")
-        # コンテキストに集計結果も追加
-        context = {
-            'request': request,
-            'orders': orders,
-            'order_count': len(orders),
+
+        adding_context = {        
             'checked_count': checked_count,
             'aggregated_orders': aggregated_orders,
-            "base_url": "https://192.168.3.19:8000",
-            "order_details": orders[0].model_dump() if orders else None
         }
-        fax_context = {
-            "shop_name": "はーとあーす勝谷",
-            "menu_name": "お昼のお弁当",
-            "price": 450,
-            "order_count": 2,
-            "total_amount": 450*len(orders),
-            "facility_name": "テンシステム",
-            "POC": "林"
-        }
-
-        # context2 の値を context に追加
-        context.update(fax_context)
+        context.update(adding_context)
 
         templates.TemplateResponse("order_table.html", context)
 
@@ -68,6 +54,7 @@ async def order_table_view(request: Request, response: Response, orders , redire
         set_cookie_header = response.headers.get("Set-Cookie")
         if set_cookie_header:
             template_response.headers["Set-Cookie"] = set_cookie_header
+
         return template_response
 
     except HTTPException as e:

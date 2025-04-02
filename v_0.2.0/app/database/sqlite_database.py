@@ -1,4 +1,5 @@
 # sqlite_database.py
+from datetime import date
 import json
 import logging
 import os
@@ -814,6 +815,95 @@ async def select_company_order(company_id: int,
         else:
             #print("ここまで 2")
             #print(f"rows: {rows}")
+            orders = appendOrder(rows)
+
+            # ここからList<Order>クラスにキャストする
+            #print(f"ordersの型: {str(type(orders))}")
+            #print(f"orders.count(): {len(orders)}")
+            orderlist = []
+            for o in orders:
+                json_data = json.dumps(o, ensure_ascii=False)
+                dict_data = json.loads(json_data)  # JSON文字列を辞書に変換
+                orderlist.append(Order(**dict_data))
+        #print(f" orderlist: {orderlist}")
+        logger.debug(f"select_company_order() - orderlist: {orderlist}")
+
+        return orderlist
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sql_statement=sqlstr,
+            method_name="select_company_order()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+    except Exception as e:
+        CustomException(
+            500, f"select_company_order()", f"Error: {e}")
+    finally:
+        if conn is not None:
+            await conn.close()
+
+# 選択（お弁当発注者）
+@log_decorator
+async def select_company_order2(company_id: int,
+                            days_ago_str: str = None,
+                            order_date: date = None)-> Optional[List[Order]]:
+    conn = None
+    try:
+        print(f"company_id: {company_id}, days_ago: {days_ago_str}, order_date: {order_date}")
+
+        conn = await get_connection()
+        cursor = await conn.cursor()
+
+        # ベースクエリ
+        # 注意：company_idをCompany:nameに変更した
+        sqlstr = f'''
+        SELECT 
+         O.order_id,
+         C.name AS company_name,
+         O.username, 
+         O.shop_name, 
+         M.name AS menu_name, 
+         O.amount, 
+         O.created_at, 
+         O.canceled 
+        FROM
+         Orders O 
+         INNER JOIN Company C ON O.company_id = C.company_id 
+         INNER JOIN Menu M ON O.menu_id = M.menu_id 
+        WHERE
+         (O.company_id = {company_id})
+        '''
+        #sqlstr = sqlstr + f" WHERE (O.shop_name = '{shopid}')"
+
+        # 期間が指定されている場合、条件を追加
+        if days_ago_str:
+            days_ago = int(days_ago_str)
+            start_day = get_today_str(days_ago, "YMD")
+            end_day = get_today_str(0, "YMD") # 13時が締め切り
+
+            sqlstr += f''' AND (O.created_at BETWEEN '{start_day} 00:00:00' AND '{end_day} 23:59:59')'''
+            #print(f"start day: {start_day}")
+            #print(f"today: {end_day}")
+
+        # 注文日が指定されている場合、条件を追加
+        if order_date:
+            # order_dateを'YYYY-MM-DD'形式に変換
+            order_date_str = order_date.strftime("%Y-%m-%d")
+            sqlstr += f" AND DATE(O.created_at) = '{order_date_str}'"
+ 
+        #print(f"sqlstr: {sqlstr}")
+        logger.debug(f"select_company_order2() - {sqlstr}")
+        result = await cursor.execute(sqlstr)
+        rows = await result.fetchall()
+
+        if rows is None:
+            logger.warning("No order found with the given shopid")
+            return None
+        else:
             orders = appendOrder(rows)
 
             # ここからList<Order>クラスにキャストする

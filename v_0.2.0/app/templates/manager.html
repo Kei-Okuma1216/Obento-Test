@@ -74,13 +74,13 @@
         <!-- タブナビゲーション -->
         <ul class="nav nav-tabs" id="managerTab" role="tablist">
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">情報</button>
+            <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">情報</button>
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab" aria-controls="order" aria-selected="false">注文一覧</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
+            <button class="nav-link active" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
           </li>
         </ul>
 
@@ -128,7 +128,6 @@
             <!-- 印刷ボタンのコンテナ（Flexboxで右寄せ） -->
             <div class="d-flex justify-content-end align-items-center mb-3">
               <button type="button" class="btn btn-secondary" onclick="openFaxOrderSheet()">FAX印刷</button>
-              <!--<button type="button" class="btn btn-secondary" onclick="window.print()">印刷</button>-->
             </div>
             <div class="mb-3">
               <p>13時締め集計後のFAX送信</p>
@@ -147,17 +146,40 @@
               <!-- ３．値段 -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">値段：</label>
-                <span>{{price}}円</span>
+                <span>{{price}} 円 (税込)</span>
               </div>
               <!-- ４．個数指定 -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">個数：</label>
-                <input type="number" id="bento-count" name="bento_count" min="0" value="0" style="width:40px;"> 個
+                <input type="number" id="bento-count" name="bento_count" min="0" value="{{ order_count }}" style="width:40px;"> 個
               </div>
               <!-- ５．合計金額（個数×450円） -->
               <div class="form-group mb-2">
                 <label style="margin-right: 10px;">合計金額：</label>
-                <input type="text" id="total-amount" name="total_amount" value="0 円" readonly>
+                <input type="text" id="total-amount" name="total_amount" value="{{ total_amount }} " readonly>円
+              </div>
+              <!-- ６．お届け先（施設名） -->
+              <!-- 施設名（ご担当） -->
+              <div class="form-group underline-group">
+                <label for="facility">施設名（ご担当）</label>
+                <input type="text" id="facility" name="facility" placeholder="施設名" value="{{ facility_name }}">
+                <input type="text" id="POC" name="POC" placeholder="担当者名" value="{{ POC }}">
+              </div>
+              <!-- ７．お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
+              <div class="form-group mb-2">
+                <label for="delivery">お届け日： </label>
+                <span id="delivery-year" class="static-date"></span> 年
+                <span id="delivery-month" class="static-date"></span> 月
+                <input type="number" id="delivery-day" name="delivery_date_day" min="1" max="31"> 日
+                <select id="delivery-weekday" name="delivery_date_weekday">
+                  <option value="">（選択）</option>
+                  <option value="月">月</option>
+                  <option value="火">火</option>
+                  <option value="水">水</option>
+                  <option value="木">木</option>
+                  <option value="金">金</option>
+                  <option value="土">土</option>
+                </select>
               </div>
             </div>
           </div>
@@ -170,6 +192,23 @@
     {% include 'components/footer.html' %}
   </body>
   <script>
+    // ページ読み込み時に今日の日付を取得して表示
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;  // 月は0始まりのため+1
+      const day = today.getDate();
+      const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+      const weekday = weekdays[today.getDay()];
+      const delivery_day = day + 1; // 翌日の日付を表示
+      const delivery_weekday = weekdays[(today.getDay() + 1) % 7]; // 翌日の曜日を表示
+
+      document.getElementById("delivery-year").textContent = year;
+      document.getElementById("delivery-month").textContent = month;
+      document.getElementById("delivery-day").value = delivery_day;
+      document.getElementById("delivery-weekday").value = delivery_weekday;
+    });
+
     // Jinja2 の変数を用いて、faxContext オブジェクトに値を埋め込みます
     const faxContext = {
         shop_name: "{{ shop_name }}",
@@ -180,25 +219,59 @@
         facility_name: "{{ facility_name }}",
         POC: "{{ POC }}"
     };
-  
+
     function openFaxOrderSheet() {
-        // 絶対パスで新しく作成したエンドポイントにアクセス
-        const base_url = "https://192.168.3.19:8000"
-        const url = base_url + "/manager/me/fax_order_sheet";
-        window.open(url, "_blank");
+      const base_url = "https://192.168.3.19:8000";
+
+        // 既存のFAX送信データ
+        const faxContext = {
+            shop_name: "{{ shop_name }}",
+            menu_name: "{{ menu_name }}",
+            price: "{{ price }}",
+            order_count: "{{ order_count }}",
+            total_amount: "{{ total_amount }}",
+            facility_name: "{{ facility_name }}",
+            POC: "{{ POC }}"
+        };
+
+        // bento-countの最新の値を取得して上書き
+        faxContext.order_count = document.getElementById('bento-count').value;
+        faxContext.total_amount = document.getElementById('total-amount').value;
+        faxContext.facility_name = document.getElementById('facility').value;
+        faxContext.POC = document.getElementById('POC').value;
+
+        // お届け日（FAX送信タブ）の値を取得
+        const deliveryYear = document.getElementById("delivery-year").textContent;
+        const deliveryMonth = document.getElementById("delivery-month").textContent;
+        const deliveryDay = document.getElementById("delivery-day").value;
+        const deliveryWeekday = document.getElementById("delivery-weekday").value; // 例: "月"
+
+        
+        // faxContextにお届け日情報を追加
+        faxContext.delivery_year = deliveryYear;
+        faxContext.delivery_month = deliveryMonth;
+        faxContext.delivery_day = deliveryDay;
+        faxContext.delivery_weekday = deliveryWeekday;
+
+        
+      // faxContextオブジェクトをクエリパラメータに変換
+      const params = new URLSearchParams(faxContext).toString();
+      const url = base_url + "/manager/me/fax_order_sheet?" + params;
+      window.open(url, "_blank");
     }
+
     // 1個あたりの価格
     const pricePerBento = 450;
-    
+
     // 個数入力欄の変更時に合計金額を更新する関数
     function updateTotal() {
       let count = parseInt(document.getElementById('bento-count').value, 10) || 0;
       let total = count * pricePerBento;
       // 個数が0の場合は「0円」、それ以外はtoLocaleStringでカンマ区切り
       let formattedTotal = total === 0 ? "0" : total.toLocaleString();
-      document.getElementById('total-amount').value = formattedTotal + " 円";
+      document.getElementById('total-amount').value = formattedTotal //+ " 円";
     }
-  
+
   // 個数入力欄での直接入力時に更新
   document.getElementById('bento-count').addEventListener('input', updateTotal);
   </script>
