@@ -12,7 +12,7 @@ import functools
 import inspect
 import warnings
 
-from utils.exception import CookieException, CustomException
+from utils.exception import CookieException
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する

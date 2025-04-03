@@ -16,6 +16,7 @@ from schemas.schemas import Order, User
 
 import aiosqlite
 
+from database import get_db
 from sqlalchemy_database import *
 
 # ログ用の設定
@@ -29,68 +30,29 @@ default_shop_name = "shop01"
 # データベース初期化
 # プロジェクトルートからの絶対パスを取得
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
-DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフォルダの sample.db を指定
-#conn = sqlite3.connect(DB_PATH)
-
-# コネクション取得
-async def get_connection():
-    try:
-        return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
-
-    except Exception as e:
-        raise DatabaseConnectionException(
-            method_name="get_connection()",
-            detail="データベース接続に失敗しました。",
-            exception=e
-        )
-
-# コネクションを閉じる（実際のテストでは不要）
-#await conn.close()
+DB_PATH = os.path.join(BASE_DIR, db_name_str)  # 
 
 '''------------------------------------------------------'''
 # Userテーブル
 # 作成
 #@log_decorator
+from sqlalchemy.ext.asyncio import AsyncEngine
+from models import User
+from database import engine  # AsyncEngine インスタンスが定義されている前提
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def create_user_table():
     try:
-        conn = await get_connection()
-
-        sqlstr = '''
-        CREATE TABLE IF NOT EXISTS User (
-        user_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT,
-        password TEXT,
-        name TEXT DEFAULT NULL,
-        token TEXT DEFAULT NULL,
-        exp TEXT DEFAULT NULL,
-        company_id int DEFAULT NULL,
-        shop_name TEXT DEFAULT NULL,
-        menu_id int NULL,
-        permission INTEGER DEFAULT 1,
-        is_modified INTEGER DEFAULT 0,
-        updated_at TEXT
-        )
-        '''
-        await conn.execute(sqlstr)
-        await conn.commit()
-
-        logger.debug(f"create_user_table() - {sqlstr}")
-
-    except DatabaseConnectionException as e:
-        raise
-    except sqlite3.DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="create_user_table()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
+        async with engine.begin() as conn:
+            # User.__table__.create を run_sync() で呼び出す（checkfirst=True で存在チェック）
+            await conn.run_sync(User.__table__.create, checkfirst=True)
+            logger.debug("User テーブルの作成（または既存）が完了しました。")
     except Exception as e:
-        raise CustomException(
-            500, f"create_user_table()", f"Error: {e}")
-    finally:
-        if conn is not None:
-            await conn.close()
+        logger.error(f"create_user_table() でエラーが発生しました: {e}")
+        raise
+
 
 # 検索
 @log_decorator

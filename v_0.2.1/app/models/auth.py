@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_db
-from database.crud import get_user
+from crud import get_user
 from schemas.schemas import User
 
 # 🔹 秘密鍵（セキュリティを考慮して、環境変数から取得するのが望ましい）
