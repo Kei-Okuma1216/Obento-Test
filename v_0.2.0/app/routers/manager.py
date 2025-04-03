@@ -4,7 +4,7 @@ from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from utils.exception import CookieException, CustomException
-from utils.utils import check_permission, get_all_cookies, log_decorator
+from utils.utils import check_permission, deprecated, get_all_cookies, log_decorator
 from database.sqlite_database import select_company_order, select_company_order2
 from services.order_view import order_table_view
 
@@ -14,6 +14,7 @@ templates = Jinja2Templates(directory="templates")
 
 manager_router = APIRouter()
 
+@deprecated
 @log_decorator
 def check_manager_permission(request: Request):
     permission = request.cookies.get("permission")
@@ -58,14 +59,15 @@ async def manager_view(request: Request, response: Response):
             'order_count': len(orders),
             "order_details": orders[0].model_dump() if orders else None
         }
+        
         fax_context = {
             "shop_name": "はーとあーす勝谷",
-            "menu_name": "お昼のお弁当1",
+            "menu_name": "お昼のお弁当",
             "price": 450,
-            "order_count": 4,
-            "total_amount": 450*4,
-            "facility_name": "テンシステム2",
-            "POC": "林2"
+            "order_count": 6,
+            "total_amount": 450*6,
+            "facility_name": "テンシステム",
+            "POC": "林"
         }
         context.update(order_context)
         context.update(fax_context)
@@ -84,6 +86,7 @@ async def manager_view(request: Request, response: Response):
 @manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
 @log_decorator
 async def fax_order_sheet_view(request: Request):
+
     fax_context = {
          "shop_name": request.query_params.get("shop_name"),
          "menu_name": request.query_params.get("menu_name"),
@@ -97,5 +100,6 @@ async def fax_order_sheet_view(request: Request):
          "delivery_day": request.query_params.get("delivery_day"),
          "delivery_weekday": request.query_params.get("delivery_weekday")
     }
+
     return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **fax_context})
 

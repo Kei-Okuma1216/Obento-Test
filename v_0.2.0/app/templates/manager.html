@@ -73,14 +73,14 @@
 
         <!-- タブナビゲーション -->
         <ul class="nav nav-tabs" id="managerTab" role="tablist">
-          <li class="nav-item" role="presentation">
+          <li class="nav-item active" role="presentation">
             <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab" aria-controls="info" aria-selected="true">情報</button>
           </li>
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab" aria-controls="order" aria-selected="false">注文一覧</button>
           </li>
           <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
+            <button class="nav-link" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
           </li>
         </ul>
 
@@ -126,7 +126,7 @@
           <!-- FAX送信タブ -->
           <div class="tab-pane fade" id="fax" role="tabpanel" aria-labelledby="fax-tab">
             <!-- 印刷ボタンのコンテナ（Flexboxで右寄せ） -->
-            <div class="d-flex justify-content-end align-items-center mb-3">
+            <div class="d-flex justify-content-start align-items-center mb-3">
               <button type="button" class="btn btn-secondary" onclick="openFaxOrderSheet()">FAX印刷</button>
             </div>
             <div class="mb-3">
@@ -155,32 +155,47 @@
               </div>
               <!-- ５．合計金額（個数×450円） -->
               <div class="form-group mb-2">
-                <label style="margin-right: 10px;">合計金額：</label>
-                <input type="text" id="total-amount" name="total_amount" value="{{ total_amount }} " readonly>円
+                <div style="background-color: #fff9db; padding: 6px; border-radius: 4px; display: inline-block;">
+                  <label style="margin-right: 10px;">合計金額：</label>
+                  <input type="text" id="total-amount" name="total_amount" value="{{ total_amount }}" readonly style="width: 100px;">円
+                </div>
               </div>
               <!-- ６．お届け先（施設名） -->
-              <!-- 施設名（ご担当） -->
-              <div class="form-group underline-group">
-                <label for="facility">施設名（ご担当）</label>
-                <input type="text" id="facility" name="facility" placeholder="施設名" value="{{ facility_name }}">
-                <input type="text" id="POC" name="POC" placeholder="担当者名" value="{{ POC }}">
-              </div>
-              <!-- ７．お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
               <div class="form-group mb-2">
-                <label for="delivery">お届け日： </label>
-                <span id="delivery-year" class="static-date"></span> 年
-                <span id="delivery-month" class="static-date"></span> 月
-                <input type="number" id="delivery-day" name="delivery_date_day" min="1" max="31"> 日
-                <select id="delivery-weekday" name="delivery_date_weekday">
-                  <option value="">（選択）</option>
-                  <option value="月">月</option>
-                  <option value="火">火</option>
-                  <option value="水">水</option>
-                  <option value="木">木</option>
-                  <option value="金">金</option>
-                  <option value="土">土</option>
-                </select>
+                <div style="background-color: #e6f4ea; padding: 6px; border-radius: 4px; display: inline-block;">
+                  <label for="facility-name">施設名：</label>
+                  <input type="text" id="facility-name" name="facility_name" style="width: 200px;" value="{{ facility_name }}">
+                </div>
               </div>
+
+              <!-- ７．お届け先（担当者名） -->
+              <div class="form-group mb-2">
+                <div style="background-color: #e6f4ea; padding: 6px; border-radius: 4px; display: inline-block;">
+                  <label for="POC">担当者名：</label>
+                  <input type="text" id="POC" name="POC_name" style="width: 200px;" value="{{ POC }}">
+                </div>
+              </div>
+              
+              <!-- ８．お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
+              <div class="form-group mb-2">
+                <div style="background-color: #e6f4ea; padding: 10px; border-radius: 4px; display: inline-block;">
+                  <label for="delivery">お届け日： </label>
+                  <span id="delivery-year" class="static-date">2025</span> 年
+                  <span id="delivery-month" class="static-date">04</span> 月
+                  <input type="number" id="delivery-day" name="delivery_date_day" min="1" max="31" style="width: 65px;"> 日
+                  <select id="delivery-weekday" name="delivery_date_weekday" style="width: 65px; height: 32px;">
+                    <option value="">（選択）</option>
+                    <option value="月">月</option>
+                    <option value="火">火</option>
+                    <option value="水">水</option>
+                    <option value="木">木</option>
+                    <option value="金">金</option>
+                    <option value="土">土</option>
+                  </select>
+                </div>
+              </div>
+
+
             </div>
           </div>
 
@@ -210,7 +225,7 @@
     });
 
     // Jinja2 の変数を用いて、faxContext オブジェクトに値を埋め込みます
-    const faxContext = {
+    /*const faxContext = {
         shop_name: "{{ shop_name }}",
         menu_name: "{{ menu_name }}",
         price: "{{ price }}",
@@ -218,7 +233,7 @@
         total_amount: "{{ total_amount }}",
         facility_name: "{{ facility_name }}",
         POC: "{{ POC }}"
-    };
+    };*/
 
     function openFaxOrderSheet() {
       const base_url = "https://192.168.3.19:8000";
@@ -237,7 +252,7 @@
         // bento-countの最新の値を取得して上書き
         faxContext.order_count = document.getElementById('bento-count').value;
         faxContext.total_amount = document.getElementById('total-amount').value;
-        faxContext.facility_name = document.getElementById('facility').value;
+        faxContext.facility_name = document.getElementById('facility-name').value;
         faxContext.POC = document.getElementById('POC').value;
 
         // お届け日（FAX送信タブ）の値を取得
