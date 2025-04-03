@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>はーとあーす勝谷 日替わり弁当注文書</title>
+  <style>
+    /* 全体を黒のボーダーで囲む */
+    .container {
+      border: 1px solid #000;
+      padding: 20px;
+      margin: 20px auto;
+      width: 100%;
+      max-width: 168mm; /* A4の幅210mmの80% */
+    }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2em;
+      margin-bottom: 5px;
+    }
+    /* FAX情報はタイトルより少し小さいフォントサイズ */
+    .fax-info {
+      font-size: 1.8em;
+      margin-bottom: 10px;
+    }
+    .form-group {
+      margin-bottom: 10px;
+    }
+    /* ご注文日・お届け日・施設名（ご担当）に下線を引く */
+    .underline-group {
+      border-bottom: 1px solid #000;
+      padding-bottom: 5px;
+      margin-bottom: 10px;
+    }
+    label {
+      display: inline-block;
+      width: 120px;
+      vertical-align: top;
+      text-align: right;
+      margin-right: 10px;
+    }
+    input[type="text"],
+    input[type="number"],
+    select {
+      padding: 5px;
+      width: 75px;
+      text-align: left;
+    }
+    /* 静的に表示する日付用 */
+    .static-date {
+      font-weight: bold;
+      padding: 5px;
+    }
+    /* 施設名と日替わり弁当の間に空欄を作成（高さはご注文日等と同じ） */
+    .spacer {
+      height: 40px;
+    }
+    /* form と table の幅を３分の２に設定し中央に配置 */
+    form, table {
+      width: 66.66%;
+      margin: 0 auto;
+      text-align: left;
+    }
+    /* テーブルに外周および内部の枠線・罫線を設定 */
+    table {
+      border-collapse: collapse;
+      border: 1px solid #000;
+    }
+    td {
+      padding: 5px;
+      border: 1px solid #000;
+      vertical-align: middle;
+    }
+    #facility {
+        width: 120px;
+    }
+    #delivery-date-day {
+      width: 30px;
+    }
+    #delivery-date-weekday {
+      width: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>はーとあーす勝谷 日替わり弁当 注文書</h1>
+    <div class="fax-info">FAX: 083-263-0231</div>
+
+    <!-- 空欄スペーサー -->
+    <div class="spacer"></div>
+
+    <form>
+      <!-- ご注文日：年、月、日を静的に表示（例：2025/4/1） -->
+      <div class="form-group underline-group">
+        <label>ご注文日</label>
+        <span id="order-year" class="static-date"></span> 年
+        <span id="order-month" class="static-date"></span> 月
+        <span id="order-day" class="static-date"></span> 日
+        <span id="order-weekday" class="static-date"></span>
+      </div>
+  
+      <!-- お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
+      <div class="form-group underline-group">
+        <label>お届け日</label>
+        <span id="delivery-year" class="static-date">{{ delivery_year }}</span> 年
+        <span id="delivery-month" class="static-date">{{ delivery_month }}</span> 月
+        <span id="delivery-day" class="static-date">{{ delivery_day }}</span> 日
+        <span id="delivery-weekend" class="static-date">({{ delivery_weekday }})</span>
+      </div>
+
+      <!-- 施設名（ご担当） -->
+      <div class="form-group underline-group">
+        <label for="facility">施設名（ご担当）</label>
+        <span id="facility" class="static-date">{{ facility_name }}</span> 
+        <span id="POC" class="static-date">{{ POC }}</span> 
+      </div>
+
+      <!-- 空欄スペーサー -->
+      <div class="spacer"></div>
+
+      <!-- 日替わり弁当と合計金額を2列のテーブルに配置 -->
+      <table>
+        <tr>
+          <td style="width:300px; white-space: nowrap;">{{menu_name}}（{{price}}円）</td>
+          <td>
+            <input type="number" id="bento-count" name="bento_count" min="0" value="{{order_count}}" style="width:40px;"> 個
+          </td>
+        </tr>
+        <tr>
+          <td>合計金額</td>
+          <td>
+            <input type="text" id="total-amount" name="total_amount" value="{{ total_amount }} 円" readonly>
+          </td>
+        </tr>
+      </table>
+    </form>
+  </div>
+  <script>
+    // ページ読み込み時に今日の日付を取得して表示
+    document.addEventListener('DOMContentLoaded', function() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = today.getMonth() + 1;  // 月は0始まりのため+1
+      const day = today.getDate();
+      const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+      const weekday = weekdays[today.getDay()];
+      const delivery_day = day + 1; // 翌日の日付を表示
+      const delivery_weekday = weekdays[(today.getDay() + 1) % 7]; // 翌日の曜日を表示
+      
+      document.getElementById("order-year").textContent = year;
+      document.getElementById("order-month").textContent = month;
+      document.getElementById("order-day").textContent = day;
+      document.getElementById("order-weekday").textContent = "(" + weekday + ")";
+      document.getElementById("delivery-year").value = year;
+      document.getElementById("delivery-month").value = month;
+      document.getElementById("delivery-day").value = delivery_day;
+      document.getElementById("delivery-weekday").value = delivery_weekday;
+    });
+
+    // 1個あたりの価格
+    const pricePerBento = 450;
+
+    // 個数入力欄の変更時に合計金額を更新する関数
+    function updateTotal() {
+      let count = parseInt(document.getElementById('bento-count').value, 10) || 0;
+      let total = count * pricePerBento;
+      // 個数が0の場合は「0円」、それ以外はtoLocaleStringでカンマ区切り
+      let formattedTotal = total === 0 ? "0" : total.toLocaleString();
+      document.getElementById('total-amount').value = formattedTotal + " 円";
+    }
+    
+    // 個数入力欄での直接入力時に更新
+    document.getElementById('bento-count').addEventListener('input', updateTotal);
+
+    // 個数入力欄の初期値を設定
+    const params = new URLSearchParams(window.location.search);
+    const shopName = params.get('shop_name');
+    const menuName = params.get('menu_name');
+    const price = params.get('price');
+    const orderCount = params.get('order_count');
+    const totalAmount = params.get('total_amount');
+    const facilityName = params.get('facility_name');
+    const POC = params.get('POC');
+    console.log(shopName, menuName, price, orderCount, totalAmount, facilityName, POC);
+    // 必要に応じて画面上の表示などに利用
+</script>
+
+</body>
+</html>

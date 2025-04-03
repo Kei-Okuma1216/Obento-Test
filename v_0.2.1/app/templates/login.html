@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon.png">
+    <title>ログイン - お弁当注文アプリ</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <style>
+      /* 画面全体の高さと余白をリセット */
+      html, body {
+        height: 100%;
+        margin: 0;
+        font-family: Arial, sans-serif;
+      }
+      /* ヒーローエリア */
+      .hero {
+        background: url('/static/shops/1/title/ランチ01.jpg') no-repeat center center;
+        background-size: cover;
+        height: 100%;
+      }
+      /* ログインフォームを中央寄せに */
+      .login-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        background-color: #f8f9fa;
+      }
+      .login-card {
+        width: 100%;
+        max-width: 400px;
+        padding: 2rem;
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ログインにヘッダーなし -->
+    <div class="container-fluid h-100">
+      <div class="row h-100">
+        <!-- 左側：ヒーロー画像（中～大画面のみ表示） -->
+        <div class="col-md-6 d-none d-md-block hero"></div>
+        <!-- 右側：ログインフォーム -->
+        <div class="col-md-6 col-12 login-container">
+          <div class="login-card">
+            <h2 class="mb-4 text-center">ログイン</h2>
+            <!-- 通知メッセージ -->
+            {% if message %}
+              <div class="alert alert-info">
+                {{ message }}
+              </div>
+            {% endif %}
+            <!-- エラーメッセージ -->
+            {% if error %}
+              <div class="alert alert-danger">
+                {{ error }}
+              </div>
+            {% endif %}
+            <!-- ログインフォーム -->
+            <form action="/login" method="post">
+              <div class="mb-3">
+                <label for="username" class="form-label">ユーザー名</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label for="password" class="form-label">パスワード</label>
+                <input type="password" id="password" name="password" class="form-control" required>
+              </div>
+              <div class="d-grid">
+                <button type="submit" class="btn btn-primary">ログイン</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- フッター -->
+    {% include 'components/footer.html' %}
+
+    <!-- Bootstrap Bundle with Popper CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+  </body>
+</html>
