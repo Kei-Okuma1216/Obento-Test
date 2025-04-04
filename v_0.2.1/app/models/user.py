@@ -1,15 +1,19 @@
 # models/user.py
 '''
-    class User(Base):
-    create_user_table():
-    select_user(username: str) -> Optional[User]:
-    select_all_user() -> Optional[list[User]]:
-    insert_user(username, password, name, company_id, shop_name, menu_id):
-    insert_new_user(username: str, password: str, name: str = ''):
-    update_user(username: str, key: str, value):
-    delete_user(username: str):
+    1. class User(Base):
+    2. create_user_table():
+    
+    3. select_user(username: str) -> Optional[User]:
+    4. select_all_user() -> Optional[list[User]]:
 
-    get_hashed_password(password: str):
+    5. get_hashed_password(password: str)-> str:
+
+    6. insert_user(username, password, name, company_id, shop_name, menu_id)-> bool:
+    7. insert_new_user(username: str, password: str, name: str = '')-> bool:
+    8. update_user(username: str, key: str, value):
+    9. delete_user(username: str):
+
+
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
 from sqlalchemy.orm import declarative_base
@@ -40,7 +44,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-from utils.exception import CustomException, SQLException, DatabaseConnectionException
+from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
 from database import engine  # AsyncEngine インスタンスが定義されている前提
@@ -96,11 +100,27 @@ async def select_all_user() -> Optional[list[User]]:
         raise CustomException(500, "select_all_user()", f"Error: {e}") from e
 
 
+
+import bcrypt
+
+# パスワードをハッシュ化
+@log_decorator
+async def get_hashed_password(password: str)-> str:
+    """パスワードをハッシュ化する"""
+    # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
+    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+    print(f"new_hashed_password: {new_hashed_password}")
+
+    return new_hashed_password
+
+
 from sqlalchemy.exc import DatabaseError
 
 # 追加
 @log_decorator
-async def insert_user(username, password, name, company_id, shop_name, menu_id):
+async def insert_user(username, password, name, company_id, shop_name, menu_id)-> bool:
     async with async_session() as session:
         try:
             # ユーザーが既に存在するか確認
@@ -134,8 +154,6 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id):
             logger.debug(f"insert_user() - ユーザー挿入: company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id}")
             return True
 
-        except DatabaseConnectionException as e:
-            raise
         except DatabaseError as e:
             raise SQLException(
                 sql_statement="UserのINSERT処理",
@@ -151,7 +169,7 @@ from utils.utils import default_shop_name
 
 # 新規ユーザー追加
 @log_decorator
-async def insert_new_user(username: str, password: str, name: str = ''):
+async def insert_new_user(username: str, password: str, name: str = '')-> bool:
     try:
         # insert_userはSQLAlchemyの非同期ORMを利用した関数（前回実装例参照）
         result = await insert_user(
@@ -180,8 +198,6 @@ async def update_user(username: str, key: str, value):
             await session.commit()
             logger.debug(f"update_user() - {stmt}")
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -206,8 +222,6 @@ async def delete_user(username: str):
             logger.debug(f"delete_user() - {stmt}")
             return True
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -219,15 +233,3 @@ async def delete_user(username: str):
         raise CustomException(500, "delete_user()", f"Error: {e}")
 
 
-import bcrypt
-
-# パスワードをハッシュ化
-@log_decorator
-async def get_hashed_password(password: str):
-    """パスワードをハッシュ化する"""
-    # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
-    print(f"new_hashed_password: {new_hashed_password}")
-    return new_hashed_password

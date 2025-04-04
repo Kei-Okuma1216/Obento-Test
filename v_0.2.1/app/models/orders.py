@@ -51,7 +51,7 @@ class Orders(Base):
 
 
 from sqlalchemy.exc import DatabaseError
-from utils.exception import CustomException, SQLException,DatabaseConnectionException
+from utils.exception import CustomException, SQLException
 
 from utils.utils import log_decorator
 from database import engine  # AsyncEngine インスタンスが定義されている前提
@@ -119,8 +119,6 @@ async def select_all_orders() -> Optional[List[Orders]]:
             logger.debug(f"select_all_orders() - SQLAlchemyクエリ: {stmt}")
             return orders_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -150,9 +148,9 @@ async def select_orders_by_user_all(username: str) -> Optional[List[Orders]]:
             if not orders:
                 logger.warning(f"No order found for user: {username}")
                 return None
+
             return orders
-    except DatabaseConnectionException as e:
-        raise
+
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -191,8 +189,6 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 return None
             return orders
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -241,8 +237,6 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
 
             return orders
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -301,8 +295,6 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[Orders]
             logger.debug(f"select_orders_by_company_all() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -367,8 +359,6 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
             logger.debug(f"select_orders_by_company_at_date() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -439,8 +429,6 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             logger.debug(f"select_orders_by_company_ago() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -498,8 +486,6 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[Orders]]:
             logger.debug(f"select_orders_by_shop_all() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -557,8 +543,6 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
             logger.debug(f"select_orders_by_shop_company() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -623,8 +607,6 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
             logger.debug(f"select_orders_by_shop_at_date() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -699,8 +681,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             logger.debug(f"select_orders_by_shop_ago() - order_list: {order_list}")
             return order_list
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),

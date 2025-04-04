@@ -1,4 +1,5 @@
 # manager.py
+# ../manager/meになる
 from venv import logger
 from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse, RedirectResponse

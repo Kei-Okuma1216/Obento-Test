@@ -1,4 +1,5 @@
 # admin.py
+# ../admin/meになる
 import bcrypt
 import os
 from fastapi import Request, APIRouter, status

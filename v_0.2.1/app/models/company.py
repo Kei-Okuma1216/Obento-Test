@@ -28,7 +28,7 @@ class Company(Base):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 from utils.utils import log_decorator
-from utils.exception import DatabaseConnectionException, SQLException, CustomException
+from utils.exception import SQLException, CustomException
 from database import async_session, async_engine
 
 
@@ -49,8 +49,6 @@ async def create_company_table():
             # Companyテーブルを存在チェック付きで作成
             await conn.run_sync(Company.__table__.create, checkfirst=True)
         logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement="CREATE TABLE Company",
@@ -80,8 +78,6 @@ async def select_company(company_id: int):
             logger.debug(f"select_company() - {stmt}")
             return company
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -107,8 +103,6 @@ async def select_all_company():
             logger.debug(f"select_all_company() - {stmt}")
             return companies
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -147,8 +141,6 @@ async def insert_company(name: str, telephone: str, shop_name: str):
             )
             return new_company
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement="INSERT INTO Company",
@@ -176,8 +168,6 @@ async def update_company(company_id: int, key: str, value: str):
             logger.debug(f"update_company() - {stmt}")
             return True
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -205,8 +195,6 @@ async def delete_company(company_id: int):
             logger.debug(f"delete_company() - {stmt}")
             return True
 
-    except DatabaseConnectionException as e:
-        raise
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
