@@ -97,16 +97,16 @@ class CookieException(CustomException):
 class SQLException(CustomException):
     '''
         備考：SQLException は Python に標準で用意されていない例外です。
-    SQLite を使っているなら、sqlite3.DatabaseError または sqlite3.OperationalError などの例外が発生する可能性が高いです。
-    PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。
+        SQLite を使っているなら、sqlite3.DatabaseError または sqlite3.OperationalError などの例外が発生する可能性が高いです。
+        PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。
         例: 
-      except sqlite3.DatabaseError as e:
-        raise SQLException(
-            sql_statement=query,
-            method_name="execute_query()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e  # `e` を渡す
-        )
+        except sqlite3.DatabaseError as e:
+            raise SQLException(
+                sql_statement=query,
+                method_name="execute_query()",
+                detail="SQL実行中にエラーが発生しました",
+                exception=e  # `e` を渡す
+            )
     '''
     def __init__(
         self,

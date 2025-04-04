@@ -1,18 +1,22 @@
 # helper.py
 # 必ずmain.pyとセットにすること
-from typing import Optional
+'''
+    1. get_main_url(permission: int) -> str:
+    2. create_auth_response(
+    username: str, permission: int, redirect_url: str) -> Response:
+    3. redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
+    4. redirect_error(request: Request, message: str, e: Exception):
+    5. hash_password(password: str) -> str:
+    6. verify_password(plain_password: str, hashed_password: str) -> bool:
+    7. authenticate_user(username, password, name) -> Optional[UserBase]:
+    8. get_user_by_username(username: str) -> UserBase:
+'''
 from fastapi import HTTPException, Request, Response, status
-from fastapi.responses import RedirectResponse
-from database.sqlite_database import insert_new_user, select_user
-from local_jwt_module import get_new_token
+
 from utils.utils import log_decorator, set_all_cookies
 from utils.exception import CustomException, NotAuthorizedException, SQLException
 from log_config import logger
 from schemas.schemas import UserBase, UserResponse
-import bcrypt
-
-from fastapi.templating import Jinja2Templates
-templates = Jinja2Templates(directory="templates")
 
 @log_decorator
 async def get_main_url(permission: int) -> str:
@@ -29,6 +33,10 @@ async def get_main_url(permission: int) -> str:
     except Exception as e:
         raise CustomException(status_code=400,
                 method_name="get_main_url()", message=str(e))
+
+
+from fastapi.responses import RedirectResponse
+from local_jwt_module import get_new_token
 
 @log_decorator
 async def create_auth_response(
@@ -55,6 +63,10 @@ async def create_auth_response(
         raise
     except Exception as e:
         raise CustomException(method_name="create_auth_response()")
+
+
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="templates")
 
 @log_decorator
 def redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
@@ -94,6 +106,8 @@ def redirect_error(request: Request, message: str, e: Exception):
             "redirect_error()",
             f"Error: {e.detail}")
 
+import bcrypt
+
 @log_decorator
 def hash_password(password: str) -> str:
     """パスワードをハッシュ化する"""
@@ -111,9 +125,14 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
             return True
         else:
             return False
-        #return bcrypt.checkpw(plain_password.encode(), hashed_password.encode())
+
     except Exception as e:
         raise CustomException("verify_password()", message=str(e))
+
+
+from database.sqlite_database import select_user, insert_new_user
+from typing import Optional
+
 
 @log_decorator
 async def authenticate_user(username, password, name) -> Optional[UserBase]:

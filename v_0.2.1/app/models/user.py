@@ -12,8 +12,6 @@
     7. insert_new_user(username: str, password: str, name: str = '')-> bool:
     8. update_user(username: str, key: str, value):
     9. delete_user(username: str):
-
-
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
 from sqlalchemy.orm import declarative_base
@@ -58,6 +56,8 @@ async def create_user_table():
             # User.__table__.create を run_sync() で呼び出す（checkfirst=True で存在チェック）
             await conn.run_sync(User.__table__.create, checkfirst=True)
             logger.debug("User テーブルの作成（または既存）が完了しました。")
+
+            '''PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。'''
     except Exception as e:
         logger.error(f"create_user_table() でエラーが発生しました: {e}")
         raise

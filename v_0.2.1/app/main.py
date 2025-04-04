@@ -1,5 +1,23 @@
 # main.py
 # 2.1 SQLAlchemy移行開始
+'''
+    root(request: Request, response: Response):
+    login_get(request: Request):
+    login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+
+    clear_cookie(response: Response):
+    class CancelUpdate(BaseModel):
+        updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
+    update_cancel_status(update: CancelUpdate):
+
+    custom_exception_handler(
+    request: Request, exc: CustomException):
+    test_exception():
+    favicon():
+
+    list_logs():
+    read_log(filename: str):
+'''
 import asyncio
 import os
 import sys
@@ -45,13 +63,8 @@ app.include_router(user_router, prefix="/users")
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
-
-
-product_endpoint = 'https://192.168.3.19:8000'
-develop_endpoint = 'https://127.0.0.1:8000'
-
 # エントリポイントの選択
-endpoint = product_endpoint
+endpoint = 'https://192.168.3.19:8000'
 
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
@@ -68,13 +81,12 @@ async def root(request: Request, response: Response):
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
-        #await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
 
-        print("v_0.2.0")
+        print("v_0.2.1")
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request, response)
-        #logger.debug(f"result , last_order: {result , str(last_order)}")
         if result:
             return templates.TemplateResponse(
                 "duplicate_order.html",
@@ -133,6 +145,7 @@ async def login_get(request: Request):
         return redirect_login(request, message="ようこそ")
     except Exception as e:
         return redirect_error(request, login_error_message, e)
+
 
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator

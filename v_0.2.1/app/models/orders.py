@@ -591,11 +591,11 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
             logger.debug(f"select_orders_by_shop_at_date() - SQLAlchemyクエリ: {stmt}")
             result = await session.execute(stmt)
             rows = result.all()
-            
+
             if not rows:
                 logger.warning("No order found for the given shop_name and target_date")
                 return None
-            
+
             order_list: List[Orders] = []
             for row in rows:
                 row_dict = dict(row._mapping)
