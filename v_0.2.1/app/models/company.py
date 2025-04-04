@@ -1,7 +1,18 @@
 # models/company.py
+'''
+    class Company(Base):
+    create_company_table():
+    select_company(company_id: int):
+    select_all_company():
+    insert_company(name: str, tel: str, shop_name: str):
+    update_company(company_id: int, key: str, value: str):
+    delete_company(company_id: int):
+'''
 from sqlalchemy import Column, Integer, String, Boolean
-from database import Base
+from sqlalchemy.orm import declarative_base
+Base = declarative_base()
 
+from sqlalchemy.exc import DatabaseError
 
 class Company(Base):
     __tablename__ = "companies"
@@ -16,9 +27,6 @@ class Company(Base):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
-from sqlalchemy.exc import DatabaseError
-
-
 from utils.utils import log_decorator
 from utils.exception import DatabaseConnectionException, SQLException, CustomException
 from database import async_session, async_engine
@@ -26,6 +34,7 @@ from database import async_session, async_engine
 
 import logging
 logger = logging.getLogger(__name__)
+
 
 # 作成
 @log_decorator
@@ -111,12 +120,11 @@ async def select_all_company():
         raise CustomException(500, "select_all_company()", f"Error: {e}")
 
 
-
 from utils.utils import get_today_str
 
 # 追加
 @log_decorator
-async def insert_company(name: str, tel: str, shop_name: str):
+async def insert_company(name: str, telephone: str, shop_name: str):
     """
     Companyテーブルに新規レコードを追加する
     """
@@ -124,7 +132,7 @@ async def insert_company(name: str, tel: str, shop_name: str):
         async with async_session() as session:
             new_company = Company(
                 name=name,
-                tel=tel,
+                tel=telephone,
                 shop_name=shop_name,
                 created_at=get_today_str(),
                 disabled=False

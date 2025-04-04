@@ -19,6 +19,17 @@ import aiosqlite
 from database import get_db
 from sqlalchemy_database import *
 
+'''
+    1. create_user_table():
+    2. select_user(username: str)-> Optional[User]:
+    3. get_all_users() -> List[User]:
+    4. insert_user(username, password, name, company_id, shop_name, menu_id):
+    5. get_hashed_password(password: str):
+    6. insert_new_user(username, password, name = ''):
+
+
+'''
+
 # ログ用の設定
 logging.basicConfig(level=logging.INFO)
 
@@ -35,14 +46,13 @@ DB_PATH = os.path.join(BASE_DIR, db_name_str)  #
 '''------------------------------------------------------'''
 # Userテーブル
 # 作成
-#@log_decorator
-from sqlalchemy.ext.asyncio import AsyncEngine
 from models import User
 from database import engine  # AsyncEngine インスタンスが定義されている前提
 import logging
 
 logger = logging.getLogger(__name__)
 
+@log_decorator
 async def create_user_table():
     try:
         async with engine.begin() as conn:
@@ -59,7 +69,7 @@ async def create_user_table():
 async def select_user(username: str)-> Optional[User]:
     try:
         #print(f"username: {username}")
-        conn = await get_connection()
+        conn = await get_db#get_connection()
         
         async with conn.cursor() as cursor:
             sanitized_username = username.strip()
@@ -113,7 +123,7 @@ from typing import List
 async def get_all_users() -> List[User]:
     """すべてのユーザーを取得する"""
     try:
-        conn = await get_connection()
+        conn = await get_db()
         sqlstr = "SELECT * FROM user"
         cursor = await conn.execute(sqlstr)  # 正しいテーブル名に変更
         rows = await cursor.fetchall()  # すべての行を取得
@@ -162,7 +172,7 @@ async def get_all_users() -> List[User]:
 @log_decorator
 async def insert_user(username, password, name, company_id, shop_name, menu_id):
     try:
-        conn = await get_connection()
+        conn = await get_db()
 
         sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
         result = await conn.execute(sqlstr, (username,))
@@ -230,7 +240,7 @@ async def insert_new_user(username, password, name = ''):
 @log_decorator
 async def insert_shop(username, password, shop_name):
     try:
-        conn = await get_connection()
+        conn = await get_db()
         sqlstr = 'SELECT COUNT(*) FROM User WHERE username = ?'
         result = await conn.execute(sqlstr, (username,))
 

@@ -1,7 +1,19 @@
 # models/user.py
+'''
+    class User(Base):
+    create_user_table():
+    select_user(username: str) -> Optional[User]:
+    select_all_user() -> Optional[list[User]]:
+    insert_user(username, password, name, company_id, shop_name, menu_id):
+    insert_new_user(username: str, password: str, name: str = ''):
+    update_user(username: str, key: str, value):
+    delete_user(username: str):
+
+    get_hashed_password(password: str):
+'''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
-from sqlalchemy.ext.asyncio import async_session
-from database import Base
+from sqlalchemy.orm import declarative_base
+Base = declarative_base()
 
 # models.Userクラス
 class User(Base):
@@ -47,6 +59,7 @@ async def create_user_table():
         raise
 
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import async_session
 from typing import Optional
 
 # 選択
@@ -67,7 +80,7 @@ async def select_user(username: str) -> Optional[User]:
 
 # 選択（全件）
 @log_decorator
-async def select_all_user() -> list[User]:
+async def select_all_user() -> Optional[list[User]]:
     """
     全てのUserレコードを取得する
     """
@@ -81,20 +94,6 @@ async def select_all_user() -> list[User]:
 
     except Exception as e:
         raise CustomException(500, "select_all_user()", f"Error: {e}") from e
-
-
-import bcrypt
-
-# パスワードをハッシュ化
-@log_decorator
-async def get_hashed_password(password: str):
-    """パスワードをハッシュ化する"""
-    # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
-    print(f"new_hashed_password: {new_hashed_password}")
-    return new_hashed_password
 
 
 from sqlalchemy.exc import DatabaseError
@@ -219,3 +218,16 @@ async def delete_user(username: str):
     except Exception as e:
         raise CustomException(500, "delete_user()", f"Error: {e}")
 
+
+import bcrypt
+
+# パスワードをハッシュ化
+@log_decorator
+async def get_hashed_password(password: str):
+    """パスワードをハッシュ化する"""
+    # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
+    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+    print(f"new_hashed_password: {new_hashed_password}")
+    return new_hashed_password

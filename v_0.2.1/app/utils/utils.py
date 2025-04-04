@@ -83,6 +83,23 @@ def get_today_str(offset: int = 0, date_format: str = None):
     print(f"get_today_str(): {ymd}")
     return ymd
 
+from typing import Tuple
+
+async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
+    """
+    指定された days_ago に基づいて、期間の開始日時と終了日時を生成して返す。
+    
+    :param days_ago: 本日から何日前かを整数で指定（例: 3 なら本日から3日前）
+    :return: (start_datetime, end_datetime) のタプル。例 ("2025-04-01 00:00:00", "2025-04-04 23:59:59")
+    """
+    start_day = get_today_str(days_ago, "YMD")
+    end_day = get_today_str(0, "YMD")
+    start_datetime = f"{start_day} 00:00:00"
+    end_datetime = f"{end_day} 23:59:59"
+
+    return start_datetime, end_datetime
+
+
 @log_decorator
 def set_all_cookies(response: Response, user: Dict):
     try:
