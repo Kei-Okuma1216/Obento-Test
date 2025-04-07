@@ -3,7 +3,7 @@
     1. class Orders(Base):
     2. create_orders_table():
 
-    # 管理者用
+    # 管理者用に全件取得する
     3. select_single_order(order_id: int) -> Orders:
     4. select_all_orders() -> Optional[List[Orders]]:
 
@@ -16,15 +16,12 @@
     8. select_orders_by_company_all(company_id: int) -> Optional[List[Orders]]:
     9. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[Orders]]:
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[Orders]]:
-    
+
     # 店舗名を指定して、店舗の注文を取得する
     11. select_orders_by_shop_all(shop_name: str) -> Optional[List[Orders]]:
     12. select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[Orders]]:
     13. select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[Orders]]:
     14. select_orders_by_shop_ago(shop_name: str, days_ago_str: str) -> Optional[List[Orders]]:
-
-
-
 '''
 from sqlalchemy import Column, Integer, String, select
 
