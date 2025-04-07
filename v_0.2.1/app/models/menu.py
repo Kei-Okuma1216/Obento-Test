@@ -3,11 +3,11 @@
     1. class Menu(Base):
     2. create_menu_table():
 
-    3. select_menu(menu_id: int) -> Optional[Menu]:
-    4. select_all_menu(company_id: int, menu_id: int) -> Optional[list[Menu]]:
+    3. select_menu(shop_id: int=1) -> Optional[Menu]:
+    4. select_all_menu(shop_id: int=1, menu_id: int=1) -> Optional[list[Menu]]:
 
-    5. insert_menu(shop_id: int, name: str, price: int, description: str, picture_path: str = None) -> int:
-    6. update_menu(shop_id: int, menu_id: int, key: str, value) -> int:
+    5. insert_menu(shop_id: int, name: str, price: int, description: str = "", picture_path: str = "", disabled: bool = False) -> bool:
+    6. update_menu(shop_id: int, menu_id: int, key: str, value: str) -> int:
     7. delete_menu(shop_id: int, menu_id: int) -> int:
 '''
 
@@ -69,15 +69,26 @@ from sqlalchemy.ext.asyncio import async_session
 from typing import Optional
 from sqlalchemy import select
 
+from user import User
+from menu import Menu
+
+# 選択
 @log_decorator
-async def select_menu(menu_id: int) -> Optional[Menu]:
+async def select_menu(shop_id: int=1, menu_id: int=1) -> Optional[Menu]:
     """
-    指定された menu_id の Menu レコードを取得する。
+    指定された shop_id と menu_id の条件に合致する、ある店舗が持つ特定の Menu レコードを取得する。
     存在しなければ None を返す。
     """
     try:
         async with async_session() as session:
-            stmt = select(Menu).where(Menu.menu_id == menu_id)
+            stmt = (
+                select(Menu)
+                .join(User, Menu.shop_name == User.shop_name)
+                .where(
+                    User.user_id == shop_id,
+                    Menu.menu_id == menu_id
+                )
+            )
             logger.debug(f"select_menu() - SQLAlchemyクエリ: {stmt}")
             result = await session.execute(stmt)
             menu = result.scalars().first()
@@ -93,89 +104,115 @@ async def select_menu(menu_id: int) -> Optional[Menu]:
     except Exception as e:
         raise CustomException(500, "select_menu()", f"Error: {e}")
 
-from company import Company 
-from menu import Menu
 
 from typing import List
 
 @log_decorator
-async def select_all_menu(company_id: int, menu_id: int) -> Optional[List[Menu]]:
+async def select_all_menus(shop_id: int=1) -> Optional[List[Menu]]:
     """
-    CompanyテーブルとMenuテーブルを内部結合し、指定された company_id と menu_id に該当する
-    Menuレコードを取得する。
+    UserテーブルとMenuテーブルを内部結合し、指定された shop_id に該当する Menuレコードを全件取得する。
     戻り値は Menu オブジェクトのリストとして返す（該当レコードがなければ None）。
     """
     try:
         async with async_session() as session:
             stmt = (
                 select(Menu)
-                .join(Company, Menu.shop_name == Company.shop_name)
-                .where(Company.company_id == company_id, Menu.menu_id == menu_id)
+                .join(User, Menu.shop_name == User.shop_name)
+                .where(User.user_id == shop_id)
             )
-            logger.debug(f"select_all_menu() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_all_menus() - SQLAlchemyクエリ: {stmt}")
             result = await session.execute(stmt)
             menus = result.scalars().all()
             if not menus:
-                logger.warning(f"No menu found for company_id: {company_id} and menu_id: {menu_id}")
+                logger.warning(f"No menu found for shop_id: {shop_id}")
                 return None
             return menus
 
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
-            method_name="select_all_menu()",
+            method_name="select_all_menus()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_all_menu()", f"Error: {e}")
+        raise CustomException(500, "select_all_menus()", f"Error: {e}")
 
 '''------------------------------------------------------'''
-from sqlalchemy import insert
+#from sqlalchemy import insert
 
+from sqlalchemy import func  # COUNT用
+
+# 追加
 @log_decorator
-async def insert_menu(shop_id: int, name: str, price: int, description: str, picture_path: str = None) -> int:
+async def insert_menu(
+    shop_id: int,
+    name: str,
+    price: int,
+    description: str = "",
+    picture_path: str = "",
+    disabled: bool = False
+) -> bool:
     """
-    Menu テーブルに新しいメニューを追加する（insert文を使用）。
-    成功時は生成された menu_id を返す。
+    指定された shop_id に対応する店舗に対して、Menu レコードを挿入する関数です。
+    まず、User テーブルから shop_id に対応する店舗（shop_name）を取得し、
+    その店舗で同じメニュー名 (name) のレコードが存在するかを SELECT COUNT(*) でチェックします。
+    存在すれば挿入をスキップして False を返し、
+    存在しなければ INSERT を実行して True を返します。
     """
     try:
         async with async_session() as session:
-            created_at = get_today_str()
+            # ① 対象店舗の shop_name を取得する（User テーブルより）
+            user_stmt = select(User).where(User.user_id == shop_id)
+            user_result = await session.execute(user_stmt)
+            user_obj = user_result.scalars().first()
+            if not user_obj:
+                logger.warning(f"Shop with shop_id {shop_id} not found.")
+                return False
+            shop_name = user_obj.shop_name
 
-            stmt = insert(Menu).values(
-                shop_id=shop_id,
+            # ② 重複チェック：同じ店舗（shop_name）で同じメニュー名 (name) があるかをCOUNTする
+            count_stmt = select(func.count(Menu.menu_id)).where(
+                Menu.shop_name == shop_name,
+                Menu.name == name
+            )
+            count_result = await session.execute(count_stmt)
+            count = count_result.scalar()  # COUNT の結果を取得
+            logger.debug(f"insert_menu() - Duplicate check count: {count}")
+
+            if count > 0:
+                logger.info(f"Menu '{name}' for shop '{shop_name}' already exists. Insertion skipped.")
+                return False
+
+            # ③ 重複がなければ、新規 Menu レコードを作成・追加する
+            new_menu = Menu(
+                shop_name=shop_name,
                 name=name,
                 price=price,
                 description=description,
-                picture_path=picture_path or "",
-                created_at=created_at
-            ).returning(Menu.menu_id)  # 追加されたmenu_idを取得
-
-            result = await session.execute(stmt)
+                picture_path=picture_path,
+                disabled=disabled
+            )
+            session.add(new_menu)
             await session.commit()
-
-            new_id = result.scalar_one()  # menu_id を取得
-            logger.info("メニュー追加成功")
-            logger.debug(f"insert_menu() - inserted menu_id: {new_id}")
-
-            return new_id
+            logger.info(f"Menu '{name}' for shop '{shop_name}' inserted successfully.")
+            return True
 
     except DatabaseError as e:
         raise SQLException(
-            sql_statement="insert(Menu)...",
+            sql_statement="insert_menu()",
             method_name="insert_menu()",
-            detail=f"SQLAlchemy 実行中にエラーが発生しました: {e}",
+            detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "insert_menu()", f"Error: {e}")
+        raise CustomException("insert_menu()", f"Error: {e}")
 
 '''------------------------------------------------------'''
 from sqlalchemy import update
 
 @log_decorator
-async def update_menu(shop_id: int, menu_id: int, key: str, value) -> int:
+async def update_menu(shop_id: int, menu_id: int, key: str, value: str) -> int:
     """
     指定された shop_id と menu_id に一致する Menu レコードの指定カラムを更新する。
     更新に成功したレコード数（通常は1）を返す。
