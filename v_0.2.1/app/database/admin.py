@@ -1,22 +1,20 @@
 # database/sqlalchemy_database.py
+from datetime import date
+import logging
+from venv import logger
+
+
+from utils.exception import CustomException, DatabaseConnectionException, SQLException
+from utils.utils import log_decorator, get_today_str 
+
 '''
     1. reset_all_autoincrement():
     2. drop_all_table():
-    3. init_database():
-    ここの関数は、各ユーザー.pyに移行した。    
+
+    ここの関数は、modelsフォルダに移行した。    
 '''
-from user import create_user_table, insert_user, insert_shop, update_user, update_existing_passwords
-from company import create_company_table, insert_company
-from menu import create_menu_table, insert_menu
-from orders import create_orders_table, insert_order, show_all_orders
-from utils.utils import get_today_str, log_decorator
-from utils.exception import CustomException, DatabaseConnectionException, SQLException
-from sqlalchemy import engine, text
-from sqlalchemy.exc import DatabaseError
 
 # ログ用の設定
-import logging
-from venv import logger
 logging.basicConfig(level=logging.INFO)
 
 db_name_str = "example.db"
@@ -27,6 +25,12 @@ default_shop_name = "shop01"
 import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
 DB_PATH = os.path.join(BASE_DIR, db_name_str)  # 
+
+'''------------------------------------------------------'''
+
+'''------------------------------------------------------'''
+
+'''------------------------------------------------------'''
 
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット
@@ -57,6 +61,11 @@ async def reset_all_autoincrement():
     except Exception as e:
         raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}")
 
+
+from sqlalchemy import engine, text
+from sqlalchemy.exc import DatabaseError
+
+
 @log_decorator
 async def drop_all_table():
     """
@@ -81,6 +90,12 @@ async def drop_all_table():
     except Exception as e:
         raise CustomException(500, "drop_all_table()", f"Error: {e}")
 
+
+'''------------------------------------------------------'''
+
+from user import user # user.pyからインポート
+
+'''------------------------------------------------------'''
 #@log_decorator
 async def init_database():
     default_shop_name = "shop01"
@@ -110,15 +125,13 @@ async def init_database():
 
         await create_menu_table()
 
-        await insert_menu(
-            shop_name=default_shop_name,
-            name='お昼の定食',
-            price=500,
-            description='お昼のランチお弁当です', 
-            picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
-
-
+        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
+        picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
+        
         await create_orders_table()
+        '''INSERT INTO Orders (company_id, username, shop_name, menu_id,  amount, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)'''
+        
         
         # 1
         await insert_order(1, "user1", "shop01", 1, 1, get_today_str(-5))
@@ -147,7 +160,7 @@ async def init_database():
         raise
     except sqlite3.Error as e: 
         raise
-    except DatabaseError as e:
+    except Exception as e: 
         print(f"init_database Error: {str(e)}")
         import traceback 
         traceback.print_exc()

@@ -130,8 +130,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         raise CustomException("verify_password()", message=str(e))
 
 
-from database.sqlite_database import select_user, insert_new_user
 from typing import Optional
+
+#from database.sqlite_database import select_user, insert_new_user
+from models.user import select_user, insert_new_user
 
 
 @log_decorator
@@ -141,9 +143,8 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
         user : UserResponse = await select_user(username) # UserCreateにするべき
 
         if user is None:
-            logger.debug(f"ユーザーが存在しません: {username}")
             await insert_new_user(username, password, name)
-            user: UserResponse = await select_user(username) # UserResponseにするべき
+            user: UserResponse = await select_user(username)
 
         logger.info(f"authenticate_user() - 認証試行: {user.username}")
 
@@ -156,10 +157,6 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="パスワードが一致しません"
                 )
-            '''raise NotAuthorizedException(
-                method_name="verify_password()",
-                detail="パスワードが一致しません"
-            )'''
 
         data = {
             "sub": user.get_username(),
