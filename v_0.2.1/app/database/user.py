@@ -7,15 +7,34 @@
     4. select_all_user() -> Optional[list[User]]:
 
     5. get_hashed_password(password: str)-> str:
+    6. update_existing_passwords():
 
-    6. insert_user(username, password, name, company_id, shop_name, menu_id)-> bool:
-    7. insert_new_user(username: str, password: str, name: str = '')-> bool:
-    8. update_user(username: str, key: str, value):
-    9. delete_user(username: str):
+    7. insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
+    8. insert_new_user(username: str, password: str, name: str = '')-> bool:
+    9. insert_shop(username: str, password: str, shop_name: str) -> None:
+
+    10. update_user(username: str, key: str, value):
+    11. delete_user(username: str):
+    12. delete_all_user():
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
 from sqlalchemy.orm import declarative_base
 Base = declarative_base()
+
+# ログ用の設定
+logging.basicConfig(level=logging.INFO)
+
+# インメモリデータベースを作成
+#conn = sqlite3.connect(':memory:')
+db_name_str = "example.db"
+#default_shop_name = "shop01"
+from utils.utils import default_shop_name
+
+# データベース初期化
+# プロジェクトルートからの絶対パスを取得
+import os
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
+DB_PATH = os.path.join(BASE_DIR, db_name_str)  # 
 
 # models.Userクラス
 class User(Base):
@@ -84,7 +103,7 @@ async def select_user(username: str) -> Optional[User]:
 
 # 選択（全件）
 @log_decorator
-async def select_all_user() -> Optional[list[User]]:
+async def select_all_users() -> Optional[list[User]]:
     """
     全てのUserレコードを取得する
     """
@@ -116,11 +135,30 @@ async def get_hashed_password(password: str)-> str:
     return new_hashed_password
 
 
+# パスワードをハッシュ化する関数
+async def update_existing_passwords():
+    """既存ユーザーのパスワードをハッシュ化"""
+    users = await select_all_users()  # すべてのユーザーを取得する関数が必要
+    for user in users:
+        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+
+            """パスワードをハッシュ化する"""
+            salt = bcrypt.gensalt()
+            password = user.get_password()
+            hashed_password = bcrypt.hashpw(password.encode(), salt)
+            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+            #new_hashed_password = hash_password(user.get_password())  # ハッシュ化
+
+            await update_user(
+                user.username, "password", new_hashed_password)  # DB更新
+            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+
+
 from sqlalchemy.exc import DatabaseError
 
 # 追加
 @log_decorator
-async def insert_user(username, password, name, company_id, shop_name, menu_id)-> bool:
+async def insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
     async with async_session() as session:
         try:
             # ユーザーが既に存在するか確認
@@ -165,26 +203,111 @@ async def insert_user(username, password, name, company_id, shop_name, menu_id)-
             raise CustomException("UserのINSERT処理", f"insert_user() Error: {e}")
 
 
-from utils.utils import default_shop_name
+
 
 # 新規ユーザー追加
+from sqlalchemy import select, func
+from sqlalchemy.exc import DatabaseError
+
 @log_decorator
-async def insert_new_user(username: str, password: str, name: str = '')-> bool:
+async def insert_new_user(username: str, password: str, name: str = '') -> None:
+    """
+    新規ユーザーを登録する関数です。
+    既に同じ username が存在する場合は挿入をスキップします。
+    デフォルト値として、company_id=1, shop_name=default_shop_name, menu_id=1 が設定されます。
+    """
     try:
-        # insert_userはSQLAlchemyの非同期ORMを利用した関数（前回実装例参照）
-        result = await insert_user(
-            username,
-            password,
-            name,
-            company_id=1,
-            shop_name=default_shop_name,
-            menu_id=1
+        async with async_session() as session:
+            # 既存ユーザーのチェック
+            stmt = select(func.count()).select_from(User).where(User.username == username)
+            count = await session.scalar(stmt)
+            logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
+
+            if count > 0:
+                logger.debug(f"ユーザー {username} は既に存在します。挿入をスキップします。")
+                return
+
+            # 新規ユーザーの作成（デフォルト値付き）
+            new_user = User(
+                username=username,
+                password=password,
+                name=name,
+                token="",
+                exp="",
+                company_id=1,
+                shop_name=default_shop_name,  # default_shop_name は適宜定義済みとします
+                menu_id=1,
+                permission=1  # 新規ユーザーのデフォルト権限（必要に応じて変更してください）
+            )
+            session.add(new_user)
+            await session.commit()
+            logger.info("新規ユーザー登録成功")
+
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement="INSERT INTO users ...",  # 実際のSQL文は省略
+            method_name="insert_new_user()",
+            detail=f"SQL実行中にエラーが発生しました: {e}",
+            exception=e
         )
-        return result
-    except SQLException as e:
-        raise
     except Exception as e:
         raise CustomException(500, "insert_new_user()", f"Error: {e}")
+
+
+# お弁当屋追加
+# 備考：username == shop_name とする
+from sqlalchemy import select, func
+from sqlalchemy.exc import DatabaseError
+
+@log_decorator
+async def insert_shop(username: str, password: str, shop_name: str) -> None:
+    """
+    店舗ユーザーを追加する関数です。
+    既に指定の username が存在する場合は挿入をスキップします。
+    備考：username == shop_name とする。
+    """
+    try:
+        async with async_session() as session:
+            # 既存のユーザー数をチェックする
+            stmt = select(func.count()).select_from(User).where(User.username == username)
+            count = await session.scalar(stmt)
+            logger.debug(f"insert_shop() - ユーザー存在チェック: count = {count}")
+            
+            if count > 0:
+                logger.debug(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
+                return
+
+            # 新規ユーザーの作成（店舗ユーザーとして登録）
+            new_user = User(
+                username=username,
+                password=password,
+                name=shop_name,
+                token="",
+                exp="",
+                company_id=1,
+                shop_name=username,  # 備考：username == shop_name とする
+                menu_id=1,
+                permission=10
+            )
+            session.add(new_user)
+            await session.commit()
+            logger.debug(
+                f"insert_shop() - 挿入実行: username: {username}, name: {shop_name}, "
+                f"shop_name: {username}, menu_id: 1, permission: 10"
+            )
+            logger.info("店舗ユーザー追加成功")
+
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement="INSERT INTO users ...",  # 詳細なSQL文は省略
+            method_name="insert_shop()",
+            detail=f"SQL実行中にエラーが発生しました: {e}",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(500, "insert_shop()", f"Error: {e}")
+
+
 
 from sqlalchemy import update
 
@@ -231,5 +354,24 @@ async def delete_user(username: str):
         )
     except Exception as e:
         raise CustomException(500, "delete_user()", f"Error: {e}")
+
+from sqlalchemy import text
+
+@log_decorator
+async def delete_all_user():
+    sqlstr = "DROP TABLE IF EXISTS users"
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(sqlstr))
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement=sqlstr,
+            method_name="delete_all_user()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(500, "delete_all_user()", f"Error: {e}")
+
 
 

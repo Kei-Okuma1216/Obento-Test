@@ -4,9 +4,10 @@
     create_company_table():
     select_company(company_id: int):
     select_all_company():
-    insert_company(name: str, tel: str, shop_name: str):
+    insert_company(name: str, tel: str, default_shop_name: str):
     update_company(company_id: int, key: str, value: str):
     delete_company(company_id: int):
+    delete_all_company():
 '''
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import declarative_base
@@ -118,7 +119,7 @@ from utils.utils import get_today_str
 
 # 追加
 @log_decorator
-async def insert_company(name: str, telephone: str, shop_name: str):
+async def insert_company(name: str, telephone: str, default_shop_name: str):
     """
     Companyテーブルに新規レコードを追加する
     """
@@ -127,7 +128,7 @@ async def insert_company(name: str, telephone: str, shop_name: str):
             new_company = Company(
                 name=name,
                 tel=telephone,
-                shop_name=shop_name,
+                shop_name=default_shop_name,
                 created_at=get_today_str(),
                 disabled=False
             )
@@ -136,7 +137,7 @@ async def insert_company(name: str, telephone: str, shop_name: str):
 
             logger.info("契約企業追加成功")
             logger.debug(
-                f"insert_company() - name: {name}, tel: {tel}, shop_name: {shop_name}, "
+                f"insert_company() - name: {name}, tel: {telephone}, default_shop_name: {default_shop_name}, "
                 f"created_at: {get_today_str()}, disabled: False"
             )
             return new_company
@@ -179,6 +180,8 @@ async def update_company(company_id: int, key: str, value: str):
         raise CustomException(500, "update_company()", f"Error: {e}")
 
 
+from sqlalchemy import delete
+
 # 削除
 @log_decorator
 async def delete_company(company_id: int):
@@ -204,3 +207,27 @@ async def delete_company(company_id: int):
         )
     except Exception as e:
         raise CustomException(500, "delete_company()", f"Error: {e}")
+
+
+# 全削除
+@log_decorator
+async def delete_all_company():
+    """
+    Companyテーブルの全レコードを削除する関数です。データ初期化用
+    """
+    try:
+        async with async_session() as session:
+            stmt = delete(Company)
+            await session.execute(stmt)
+            await session.commit()
+            logger.info("All records from Company table deleted successfully.")
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement=str(stmt),
+            method_name="delete_all_company()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(500, "delete_all_company()", f"Error: {e}")
+
