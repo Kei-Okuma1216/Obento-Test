@@ -1,6 +1,6 @@
 # main.py
 # 2.1 SQLAlchemy移行開始
-'''
+'''ページ・ビュー・関数
     root(request: Request, response: Response):
     login_get(request: Request):
     login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
