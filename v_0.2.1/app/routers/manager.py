@@ -1,20 +1,30 @@
 # manager.py
 # ../manager/meになる
-from venv import logger
+'''
+    1. manager_view(request: Request, response: Response):
+    2. fax_order_sheet_view(request: Request):
+'''
 from fastapi import Request, Response, APIRouter, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 
 from utils.exception import CookieException, CustomException
-from utils.utils import check_permission, deprecated, get_all_cookies, log_decorator
-from database.sqlite_database import select_company_order, select_company_order2
+from utils.utils import check_permission, get_all_cookies, log_decorator
+
 from services.order_view import order_table_view
+#from database.sqlite_database import select_company_order, select_company_order2
+from ..database.orders import select_orders_by_company_all
+from ..database.sqlalchemy_database import endpoint
+
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
-
 manager_router = APIRouter()
 
+
+from venv import logger
+
+'''
 @deprecated
 @log_decorator
 def check_manager_permission(request: Request):
@@ -24,7 +34,7 @@ def check_manager_permission(request: Request):
         raise CustomException(
             status.HTTP_403_FORBIDDEN,
             "check_manager_permission()",
-            f"Not Authorized permission={permission}")
+            f"Not Authorized permission={permission}")'''
 
 
 # 会社お弁当担当者画面
@@ -33,7 +43,8 @@ def check_manager_permission(request: Request):
 @log_decorator
 async def manager_view(request: Request, response: Response):
     try:
-        if await check_permission(request, [2, 99]) == False:
+        permits = ["2", "99"]
+        if await check_permission(request, permits) == False:
             return templates.TemplateResponse(
             "Unauthorized.html", {"request": request})
 
@@ -42,7 +53,7 @@ async def manager_view(request: Request, response: Response):
             raise CookieException(method_name="manager_view()")
 
         # 会社の全注文
-        orders = await select_company_order2(company_id=1)
+        orders = await select_orders_by_company_all(company_id=1)
 
         if orders is None:
             logger.debug('ordersなし')
@@ -52,7 +63,7 @@ async def manager_view(request: Request, response: Response):
         # 表示用データの作成
         context = {
             'request': request,
-            'base_url': "https://192.168.3.19:8000",
+            'base_url': endpoint,
         }
         # 注文一覧タブ用のデータ
         order_context = {
@@ -60,7 +71,7 @@ async def manager_view(request: Request, response: Response):
             'order_count': len(orders),
             "order_details": orders[0].model_dump() if orders else None
         }
-        
+
         fax_context = {
             "shop_name": "はーとあーす勝谷",
             "menu_name": "お昼のお弁当",

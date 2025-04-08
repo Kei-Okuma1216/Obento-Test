@@ -18,7 +18,7 @@
     12. delete_all_user():
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
-from sqlalchemy_database import Base, AsyncSessionLocal
+from sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name
 from sqlalchemy.exc import DatabaseError
 
 # models.Userクラス
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
-default_shop_name = "shop01"
+#default_shop_name = "shop01"
 
 # Userテーブル
 # 作成
@@ -316,6 +316,7 @@ async def update_user(username: str, key: str, value):
 
 # 削除(1件)
 from sqlalchemy import delete
+
 @log_decorator
 async def delete_user(username: str):
     try:

@@ -1478,7 +1478,7 @@ async def init_database():
 
         await create_menu_table()
 
-        await insert_menu(shop_name='shop01', name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
+        await insert_menu(shop_name=default_shop_name, name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
         picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
         
         await create_orders_table()

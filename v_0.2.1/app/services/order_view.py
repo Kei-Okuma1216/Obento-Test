@@ -1,13 +1,24 @@
 # order_view.py
-from collections import Counter
-import json
+'''
+    1. order_table_view(request: Request, response: Response):
+        ordersリストを降順にソートし、チェックされた件数をカウント。
+        company_nameごとに注文件数を集計。
+        ２件以上の注文がある会社のみを抽出。
+        テンプレートをレンダリングして返す。
+    2. get_order_json(request: Request, days_ago: str = Query(None)):
+        ユーザー情報を取得し、days_agoの値を検証。
+        履歴を取得してJSON形式で返す。
+    3. batch_update_orders(updates: list[dict]):
+        注文のキャンセル状態を更新する。
+        SQL文を実行して、変更をコミット。
+        エラーが発生した場合はログに記録。
+'''
 from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from database.sqlite_database import get_connection, select_shop_order, select_user
-from database.sqlite_database import CustomException
+from utils.utils import CustomException
 from utils.utils import log_decorator, get_all_cookies
 
 templates = Jinja2Templates(directory="templates")
@@ -16,6 +27,13 @@ view_router = APIRouter(
     prefix="/orders",
     tags=["orders"]
 )
+
+#from database.sqlite_database import get_connection, select_shop_order, select_user
+from ..database.sqlalchemy_database import AsyncSessionLocal
+from ..database.orders import select_shop_order, select_user
+
+
+from collections import Counter
 
 # 注文一覧テーブル表示
 @log_decorator
@@ -65,6 +83,9 @@ async def order_table_view(
             f"/order_table_view()",
             f"Error: {str(e)}")
 
+
+import json
+
 @log_decorator
 async def get_order_json(request: Request, days_ago: str = Query(None)):
     try:
@@ -111,18 +132,20 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
 
 
 # キャンセルチェック状態を更新
-async def batch_update_orders(updates: list[dict]):
-    try:
-        values = [(change["canceled"], change["order_id"]) for change in updates]
-        sql = "UPDATE orders SET canceled = ? WHERE order_id = ?"
+from sqlalchemy import text
 
-        conn = await get_connection()  # ✅ 非同期DB接続
-        try:
-            cur = await conn.cursor()  # ✅ `async with` は不要
-            await cur.executemany(sql, values)  # ✅ `await` なし
-            await conn.commit()  # ✅ コミットを実行
-        finally:
-            await conn.close()  # ✅ 明示的にクローズ
+@log_decorator
+async def batch_update_orders(updates: list[dict]):
+    """
+    キャンセルチェック状態をバッチで更新します。
+    `updates` は各要素が { "canceled": <状態>, "order_id": <注文ID> } の形の辞書リストです。
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            sql = text("UPDATE orders SET canceled = :canceled WHERE order_id = :order_id")
+            # updates が辞書のリストの場合、executemany モードで処理されます。
+            await session.execute(sql, updates)
+            await session.commit()
 
         return {"message": "Orders updated successfully"}
 
@@ -131,5 +154,7 @@ async def batch_update_orders(updates: list[dict]):
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "batch_update_orders()",
-            f"予期せぬエラー: {str(e)}")
+            f"予期せぬエラー: {str(e)}"
+        )
+
 

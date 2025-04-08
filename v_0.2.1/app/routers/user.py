@@ -1,22 +1,31 @@
 # user.py
 # users/me
+'''
+    1. regist_complete(request: Request, response: Response): 
+    2. get_user_shop_menu(request: Request, response: Response):
+'''
 from fastapi import HTTPException, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
-from schemas.schemas import UserResponse
+
+
 from utils.helper import redirect_error
 from utils.utils import get_all_cookies, log_decorator, check_permission, prevent_order_twice
 from utils.exception import CustomException, CookieException, SQLException
-from log_config import logger
-from order_log_config import order_logger
 
 from services.menu_view import menu_cards_view
 from services.order_view import order_table_view
 
-templates = Jinja2Templates(directory="templates")
 
+#from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
+from ..database.user import select_user
+from ..database.orders import select_shop_order, insert_order
+from schemas.schemas import UserResponse
+
+templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
+
+from log_config import logger
 
 
 # お弁当の注文完了　ユーザーのみ
@@ -24,7 +33,8 @@ user_router = APIRouter()
 @log_decorator
 async def regist_complete(request: Request, response: Response): 
     try:
-        if await check_permission(request, [1, 2, 10, 99]) == False:
+        permits = [1, 2, 10, 99] # ユーザーの権限
+        if await check_permission(request, permits) == False:
             return templates.TemplateResponse(
             "Unauthorized.html", {"request": request})
 
@@ -71,15 +81,15 @@ async def regist_complete(request: Request, response: Response):
             f"予期せぬエラーが発生しました: {str(e)}")
 
 
-
 ''' 開発中止する ユーザーのメニュー選択 '''
-@user_router.post("/me", response_class=HTMLResponse, tags=["users"])
+'''@user_router.post("/me", response_class=HTMLResponse, tags=["users"])
 @user_router.get("/me", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def get_user_shop_menu(request: Request, response: Response):
     # ユーザーお弁当屋のメニュー選択
     try:
-        if await check_permission(request, [1, 2, 10, 99]) == False:
+        permits = [1, 2, 10, 99] # ユーザーの権限
+        if await check_permission(request, permits) == False:
             return templates.TemplateResponse(
             "Unauthorized.html", {"request": request})
 
@@ -88,7 +98,7 @@ async def get_user_shop_menu(request: Request, response: Response):
             raise CookieException(method_name="get_all_cookies()")
 
         # メニュー一覧
-        menus = await select_menu('shop01')
+        menus = await select_all_menus(default_shop_name)
         #logger.debug(f"shop_name: {'shop01'}")
 
         if menus is None:
@@ -107,3 +117,4 @@ async def get_user_shop_menu(request: Request, response: Response):
             status.HTTP_400_BAD_REQUEST,
             f"/get_user_shop_menu()",
             f"Error: {str(e)}")
+'''

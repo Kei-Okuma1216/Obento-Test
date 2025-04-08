@@ -133,7 +133,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 from typing import Optional
 
 #from database.sqlite_database import select_user, insert_new_user
-from models.user import select_user, insert_new_user
+#from database.database import select_user, insert_new_user
+from .database.user import select_user, insert_new_user
 
 
 @log_decorator

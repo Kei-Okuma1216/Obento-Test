@@ -1,5 +1,14 @@
 # admin.py
 # ../admin/meになる
+'''
+    1. admin_view(request: Request): 
+    2. update_existing_passwords():
+
+    3. list_logs():
+    4. view_log(filename: str):
+    5. list_order_logs():
+    6. view_order_log(filename: str):
+'''
 import bcrypt
 import os
 from fastapi import Request, APIRouter, status
@@ -8,14 +17,13 @@ from fastapi.templating import Jinja2Templates
 from database.sqlite_database import update_user, get_all_users
 from utils.exception import CustomException, NotAuthorizedException
 from utils.helper import redirect_login
-from utils.utils import check_permission, deprecated, log_decorator
-from venv import logger
+from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
 
 admin_router = APIRouter()
 
-@log_decorator
+'''@log_decorator
 @deprecated
 def check_admin_permission(request: Request):
     # 管理者の権限チェック
@@ -25,7 +33,12 @@ def check_admin_permission(request: Request):
         raise CustomException(
             status.HTTP_401_UNAUTHORIZED,
             "check_admin_permission()",
-            f"Not Authorized permission={permission}")
+            f"Not Authorized permission={permission}")'''
+
+#endpoint = "https://192.168.3.19:8000"
+from ..database.sqlalchemy_database import endpoint
+
+from venv import logger
 
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
@@ -39,7 +52,7 @@ def admin_view(request: Request):
         return templates.TemplateResponse(
             "admin.html", {
                 "request": request,
-                "base_url": "https://192.168.3.19:8000"})
+                "base_url": endpoint})
 
     except NotAuthorizedException as e:
         return redirect_login(request, "アクセス権限がありません。", e)
@@ -136,3 +149,4 @@ def view_order_log(filename: str):
         return f"<h1>{filename}</h1><pre>{content}</pre>"
     else:
         return "注文ログファイルが存在しません。"
+

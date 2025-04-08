@@ -1,11 +1,11 @@
 # database/orders.py
 '''
-    注文取得クエリ
+    注文クエリ
 
     1. class Orders(Base):
     2. create_orders_table():
 
-    # 管理者用に全件取得する
+    # 管理者用に1件・全件取得する
     3. select_single_order(order_id: int) -> Orders:
     4. select_all_orders() -> Optional[List[Orders]]:
 
@@ -31,14 +31,7 @@
     18. delete_all_orders():
 '''
 from sqlalchemy import Column, Integer, String, select
-
-#from sqlalchemy.ext.asyncio import async_session
-#from sqlalchemy.ext.declarative import declarative_base
-
-from sqlalchemy import Column, Integer, String
 from sqlalchemy.exc import DatabaseError
-from sqlalchemy.exc import DatabaseError
-
 from sqlalchemy_database import Base, AsyncSessionLocal
 
 
