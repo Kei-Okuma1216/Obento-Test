@@ -1,4 +1,4 @@
-# models/user.py
+# database/user.py
 '''
     1. class User(Base):
     2. create_user_table():
@@ -18,23 +18,8 @@
     12. delete_all_user():
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
-from sqlalchemy.orm import declarative_base
-Base = declarative_base()
-
-# ログ用の設定
-logging.basicConfig(level=logging.INFO)
-
-# インメモリデータベースを作成
-#conn = sqlite3.connect(':memory:')
-db_name_str = "example.db"
-#default_shop_name = "shop01"
-from utils.utils import default_shop_name
-
-# データベース初期化
-# プロジェクトルートからの絶対パスを取得
-import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
-DB_PATH = os.path.join(BASE_DIR, db_name_str)  # 
+from sqlalchemy_database import Base, AsyncSessionLocal
+from sqlalchemy.exc import DatabaseError
 
 # models.Userクラス
 class User(Base):
@@ -57,32 +42,33 @@ class User(Base):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
+# ログ用の設定
 import logging
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
-from database import engine  # AsyncEngine インスタンスが定義されている前提
+default_shop_name = "shop01"
 
 # Userテーブル
 # 作成
 @log_decorator
 async def create_user_table():
     try:
-        async with engine.begin() as conn:
-            # User.__table__.create を run_sync() で呼び出す（checkfirst=True で存在チェック）
-            await conn.run_sync(User.__table__.create, checkfirst=True)
+        # sqlalchemy_database.py で管理しているセッション（AsyncSessionLocal）を利用
+        async with AsyncSessionLocal() as session:
+            # セッションから run_sync() を使って同期的なテーブル作成メソッドを実行
+            await session.run_sync(User.__table__.create, checkfirst=True)
             logger.debug("User テーブルの作成（または既存）が完了しました。")
 
-            '''PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。'''
-    except Exception as e:
+    except DatabaseError as e:
         logger.error(f"create_user_table() でエラーが発生しました: {e}")
         raise
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import async_session
 from typing import Optional
 
 # 選択
@@ -91,13 +77,13 @@ async def select_user(username: str) -> Optional[User]:
     try:
         sanitized_username = username.strip()
 
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = select(User).where(User.username == sanitized_username)
             result = await session.execute(stmt)
             user = result.scalars().first()
             logger.debug(f"select_user() - SQLAlchemyクエリ: {stmt}")
             return user
-    except Exception as e:
+    except DatabaseError as e:
         raise CustomException(500, "select_user()", f"Error: {e}") from e
 
 
@@ -108,14 +94,14 @@ async def select_all_users() -> Optional[list[User]]:
     全てのUserレコードを取得する
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = select(User)
             result = await session.execute(stmt)
             users = result.scalars().all()
             logger.debug(f"select_all_user() - SQLAlchemyクエリ: {stmt}")
             return users
 
-    except Exception as e:
+    except DatabaseError as e:
         raise CustomException(500, "select_all_user()", f"Error: {e}") from e
 
 
@@ -123,7 +109,7 @@ async def select_all_users() -> Optional[list[User]]:
 import bcrypt
 
 # パスワードをハッシュ化
-@log_decorator
+#@log_decorator
 async def get_hashed_password(password: str)-> str:
     """パスワードをハッシュ化する"""
     # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
@@ -136,6 +122,7 @@ async def get_hashed_password(password: str)-> str:
 
 
 # パスワードをハッシュ化する関数
+#@log_decorator
 async def update_existing_passwords():
     """既存ユーザーのパスワードをハッシュ化"""
     users = await select_all_users()  # すべてのユーザーを取得する関数が必要
@@ -154,12 +141,12 @@ async def update_existing_passwords():
             logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
 
-from sqlalchemy.exc import DatabaseError
+
 
 # 追加
 @log_decorator
 async def insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
-    async with async_session() as session:
+    async with AsyncSessionLocal() as session:
         try:
             # ユーザーが既に存在するか確認
             stmt = select(func.count()).select_from(User).where(User.username == username)
@@ -203,11 +190,9 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
             raise CustomException("UserのINSERT処理", f"insert_user() Error: {e}")
 
 
-
-
 # 新規ユーザー追加
 from sqlalchemy import select, func
-from sqlalchemy.exc import DatabaseError
+
 
 @log_decorator
 async def insert_new_user(username: str, password: str, name: str = '') -> None:
@@ -217,11 +202,11 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
     デフォルト値として、company_id=1, shop_name=default_shop_name, menu_id=1 が設定されます。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 既存ユーザーのチェック
             stmt = select(func.count()).select_from(User).where(User.username == username)
             count = await session.scalar(stmt)
-            logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
+            #logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
 
             if count > 0:
                 logger.debug(f"ユーザー {username} は既に存在します。挿入をスキップします。")
@@ -267,12 +252,12 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
     備考：username == shop_name とする。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 既存のユーザー数をチェックする
             stmt = select(func.count()).select_from(User).where(User.username == username)
             count = await session.scalar(stmt)
             logger.debug(f"insert_shop() - ユーザー存在チェック: count = {count}")
-            
+
             if count > 0:
                 logger.debug(f"このユーザーID {username} は既に存在します。挿入をスキップします。")
                 return
@@ -314,7 +299,7 @@ from sqlalchemy import update
 @log_decorator
 async def update_user(username: str, key: str, value):
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 動的にカラム名を指定して更新するため、values() に辞書を利用
             stmt = update(User).where(User.username == username).values({key: value})
             await session.execute(stmt)
@@ -328,16 +313,16 @@ async def update_user(username: str, key: str, value):
             detail="SQL実行中にエラーが発生しました",
             exception=e
         )
-    except Exception as e:
+    except DatabaseError as e:
         raise CustomException(500, "update_user()", f"Error: {e}")
 
 from sqlalchemy import delete
 
-# 削除
+# 削除(1件)
 @log_decorator
 async def delete_user(username: str):
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = delete(User).where(User.username == username)
             await session.execute(stmt)
             await session.commit()
@@ -352,17 +337,22 @@ async def delete_user(username: str):
             detail="SQL実行中にエラーが発生しました",
             exception=e
         )
-    except Exception as e:
+    except DatabaseError as e:
         raise CustomException(500, "delete_user()", f"Error: {e}")
 
+# 削除（全件）
 from sqlalchemy import text
-
 @log_decorator
 async def delete_all_user():
     sqlstr = "DROP TABLE IF EXISTS users"
+
+    def drop_table(sync_conn):
+        sync_conn.execute(text(sqlstr))
+
     try:
-        async with engine.begin() as conn:
-            await conn.execute(text(sqlstr))
+        async with AsyncSessionLocal() as session:
+            await session.run_sync(drop_table)
+            logger.info("User テーブルの削除が完了しました。")
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,
@@ -372,6 +362,7 @@ async def delete_all_user():
         )
     except Exception as e:
         raise CustomException(500, "delete_all_user()", f"Error: {e}")
+
 
 
 
