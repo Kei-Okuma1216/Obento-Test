@@ -192,8 +192,6 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
 
 # 新規ユーザー追加
 from sqlalchemy import select, func
-
-
 @log_decorator
 async def insert_new_user(username: str, password: str, name: str = '') -> None:
     """
@@ -316,9 +314,8 @@ async def update_user(username: str, key: str, value):
     except DatabaseError as e:
         raise CustomException(500, "update_user()", f"Error: {e}")
 
-from sqlalchemy import delete
-
 # 削除(1件)
+from sqlalchemy import delete
 @log_decorator
 async def delete_user(username: str):
     try:
