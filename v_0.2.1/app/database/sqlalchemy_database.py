@@ -1,156 +1,36 @@
 # database/sqlalchemy_database.py
-'''
-    1. reset_all_autoincrement():
-    2. drop_all_table():
-    3. init_database():
-    ここの関数は、各ユーザー.pyに移行した。    
-'''
-from user import create_user_table, insert_user, insert_shop, update_user, update_existing_passwords
-from company import create_company_table, insert_company
-from menu import create_menu_table, insert_menu
-from orders import create_orders_table, insert_order, show_all_orders
-from utils.utils import get_today_str, log_decorator
-from utils.exception import CustomException, DatabaseConnectionException, SQLException
-from sqlalchemy import engine, text
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# ログ用の設定
-import logging
-from venv import logger
-logging.basicConfig(level=logging.INFO)
+DATABASE_URL = "sqlite+aiosqlite:///./example.db"
 
 db_name_str = "example.db"
-default_shop_name = "shop01"
 
-# データベース初期化
-# プロジェクトルートからの絶対パスを取得
 import os
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルの絶対パスを取得
 DB_PATH = os.path.join(BASE_DIR, db_name_str)  # 
 
-'''------------------------------------------------------'''
-# AUTOINCREMENTフィールドをリセット
-@log_decorator
-async def reset_all_autoincrement():
-    """
-    Company, Menu, Ordersテーブルの自動採番用シーケンスをリセットする関数です。
-    各シーケンスをALTER SEQUENCE ... RESTART WITH 1 によりリセットします。
-    """
-    try:
-        async with engine.begin() as conn:
-            sequences = [
-                "company_company_id_seq",  # Companyテーブルのcompany_id用シーケンス
-                "menu_menu_id_seq",        # Menuテーブルのmenu_id用シーケンス
-                "orders_order_id_seq"      # Ordersテーブルのorder_id用シーケンス
-            ]
-            for seq in sequences:
-                stmt = text(f"ALTER SEQUENCE {seq} RESTART WITH 1")
-                await conn.execute(stmt)
-            logger.debug("各テーブルのシーケンス（自動採番）のリセット完了")
-    except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="reset_all_autoincrement()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
-    except Exception as e:
-        raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}")
+# 非同期エンジン作成
+engine = create_async_engine(DATABASE_URL, echo=True)
 
-@log_decorator
-async def drop_all_table():
-    """
-    全テーブル（Company、Orders、Menu、User）を削除する関数です。
-    SQLAlchemyの非同期エンジンを用いて各テーブルに対して
-    'DROP TABLE IF EXISTS {table}' を実行します。
-    """
-    try:
-        async with engine.begin() as conn:
-            # 各テーブルに対してDROP文を実行
-            for table in ["Company", "Orders", "Menu", "User"]:
-                sqlstr = f"DROP TABLE IF EXISTS {table}"
-                await conn.execute(text(sqlstr))
-            logger.debug("全テーブルのDrop完了")
-    except DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="drop_all_table()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
-    except Exception as e:
-        raise CustomException(500, "drop_all_table()", f"Error: {e}")
+# セッションファクトリ
+AsyncSessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False
+)
 
-#@log_decorator
-async def init_database():
-    default_shop_name = "shop01"
-    try:
-        await reset_all_autoincrement()
-        await drop_all_table()
+# Baseクラス（すべてのモデルの基底）
+Base = declarative_base()
 
-        await create_user_table() 
-        # 1
-        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=default_shop_name, menu_id=1) 
-        # 2
-        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
-        # 3
-        await insert_shop(default_shop_name, default_shop_name, "お店shop01")
-        # 4
-        await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
-        await update_user("manager", "permission", 2)
-        # 5
-        await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
-        await update_user("admin", "permission", 99)
+# データベースセッションを取得する関数
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session
 
-        #from routers.admin import update_existing_passwords
-        await update_existing_passwords() 
-
-        await create_company_table()
-        await insert_company("テンシステム", "083-999-9999", "shop01") # 1
-
-        await create_menu_table()
-
-        await insert_menu(
-            shop_name=default_shop_name,
-            name='お昼の定食',
-            price=500,
-            description='お昼のランチお弁当です', 
-            picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
-
-
-        await create_orders_table()
-        
-        # 1
-        await insert_order(1, "user1", "shop01", 1, 1, get_today_str(-5))
-        print(f"insert_order() - {get_today_str(-5)}")
-        # 2
-        await insert_order(1, "user2", "shop01", 1, 2, get_today_str(-4))
-        print(f"insert_order() - {get_today_str(-4)}")
-        # 3
-        await insert_order(1, "tenten01", "shop01", 1, 3, get_today_str(-3))
-        print(f"insert_order() - {get_today_str(-3)}")
-        # 4
-        await insert_order(1, "tenten02", "shop01", 1, 1, get_today_str(-2))
-        print(f"insert_order() - {get_today_str(-2)}")
-        # 5
-        await insert_order(1, "user3", "shop01", 1, 1, get_today_str(-1))
-        print(f"insert_order() - {get_today_str(-1)}")
-        # 6
-        await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
-        print(f"insert_order() - {get_today_str(-1)}")
-        
-        await show_all_orders()
-
-        logger.info("データベースファイル 'sample.db' が正常に作成されました。")
-
-    except DatabaseConnectionException as e:
-        raise
-    except sqlite3.Error as e: 
-        raise
-    except DatabaseError as e:
-        print(f"init_database Error: {str(e)}")
-        import traceback 
-        traceback.print_exc()
-        raise CustomException(
-            500, "init_database()", f"例外発生: {e}")
+'''メモ
+PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。
+しかしasyncpg.exceptions.PostgresError や aiomysql.Error は、SQLAlchemy のエンジンを使用している場合は、SQLAlchemy の例外にラップされているため、直接キャッチする必要はありません。
+SQLAlchemy の例外は、SQLAlchemy のドキュメントに記載されています。
+'''
 

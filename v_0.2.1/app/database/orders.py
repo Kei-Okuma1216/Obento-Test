@@ -1,4 +1,4 @@
-# models/orders.py
+# database/orders.py
 '''
     注文取得クエリ
 
@@ -32,11 +32,18 @@
 '''
 from sqlalchemy import Column, Integer, String, select
 
-from sqlalchemy.ext.asyncio import async_session
-from sqlalchemy.ext.declarative import declarative_base
+#from sqlalchemy.ext.asyncio import async_session
+#from sqlalchemy.ext.declarative import declarative_base
+
+from sqlalchemy import Column, Integer, String
+from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError
+
+from sqlalchemy_database import Base, AsyncSessionLocal
+
 
 from order_log_config import order_logger
-Base = declarative_base()
+
 
 class Orders(Base):
     __tablename__ = "Orders"
@@ -56,11 +63,9 @@ class Orders(Base):
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
-from sqlalchemy.exc import DatabaseError
 from utils.exception import CustomException, SQLException
-
 from utils.utils import log_decorator
-from database import engine  # AsyncEngine インスタンスが定義されている前提
+
 
 
 import logging
@@ -73,12 +78,16 @@ async def create_orders_table():
     Ordersテーブルを作成する（存在しなければ作成）
     """
     try:
-        async with engine.begin() as conn:
-            # checkfirst=True により、既に存在する場合は作成されません
-            await conn.run_sync(Orders.__table__.create, checkfirst=True)
+        async with AsyncSessionLocal() as session:
+            await session.run_sync(Orders.__table__.create, checkfirst=True)
         logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
     except DatabaseError as e:
-        raise CustomException(500, "create_orders_table()", f"SQL実行中にエラーが発生しました: {e}")
+        raise SQLException(
+            sql_statement="CREATE TABLE Orders",
+            method_name="create_orders_table()",
+            detail=f"SQL実行中にエラーが発生しました: {e}",
+            exception=e
+        )
     except Exception as e:
         raise CustomException(500, "create_orders_table()", f"Error: {e}")
 
@@ -93,7 +102,7 @@ async def select_single_order(order_id: int) -> Orders:
     指定されたorder_idに該当するOrdersレコードを取得する
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = select(Orders).where(Orders.order_id == order_id)
             result = await session.execute(stmt)
             order = result.scalars().first()
@@ -113,7 +122,7 @@ async def select_all_orders() -> Optional[List[Orders]]:
     (注文が存在しない場合は None を返します)
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = select(Orders)
             result = await session.execute(stmt)
             orders_list = result.scalars().all()
@@ -146,7 +155,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[Orders]]:
     戻り値は Orders オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = select(Orders).where(Orders.username == username)
             logger.debug(f"select_orders_by_user_all() - SQLAlchemyクエリ: {stmt}")
             result = await session.execute(stmt)
@@ -179,7 +188,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
     戻り値は Orders オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             start_dt = f"{target_date.isoformat()} 00:00:00"
             end_dt = f"{target_date.isoformat()} 23:59:59"
             
@@ -217,7 +226,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
     戻り値は Orders オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 基本クエリ：username でフィルタ
             stmt = select(Orders).where(Orders.username == username)
 
@@ -265,7 +274,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[Orders]
     戻り値は Order オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 select(
                     Orders.order_id,
@@ -325,7 +334,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
     戻り値は Order オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # target_date を文字列に変換して期間を作成
             start_datetime = f"{target_date.isoformat()} 00:00:00"
             end_datetime   = f"{target_date.isoformat()} 23:59:59"
@@ -385,7 +394,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
     戻り値は Order オブジェクトのリスト（存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # ベースとなるクエリの作成
             stmt = (
                 select(
@@ -454,7 +463,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[Orders]]:
     戻り値は Orders オブジェクトのリストとして返す（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 select(
                     Orders.order_id,
@@ -512,7 +521,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
     取得結果は Orders オブジェクトのリストとして返す（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 select(
                     Orders.order_id,
@@ -571,7 +580,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
     戻り値は Orders オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # target_date を文字列に変換して、期間を作成
             start_datetime = f"{target_date.isoformat()} 00:00:00"
             end_datetime = f"{target_date.isoformat()} 23:59:59"
@@ -635,7 +644,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
     戻り値は Orders オブジェクトのリスト（注文が存在しなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 基本クエリの構築（内部結合で Company, Menu の情報も取得）
             stmt = (
                 select(
@@ -713,13 +722,13 @@ async def insert_order(
     挿入後、新規レコードの order_id を返します。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # created_atがNoneの場合、デフォルト値を設定
             created_at = created_at if created_at else get_today_str()
             logger.debug(f"insert_order() called with created_at = {created_at}")
 
             # Orderモデルの新規インスタンスを生成
-            new_order = Order(
+            new_order = Orders(
                 company_id=company_id,
                 username=username,
                 shop_name=shop_name,
@@ -759,7 +768,7 @@ async def update_order(order_id: int, canceled: bool):
     指定された order_id の注文レコードに対して、canceled フラグと updated_at を更新します。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             current_time = get_today_str()
             stmt = (
                 update(Orders)
@@ -798,7 +807,7 @@ async def delete_order(order_id: int) -> bool:
     削除対象が存在しなければ False を返し、削除に成功すれば True を返します。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = delete(Orders).where(Orders.order_id == order_id)
             result = await session.execute(stmt)
             await session.commit()
@@ -826,8 +835,11 @@ async def delete_order(order_id: int) -> bool:
 async def delete_all_orders():
     sqlstr = "DROP TABLE IF EXISTS orders"
     try:
-        async with engine.begin() as conn:
-            await conn.execute(text(sqlstr))
+        def drop_table(sync_conn):
+            sync_conn.execute(text(sqlstr))
+
+        async with AsyncSessionLocal() as session:
+            await session.run_sync(drop_table)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,

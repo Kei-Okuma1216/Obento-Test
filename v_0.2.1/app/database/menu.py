@@ -11,14 +11,17 @@
     7. delete_menu(shop_id: int, menu_id: int) -> int:
     8. delete_all_menus():
 '''
-
 from datetime import datetime
 from typing import Text
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy_database import Base, AsyncSessionLocal
+from sqlalchemy.exc import DatabaseError
 
-from sqlalchemy.orm import declarative_base
-Base = declarative_base()
+from utils.exception import CustomException, SQLException
+from utils.utils import log_decorator
 
+'''------------------------------------------------------'''
+# Menuテーブル
 class Menu(Base):
     __tablename__ = "menu"
 
@@ -39,20 +42,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 '''------------------------------------------------------'''
-from utils.exception import CustomException, SQLException
-from utils.utils import get_today_str, log_decorator
-from database import engine  # AsyncEngine インスタンスが定義されている前提
-from sqlalchemy.exc import DatabaseError
-
+# 作成
 @log_decorator
 async def create_menu_table():
     """
     Menuテーブルを作成する（既に存在する場合は作成されません）。
     """
     try:
-        async with engine.begin() as conn:
-            # checkfirst=True により、テーブルが存在しない場合のみ作成される
-            await conn.run_sync(Menu.__table__.create, checkfirst=True)
+        async with AsyncSessionLocal() as session:
+            await session.run_sync(Menu.__table__.create, checkfirst=True)
             logger.debug("create_menu_table() - Menuテーブルの作成に成功しました。")
 
     except DatabaseError as e:
@@ -81,7 +79,7 @@ async def select_menu(shop_id: int=1, menu_id: int=1) -> Optional[Menu]:
     存在しなければ None を返す。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 select(Menu)
                 .join(User, Menu.shop_name == User.shop_name)
@@ -115,7 +113,7 @@ async def select_all_menus(shop_id: int=1) -> Optional[List[Menu]]:
     戻り値は Menu オブジェクトのリストとして返す（該当レコードがなければ None）。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 select(Menu)
                 .join(User, Menu.shop_name == User.shop_name)
@@ -140,10 +138,7 @@ async def select_all_menus(shop_id: int=1) -> Optional[List[Menu]]:
         raise CustomException(500, "select_all_menus()", f"Error: {e}")
 
 '''------------------------------------------------------'''
-#from sqlalchemy import insert
-
 from sqlalchemy import func  # COUNT用
-
 # 追加
 @log_decorator
 async def insert_menu(
@@ -162,7 +157,7 @@ async def insert_menu(
     存在しなければ INSERT を実行して True を返します。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # ① 対象店舗の shop_name を取得する（User テーブルより）
             user_stmt = select(User).where(User.user_id == shop_id)
             user_result = await session.execute(user_stmt)
@@ -211,7 +206,7 @@ async def insert_menu(
 
 '''------------------------------------------------------'''
 from sqlalchemy import update
-
+# 更新
 @log_decorator
 async def update_menu(shop_id: int, menu_id: int, key: str, value: str) -> int:
     """
@@ -219,7 +214,7 @@ async def update_menu(shop_id: int, menu_id: int, key: str, value: str) -> int:
     更新に成功したレコード数（通常は1）を返す。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             # 動的カラム名を安全に扱うために getattr を使用
             column_attr = getattr(Menu, key, None)
             if column_attr is None:
@@ -254,7 +249,7 @@ async def update_menu(shop_id: int, menu_id: int, key: str, value: str) -> int:
 
 '''------------------------------------------------------'''
 from sqlalchemy import delete
-
+# 削除(1件)
 @log_decorator
 async def delete_menu(shop_id: int, menu_id: int) -> int:
     """
@@ -262,7 +257,7 @@ async def delete_menu(shop_id: int, menu_id: int) -> int:
     削除件数（通常は1）を返す。
     """
     try:
-        async with async_session() as session:
+        async with AsyncSessionLocal() as session:
             stmt = (
                 delete(Menu)
                 .where(Menu.menu_id == menu_id, Menu.shop_id == shop_id)
@@ -288,15 +283,18 @@ async def delete_menu(shop_id: int, menu_id: int) -> int:
         raise CustomException(500, "delete_menu()", f"Error: {e}")
 
 from sqlalchemy import text
-from sqlalchemy.exc import DatabaseError
-
-
+# 全削除
 @log_decorator
 async def delete_all_menu():
     sqlstr = "DROP TABLE IF EXISTS menu"
     try:
-        async with engine.begin() as conn:
-            await conn.execute(text(sqlstr))
+        def drop_table(sync_conn):
+            sync_conn.execute(text(sqlstr))
+
+        async with AsyncSessionLocal() as session:
+            await session.run_sync(drop_table)
+            logger.info("Menu テーブルの削除が完了しました。")
+
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,
