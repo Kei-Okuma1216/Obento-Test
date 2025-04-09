@@ -4,11 +4,9 @@ from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator, get_today_str 
 
 '''
-    1. reset_all_autoincrement():
-    2. drop_all_table():
-    3. init_database():
-
-    ここの関数は、modelsフォルダに移行した。    
+    1. init_database():
+    2. reset_all_autoincrement():
+    3. drop_all_table():  
 '''
 
 # ログ用の設定
@@ -16,8 +14,86 @@ import logging
 from venv import logger
 logging.basicConfig(level=logging.INFO)
 
+# 定数
 db_name_str = "example.db"
 default_shop_name = "shop01"
+
+'''------------------------------------------------------'''
+from .user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
+from .company import create_company_table, insert_company
+from .menu import create_menu_table, insert_menu
+from .orders import create_orders_table, insert_order
+
+@log_decorator
+async def init_database():
+    try:
+        # テーブル削除
+        #await reset_all_autoincrement()
+        #await drop_all_table()
+
+        # ユーザー情報の登録
+        await create_user_table() 
+        # 1
+        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=default_shop_name, menu_id=1) 
+        # 2
+        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
+        # 3
+        await insert_shop(default_shop_name, default_shop_name, "お店shop01")
+        # 4
+        await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
+        await update_user("manager", "permission", 2)
+        # 5
+        await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
+
+
+        await update_user("admin", "permission", 99)
+        await update_existing_passwords() 
+
+
+        # 会社情報の登録
+        await create_company_table()
+        await insert_company("テンシステム", "083-999-9999", default_shop_name) # 1
+
+
+        # メニュー情報の登録
+        await create_menu_table()
+        await insert_menu(shop_name=default_shop_name, name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
+        picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
+
+
+        # 注文情報の登録        
+        await create_orders_table()
+        # 1
+        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_str(-5))
+        print(f"insert_order() - {get_today_str(-5)}")
+        # 2
+        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_str(-4))
+        print(f"insert_order() - {get_today_str(-4)}")
+        # 3
+        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_str(-3))
+        print(f"insert_order() - {get_today_str(-3)}")
+        # 4
+        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_str(-2))
+        print(f"insert_order() - {get_today_str(-2)}")
+        # 5
+        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_str(-1))
+        print(f"insert_order() - {get_today_str(-1)}")
+        # 6
+        await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
+        print(f"insert_order() - {get_today_str(-1)}")
+        
+        #await show_all_orders()
+
+        logger.info("データベースファイル 'sample.db' が正常に作成されました。")
+
+    except DatabaseError as e:
+        raise
+    except Exception as e: 
+        print(f"init_database Error: {str(e)}")
+        import traceback 
+        traceback.print_exc()
+        raise CustomException(
+            500, "init_database()", f"例外発生: {e}")
 
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット
@@ -75,81 +151,4 @@ async def drop_all_table():
         )
     except Exception as e:
         raise CustomException(500, "drop_all_table()", f"Error: {e}")
-
-'''------------------------------------------------------'''
-from user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
-from company import create_company_table, insert_company
-from menu import create_menu_table, insert_menu
-from orders import create_orders_table, insert_order
-
-@log_decorator
-async def init_database():
-    try:
-        # テーブル削除
-        #await reset_all_autoincrement()
-        #await drop_all_table()
-
-        # ユーザー情報の登録
-        await create_user_table() 
-        # 1
-        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=default_shop_name, menu_id=1) 
-        # 2
-        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
-        # 3
-        await insert_shop(default_shop_name, default_shop_name, "お店shop01")
-        # 4
-        await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
-        await update_user("manager", "permission", 2)
-        # 5
-        await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
-
-
-        await update_user("admin", "permission", 99)
-        await update_existing_passwords() 
-
-
-        # 会社情報の登録
-        await create_company_table()
-        await insert_company("テンシステム", "083-999-9999", "shop01") # 1
-
-
-        # メニュー情報の登録
-        await create_menu_table()
-        await insert_menu(shop_name=default_shop_name, name='お昼の定食', price=500, description='お昼のランチお弁当です', #picture_path='c:\\picture') # 1
-        picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
-
-
-        # 注文情報の登録        
-        await create_orders_table()
-        # 1
-        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_str(-5))
-        print(f"insert_order() - {get_today_str(-5)}")
-        # 2
-        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_str(-4))
-        print(f"insert_order() - {get_today_str(-4)}")
-        # 3
-        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_str(-3))
-        print(f"insert_order() - {get_today_str(-3)}")
-        # 4
-        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_str(-2))
-        print(f"insert_order() - {get_today_str(-2)}")
-        # 5
-        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_str(-1))
-        print(f"insert_order() - {get_today_str(-1)}")
-        # 6
-        await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
-        print(f"insert_order() - {get_today_str(-1)}")
-        
-        #await show_all_orders()
-
-        logger.info("データベースファイル 'sample.db' が正常に作成されました。")
-
-    except DatabaseError as e:
-        raise
-    except Exception as e: 
-        print(f"init_database Error: {str(e)}")
-        import traceback 
-        traceback.print_exc()
-        raise CustomException(
-            500, "init_database()", f"例外発生: {e}")
 

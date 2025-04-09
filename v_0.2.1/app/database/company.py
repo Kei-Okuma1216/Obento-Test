@@ -1,6 +1,6 @@
 # database/company.py
 '''
-    1. class Company(Base):
+    1. class CompanyModel(Base):
     2. create_company_table():
 
     3. select_company(company_id: int):
@@ -11,12 +11,12 @@
     7. delete_company(company_id: int):
     8. delete_all_company():
 '''
+
 from sqlalchemy import Column, Integer, String, Boolean
-from .sqlalchemy_database import Base, AsyncSessionLocal
 from sqlalchemy.exc import DatabaseError
 
 # Companyテーブル
-class Company(Base):
+class CompanyModel(Base):
     __tablename__ = "companies"
 
     company_id = Column(Integer, primary_key=True, index=True)
@@ -31,14 +31,15 @@ class Company(Base):
 
 from utils.utils import log_decorator
 from utils.exception import SQLException, CustomException
+from .sqlalchemy_database import Base, AsyncSessionLocal
 
 
 
 import logging
 logger = logging.getLogger(__name__)
 
-
 # 作成
+from .sqlalchemy_database import engine
 @log_decorator
 async def create_company_table():
     """
@@ -47,8 +48,9 @@ async def create_company_table():
       ここでは例としてSQLAlchemyのメタデータからテーブル作成する方法を示します。
     """
     try:
-        async with AsyncSessionLocal() as session:
-            await session.run_sync(Company.__table__.create, checkfirst=True)
+        # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
+        async with engine.begin() as conn:
+            await conn.run_sync(CompanyModel.__table__.create, checkfirst=True)
         logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
     except DatabaseError as e:
         raise SQLException(
@@ -64,13 +66,13 @@ async def create_company_table():
 # 取得(1件)
 from sqlalchemy import select
 @log_decorator
-async def select_company(company_id: int):
+async def select_company(company_id: int)-> CompanyModel:
     """
     指定されたcompany_idのCompanyレコードを取得する
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(Company).where(Company.company_id == company_id)
+            stmt = select(CompanyModel).where(CompanyModel.company_id == company_id)
             result = await session.execute(stmt)
             company = result.scalar_one_or_none()
 
@@ -88,19 +90,25 @@ async def select_company(company_id: int):
         raise CustomException(500, "select_company()", f"Error: {e}")
 
 # 取得（全件）
+from typing import List, Optional
 @log_decorator
-async def select_all_company():
+async def select_all_company()-> Optional[List[CompanyModel]]:
     """
     全てのCompanyレコードを取得する
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(Company)
+            stmt = select(CompanyModel)
             result = await session.execute(stmt)
-            companies = result.scalars().all()
-
+            orm_companies = result.scalars().all()
             logger.debug(f"select_all_company() - {stmt}")
-            return companies
+
+            # 取得したORMオブジェクトをpydanticモデル(CompanyModel)に変換
+            if orm_companies:
+                companies = [CompanyModel.from_orm(company) for company in orm_companies]
+                return companies
+            else:
+                return None
 
     except DatabaseError as e:
         raise SQLException(
@@ -123,7 +131,7 @@ async def insert_company(name: str, telephone: str, default_shop_name: str):
     """
     try:
         async with AsyncSessionLocal() as session:
-            new_company = Company(
+            new_company = CompanyModel(
                 name=name,
                 tel=telephone,
                 shop_name=default_shop_name,
@@ -161,7 +169,7 @@ async def update_company(company_id: int, key: str, value: str):
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = update(Company).where(Company.company_id == company_id).values({key: value})
+            stmt = update(CompanyModel).where(CompanyModel.company_id == company_id).values({key: value})
             await session.execute(stmt)
             await session.commit()
 
@@ -188,7 +196,7 @@ async def delete_company(company_id: int):
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = delete(Company).where(Company.company_id == company_id)
+            stmt = delete(CompanyModel).where(CompanyModel.company_id == company_id)
             await session.execute(stmt)
             await session.commit()
 

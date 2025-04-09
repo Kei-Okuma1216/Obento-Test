@@ -1,12 +1,12 @@
-# order_schemas.py
+# schemas/order_schemas.py
 # pydantic用クラス
 from dataclasses import Field
-from datetime import datetime, timedelta
-from pydantic import BaseModel, Field, PrivateAttr, RootModel
+from datetime import datetime
+from pydantic import BaseModel, Field
 from typing import Optional
 
 
-class Order(BaseModel):
+class OrderModel(BaseModel):
         order_id: int
         company_name: str
         username: str

@@ -1,6 +1,6 @@
 # database/user.py
 '''
-    1. class User(Base):
+    1. class UserModel(Base):
     2. create_user_table():
     
     3. select_user(username: str) -> Optional[User]:
@@ -18,18 +18,15 @@
     12. delete_all_user():
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
-default_shop_name = "shop01"
+#default_shop_name = "shop01"
 from sqlalchemy.exc import DatabaseError
-
-
-#from sqlalchemy_database import Base, AsyncSessionLocal
-from .sqlalchemy_database import Base, AsyncSessionLocal
+from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name
 
 # models.Userクラス
 '''
-    Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
+    UserModelクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
 '''
-class User(Base):
+class UserModel(Base):
     __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True, index=True)
@@ -60,20 +57,20 @@ from utils.utils import log_decorator
 
 #default_shop_name = "shop01"
 
+from .sqlalchemy_database import engine
 # Userテーブル
 # 作成
 @log_decorator
 async def create_user_table():
     try:
-        # sqlalchemy_database.py で管理しているセッション（AsyncSessionLocal）を利用
-        async with AsyncSessionLocal() as session:
-            # セッションから run_sync() を使って同期的なテーブル作成メソッドを実行
-            await session.run_sync(User.__table__.create, checkfirst=True)
+        # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
+        async with engine.begin() as conn:
+            await conn.run_sync(User.__table__.create, checkfirst=True)
             logger.debug("User テーブルの作成（または既存）が完了しました。")
-
     except DatabaseError as e:
         logger.error(f"create_user_table() でエラーが発生しました: {e}")
         raise
+
 
 from sqlalchemy import select
 from typing import Optional
@@ -138,11 +135,13 @@ async def update_existing_passwords():
     """既存ユーザーのパスワードをハッシュ化"""
     users = await select_all_users()  # すべてのユーザーを取得する関数が必要
     for user in users:
-        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+        if not user['password'].startswith("$2b$"):  # bcryptのハッシュでない場合
+        #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
 
             """パスワードをハッシュ化する"""
             salt = bcrypt.gensalt()
-            password = user.get_password()
+            #password = user.get_password()
+            password = user['password']
             hashed_password = bcrypt.hashpw(password.encode(), salt)
             new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
             #new_hashed_password = hash_password(user.get_password())  # ハッシュ化

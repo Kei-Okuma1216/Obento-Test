@@ -42,6 +42,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 '''------------------------------------------------------'''
+from .sqlalchemy_database import engine
 # 作成
 @log_decorator
 async def create_menu_table():
@@ -49,8 +50,9 @@ async def create_menu_table():
     Menuテーブルを作成する（既に存在する場合は作成されません）。
     """
     try:
-        async with AsyncSessionLocal() as session:
-            await session.run_sync(Menu.__table__.create, checkfirst=True)
+        # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
+        async with engine.begin() as conn:
+            await conn.run_sync(Menu.__table__.create, checkfirst=True)
             logger.debug("create_menu_table() - Menuテーブルの作成に成功しました。")
 
     except DatabaseError as e:

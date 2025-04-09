@@ -1,4 +1,4 @@
-# user_schemas.py
+# schemas/user_schemas.py
 # pydantic用クラス
 from datetime import datetime
 from pydantic import BaseModel, Field, PrivateAttr
