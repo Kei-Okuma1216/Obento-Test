@@ -26,6 +26,9 @@ from sqlalchemy.exc import DatabaseError
 from .sqlalchemy_database import Base, AsyncSessionLocal
 
 # models.Userクラス
+'''
+    Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
+'''
 class User(Base):
     __tablename__ = "users"
 
@@ -83,10 +86,14 @@ async def select_user(username: str) -> Optional[User]:
 
         async with AsyncSessionLocal() as session:
             stmt = select(User).where(User.username == sanitized_username)
+            print(f"**ここまでOK 1 execute前 stmt: {stmt}")
             result = await session.execute(stmt)
+            print(f"**ここまでOK 2")
             user = result.scalars().first()
             logger.debug(f"select_user() - SQLAlchemyクエリ: {stmt}")
+
             return user
+
     except DatabaseError as e:
         raise CustomException(500, "select_user()", f"Error: {e}") from e
 
@@ -148,6 +155,8 @@ async def update_existing_passwords():
 
 
 # 追加
+''' 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
+'''
 @log_decorator
 async def insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
     async with AsyncSessionLocal() as session:

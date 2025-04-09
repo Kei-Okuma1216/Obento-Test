@@ -91,10 +91,15 @@ def redirect_login(request: Request, message: str=None, error: str=None, e: Exce
             f"Error: {e.detail}")
 
 @log_decorator # eも組み込みたい
-def redirect_error(request: Request, message: str, e: Exception):
+def redirect_error(request: Request, message: str, e: Exception=None):
     '''error.htmlに戻る'''
     try:
-        logger.error(f"{message} - detail:{e.detail["message"]}")
+        detail_message = getattr(e, "detail", None)
+        if detail_message:
+            logger.error(f"{message} - detail: {detail_message.get('message', str(e))}")
+        else:
+            logger.error(f"{message} - detail: {str(e)}")
+        #logger.error(f"{message} - detail:{e.detail["message"]}")
         #logger.error(e.detail["message"])
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": message})
@@ -104,7 +109,7 @@ def redirect_error(request: Request, message: str, e: Exception):
         raise CustomException(
             status.HTTP_404_NOT_FOUND,
             "redirect_error()",
-            f"Error: {e.detail}")
+            f"Error: {str(e)}")
 
 import bcrypt
 

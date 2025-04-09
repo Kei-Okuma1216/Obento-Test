@@ -23,7 +23,7 @@ from utils.utils import log_decorator
 '''------------------------------------------------------'''
 # Menuテーブル
 class Menu(Base):
-    __tablename__ = "menu"
+    __tablename__ = "menus"
 
     menu_id = Column(Integer, primary_key=True, autoincrement=True)
     shop_name = Column(String, nullable=True)  # 店舗名

@@ -1,51 +1,38 @@
 # main.py
 # 2.1 SQLAlchemy移行開始
 '''ページ・ビュー・関数
-    root(request: Request, response: Response):
-    login_get(request: Request):
-    login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    1. root(request: Request, response: Response):
+    2. login_get(request: Request):
+    3. login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
 
-    clear_cookie(response: Response):
-    class CancelUpdate(BaseModel):
+    4. clear_cookie(response: Response):
+
+    5. class CancelUpdate(BaseModel):
         updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
-    update_cancel_status(update: CancelUpdate):
+    6. update_cancel_status(update: CancelUpdate):
 
-    custom_exception_handler(
-    request: Request, exc: CustomException):
-    test_exception():
-    favicon():
+    7. custom_exception_handler(request: Request, exc: CustomException):
+    8. test_exception():
 
-    list_logs():
-    read_log(filename: str):
+    9. favicon():
+    10. list_logs():
+    11. read_log(filename: str):
 '''
-import asyncio
-import os
-import sys
-import jwt
-from pydantic import BaseModel
-from starlette import status
-import tracemalloc
-from typing import List
-
 from fastapi import Depends, FastAPI, Response, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
-
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="templates")
+from starlette import status
 
 from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
-from local_jwt_module import SECRET_KEY, ALGORITHM
-from database.sqlite_database import init_database
-
 from utils.utils import *
 from utils.exception import *
+from sqlalchemy.exc import DatabaseError
 #from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
 #from utils.helper import *
 from services.order_view import batch_update_orders
-
-from fastapi.staticfiles import StaticFiles
-# tracemallocを有効にする
-tracemalloc.start()
-
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
@@ -62,19 +49,23 @@ app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
 
-from fastapi.templating import Jinja2Templates
-templates = Jinja2Templates(directory="templates")
+
 
 # エントリポイントの選択
 from database.sqlalchemy_database import endpoint
 
-
+# tracemallocを有効にする
+import tracemalloc
+tracemalloc.start()
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
 forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。"
 login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
+import jwt
+from local_jwt_module import SECRET_KEY, ALGORITHM
+from database.sqlite_database import init_database
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
@@ -83,7 +74,6 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
         await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.2.1")
@@ -150,11 +140,13 @@ async def login_get(request: Request):
         return redirect_error(request, login_error_message, e)
 
 
+# ログイン画面入力を受け付けるエンドポイント
+''' ログインPOST '''
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
-    ''' ログインPOST '''
+
     try:
         username = form_data.username
         password = form_data.password
@@ -167,12 +159,14 @@ async def login_post(request: Request,
         return await create_auth_response(
             user.get_username(), permission, main_url)
 
+    except DatabaseError as e:
+        raise
     except NotAuthorizedException as e:
         return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
         return redirect_login(request, error=token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
-        return redirect_error(request, error=login_error_message)
+        return redirect_error(request, login_error_message)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -190,6 +184,9 @@ async def clear_cookie(response: Response):
 
     return response
 
+
+from typing import List
+from pydantic import BaseModel
 
 class CancelUpdate(BaseModel):
     updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
@@ -239,12 +236,15 @@ def favicon():
  
 # Mount the directory where favicon.ico is located 
 # faviconのマウント
+import os
 from fastapi.staticfiles import StaticFiles
 static_path = os.path.join(os.path.dirname(__file__), "static")  # 絶対パスに変換
 app.mount("/static", StaticFiles(directory=static_path), name="static")
 # 備考：上記設定により環境変数PYTHONPATH設定は不要
 
 # 他のモジュールでの誤使用を防ぐ
+import asyncio
+import sys
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
@@ -272,6 +272,7 @@ async def list_logs():
     file_links = [f'<a href="/logs/{file}">{file}</a><br>' for file in files]
 
     return "<h1>Log Files</h1>" + "".join(file_links)
+
 
 @app.get("/logs/{filename}", tags=["admin"])
 async def read_log(filename: str):

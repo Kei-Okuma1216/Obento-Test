@@ -2,7 +2,7 @@
 from datetime import datetime, timezone, timedelta
 
 from venv import logger
-from fastapi import Request, Response, status
+from fastapi import Request, Response
 from http.cookies import SimpleCookie
 
 from functools import wraps

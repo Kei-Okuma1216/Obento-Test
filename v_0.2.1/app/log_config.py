@@ -58,7 +58,7 @@ file_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)  # コンソールのログも同じフォーマット
 
 # ロガーにハンドラーを追加
-logger.addHandler(file_handler)
+#logger.addHandler(file_handler) # ここは適宜有効にする
 logger.addHandler(console_handler)  # 追加
 
 
