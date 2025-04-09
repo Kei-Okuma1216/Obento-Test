@@ -32,8 +32,8 @@
 '''
 from sqlalchemy import Column, Integer, String, select
 from sqlalchemy.exc import DatabaseError
-from sqlalchemy_database import Base, AsyncSessionLocal
-
+#from sqlalchemy_database import Base, AsyncSessionLocal
+from .sqlalchemy_database import Base, AsyncSessionLocal
 
 from order_log_config import order_logger
 
@@ -256,8 +256,8 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
         raise CustomException(500, "select_orders_by_user_ago()", f"Error: {e}")
 
 '''-------------------------------------------------------------'''
-from company import Company
-from menu import Menu
+from .company import Company
+from .menu import Menu
 
 # 選択（会社発注者:全件）
 @log_decorator

@@ -134,7 +134,7 @@ from typing import Optional
 
 #from database.sqlite_database import select_user, insert_new_user
 #from database.database import select_user, insert_new_user
-from .database.user import select_user, insert_new_user
+from database.user import insert_new_user, select_user
 
 
 @log_decorator

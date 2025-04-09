@@ -12,9 +12,9 @@
     8. delete_all_menus():
 '''
 from datetime import datetime
-from typing import Text
+from sqlalchemy import Text
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
-from sqlalchemy_database import Base, AsyncSessionLocal
+from .sqlalchemy_database import Base, AsyncSessionLocal
 from sqlalchemy.exc import DatabaseError
 
 from utils.exception import CustomException, SQLException
@@ -67,8 +67,8 @@ async def create_menu_table():
 from typing import Optional
 from sqlalchemy import select
 
-from user import User
-from menu import Menu
+from .user import User # ここを修正する。
+from .menu import Menu
 
 # 選択
 @log_decorator

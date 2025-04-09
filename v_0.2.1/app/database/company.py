@@ -12,7 +12,7 @@
     8. delete_all_company():
 '''
 from sqlalchemy import Column, Integer, String, Boolean
-from sqlalchemy_database import Base, AsyncSessionLocal
+from .sqlalchemy_database import Base, AsyncSessionLocal
 from sqlalchemy.exc import DatabaseError
 
 # Companyテーブル

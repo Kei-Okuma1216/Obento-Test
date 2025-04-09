@@ -20,8 +20,8 @@ templates = Jinja2Templates(directory="templates")
 shop_router = APIRouter()
 
 #from database.sqlite_database import select_shop_order
-from ..database.orders import select_orders_by_shop_all
-from ..database.sqlalchemy_database import default_shop_name
+from database.orders import select_orders_by_shop_all
+from database.sqlalchemy_database import default_shop_name
 
 from venv import logger
 

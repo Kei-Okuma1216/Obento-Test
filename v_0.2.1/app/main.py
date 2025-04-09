@@ -32,12 +32,14 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 
+from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
 from local_jwt_module import SECRET_KEY, ALGORITHM
 from database.sqlite_database import init_database
 
 from utils.utils import *
 from utils.exception import *
-from utils.helper import *
+#from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
+#from utils.helper import *
 from services.order_view import batch_update_orders
 
 from fastapi.staticfiles import StaticFiles
@@ -64,7 +66,8 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 # エントリポイントの選択
-endpoint = 'https://192.168.3.19:8000'
+from database.sqlalchemy_database import endpoint
+
 
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
@@ -255,6 +258,7 @@ if __name__ == "__main__":
     # Uvicornの起動
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
     LOGS_DIR = "./logs"
+
 
 @app.get("/logs", response_class=HTMLResponse, tags=["admin"])
 async def list_logs():

@@ -18,8 +18,8 @@ from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from utils.utils import CustomException
 from utils.utils import log_decorator, get_all_cookies
+from utils.exception import CustomException
 
 templates = Jinja2Templates(directory="templates")
 
@@ -29,8 +29,9 @@ view_router = APIRouter(
 )
 
 #from database.sqlite_database import get_connection, select_shop_order, select_user
-from ..database.sqlalchemy_database import AsyncSessionLocal
-from ..database.orders import select_shop_order, select_user
+from database.orders import select_orders_by_shop_ago
+from database.user import select_user
+from database.sqlalchemy_database import AsyncSessionLocal
 
 
 from collections import Counter
@@ -112,7 +113,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         logger.debug(f"days_ago: {days_ago_int}")
 
         # 履歴取得処理（days_ago_intを使って履歴を取得）
-        orders = await select_shop_order(user.shop_name, days_ago_int)
+        orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
 
         if not orders:
             logger.info("No orders found or error occurred.")

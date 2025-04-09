@@ -18,8 +18,12 @@
     12. delete_all_user():
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
-from sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name
+default_shop_name = "shop01"
 from sqlalchemy.exc import DatabaseError
+
+
+#from sqlalchemy_database import Base, AsyncSessionLocal
+from .sqlalchemy_database import Base, AsyncSessionLocal
 
 # models.Userクラス
 class User(Base):

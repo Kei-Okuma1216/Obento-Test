@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from database.sqlite_database import update_user, get_all_users
 from utils.exception import CustomException, NotAuthorizedException
-from utils.helper import redirect_login
+from helper import redirect_login
 from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
@@ -36,7 +36,7 @@ def check_admin_permission(request: Request):
             f"Not Authorized permission={permission}")'''
 
 #endpoint = "https://192.168.3.19:8000"
-from ..database.sqlalchemy_database import endpoint
+from database.sqlalchemy_database import endpoint
 
 from venv import logger
 

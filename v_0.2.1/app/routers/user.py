@@ -9,17 +9,16 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 
-from utils.helper import redirect_error
+from helper import redirect_error
 from utils.utils import get_all_cookies, log_decorator, check_permission, prevent_order_twice
-from utils.exception import CustomException, CookieException, SQLException
+from utils.exception import CustomException, SQLException
 
-from services.menu_view import menu_cards_view
 from services.order_view import order_table_view
 
 
 #from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
-from ..database.user import select_user
-from ..database.orders import select_shop_order, insert_order
+from database.user import select_user
+from database.orders import select_orders_by_shop_ago, insert_order
 from schemas.schemas import UserResponse
 
 templates = Jinja2Templates(directory="templates")
@@ -52,7 +51,7 @@ async def regist_complete(request: Request, response: Response):
             user.menu_id,
             amount=1)
 
-        orders = await select_shop_order(
+        orders = await select_orders_by_shop_ago(
             user.shop_name, -7, user.username)
 
         #logger.debug(f"orders: {orders}")
