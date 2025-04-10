@@ -29,8 +29,8 @@ from .order import create_orders_table, insert_order
 async def init_database():
     try:
         # テーブル削除
-        #await reset_all_autoincrement()
-        #await drop_all_table()
+        await reset_all_autoincrement()
+        await drop_all_table()
 
         # ユーザー情報の登録
         await create_user_table() 
@@ -102,18 +102,22 @@ async def init_database():
 
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット
+from sqlalchemy import text
+from sqlalchemy.exc import DatabaseError
+
 @log_decorator
 async def reset_all_autoincrement():
     """
-    Company, Menu, Ordersテーブルの自動採番用シーケンスをリセットする関数です。
-    各シーケンスをALTER SEQUENCE ... RESTART WITH 1 によりリセットします。
+    Orders, Companies, Menus, Users テーブルの自動採番用シーケンスをリセットする関数です。
+    各シーケンスを ALTER SEQUENCE ... RESTART WITH 1 によりリセットします。
     """
     try:
         async with engine.begin() as conn:
             sequences = [
-                "company_company_id_seq",  # Companyテーブルのcompany_id用シーケンス
-                "menu_menu_id_seq",        # Menuテーブルのmenu_id用シーケンス
-                "orders_order_id_seq"      # Ordersテーブルのorder_id用シーケンス
+                "orders_order_id_seq",      # Ordersテーブルのorder_id用シーケンス
+                "companies_company_id_seq", # Companiesテーブルのcompany_id用シーケンス
+                "menus_menu_id_seq",        # Menusテーブルのmenu_id用シーケンス
+                "users_user_id_seq"         # Usersテーブルのuser_id用シーケンス
             ]
             for seq in sequences:
                 stmt = text(f"ALTER SEQUENCE {seq} RESTART WITH 1")
@@ -129,6 +133,7 @@ async def reset_all_autoincrement():
     except Exception as e:
         raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}") from e
 
+
 '''------------------------------------------------------'''
 from sqlalchemy import engine, text
 from sqlalchemy.exc import DatabaseError
@@ -136,14 +141,14 @@ from sqlalchemy.exc import DatabaseError
 @log_decorator
 async def drop_all_table():
     """
-    全テーブル（Company、Order、Menu、User）を削除する関数です。
+    全テーブル（Companies、Orders、Menus、Users）を削除する関数です。
     SQLAlchemyの非同期エンジンを用いて各テーブルに対して
     'DROP TABLE IF EXISTS {table}' を実行します。
     """
     try:
         async with engine.begin() as conn:
             # 各テーブルに対してDROP文を実行
-            for table in ["Company", "Order", "Menu", "User"]:
+            for table in ["Companies", "Orders", "Menus", "Users"]:
                 sqlstr = f"DROP TABLE IF EXISTS {table}"
                 await conn.execute(text(sqlstr))
             logger.debug("全テーブルのDrop完了")
