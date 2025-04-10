@@ -16,7 +16,7 @@ from fastapi import HTTPException, Request, Response, status
 from utils.utils import log_decorator, set_all_cookies
 from utils.exception import CustomException, NotAuthorizedException, SQLException
 from log_config import logger
-from schemas.schemas import UserBase, UserResponse
+from schemas.user_schemas import UserBase, UserResponse
 
 @log_decorator
 async def get_main_url(permission: int) -> str:

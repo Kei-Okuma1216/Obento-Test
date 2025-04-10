@@ -6,11 +6,11 @@ from pydantic import BaseModel
 
 
 
-class Payload(BaseModel):
+class PayloadModel(BaseModel):
     sub: str
     token: Optional[str] = None
     created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
-    exp: Optional[datetime] = Field(default_factory=lambda: Payload.get_expire_datetime())
+    exp: Optional[datetime] = Field(default_factory=lambda: PayloadModel.get_expire_datetime())
     
     def get_sub(self) -> str:
             print(f" sub: {self.token}")
@@ -34,7 +34,7 @@ class Payload(BaseModel):
             return str(self.get_exp())
     
     @classmethod
-    def create(cls, payload) -> 'Payload':
+    def create(cls, payload) -> 'PayloadModel':
         return cls(sub=payload['sub'], at_created=payload['at_created'], token=payload['token'], exp=payload['exp'])
     
 

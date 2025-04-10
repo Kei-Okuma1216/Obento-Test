@@ -11,12 +11,11 @@
     7. delete_menu(shop_name: str, menu_id: int) -> int:
     8. delete_all_menus():
 '''
-from datetime import datetime
-from sqlalchemy import Text
-from sqlalchemy import Boolean, Column, DateTime, Integer, String
-from .sqlalchemy_database import Base, AsyncSessionLocal
+from datetime import datetime, timezone
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.exc import DatabaseError
 
+from .sqlalchemy_database import Base, AsyncSessionLocal
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
@@ -32,7 +31,9 @@ class Menu(Base):
     description = Column(Text, default="")  # 説明（デフォルト空）
     picture_path = Column(String, default="")  # 画像パス（デフォルト空）
     disabled = Column(Boolean, default=False)  # 0: 利用可能, 1: 利用不可
-    created_at = Column(DateTime, default=datetime.utcnow)  # 作成日時
+    # タイムゾーン対応の日時を返すようにする
+    #created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # 作成日時(アプリ側作成日時)
+    created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
@@ -61,9 +62,9 @@ async def create_menu_table():
             method_name="create_menu_table()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "create_menu_table()", f"Error: {e}")
+        raise CustomException(500, "create_menu_table()", f"Error: {e}") from e
 
 '''------------------------------------------------------'''
 from typing import Optional
@@ -71,10 +72,12 @@ from sqlalchemy import select
 
 from .user import User # ここを修正する。
 from .menu import Menu
+from schemas.menu_schemas import MenuModel
 
 # 選択
 @log_decorator
-async def select_menu(shop_name: str, menu_id: int = 1) -> Optional[Menu]:
+async def select_menu(
+    shop_name: str, menu_id: int = 1) -> Optional[MenuModel]:
     """
     指定された shop_name と menu_id の条件に合致する、ある店舗が持つ特定の Menu レコードを取得する。
     存在しなければ None を返す。
@@ -100,13 +103,13 @@ async def select_menu(shop_name: str, menu_id: int = 1) -> Optional[Menu]:
             method_name="select_menu()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "select_menu()", f"Error: {e}")
+        raise CustomException(500, "select_menu()", f"Error: {e}") from e
 
 
 
-from typing import List, Optional
+from typing import List
 
 @log_decorator
 async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
@@ -135,9 +138,9 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
             method_name="select_all_menus()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "select_all_menus()", f"Error: {e}")
+        raise CustomException(500, "select_all_menus()", f"Error: {e}") from e
 
 
 '''------------------------------------------------------'''
@@ -146,7 +149,7 @@ from sqlalchemy import func  # COUNT用
 @log_decorator
 async def insert_menu(
     shop_name: str,
-    menu_name: str,
+    name: str,
     price: int,
     description: str = "",
     picture_path: str = "",
@@ -162,20 +165,20 @@ async def insert_menu(
             # 重複チェック：同じ店舗（shop_name）で同じメニュー名 (name) があるかをCOUNTする
             count_stmt = select(func.count(Menu.menu_id)).where(
                 Menu.shop_name == shop_name,
-                Menu.name == menu_name
+                Menu.name == name
             )
             count_result = await session.execute(count_stmt)
             count = count_result.scalar()  # COUNT の結果を取得
             logger.debug(f"insert_menu() - Duplicate check count: {count}")
 
             if count > 0:
-                logger.info(f"Menu '{menu_name}' for shop '{shop_name}' already exists. Insertion skipped.")
+                logger.info(f"Menu '{name}' for shop '{shop_name}' already exists. Insertion skipped.")
                 return False
 
             # 重複がなければ、新規 Menu レコードを作成・追加する
             new_menu = Menu(
                 shop_name=shop_name,
-                name=menu_name,
+                name=name,
                 price=price,
                 description=description,
                 picture_path=picture_path,
@@ -183,7 +186,7 @@ async def insert_menu(
             )
             session.add(new_menu)
             await session.commit()
-            logger.info(f"Menu '{menu_name}' for shop '{shop_name}' inserted successfully.")
+            logger.info(f"Menu '{name}' for shop '{shop_name}' inserted successfully.")
             return True
 
     except DatabaseError as e:
@@ -192,17 +195,17 @@ async def insert_menu(
             method_name="insert_menu()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException("insert_menu()", f"Error: {e}")
-
+        raise CustomException(500, "insert_menu()", f"Error: {e}")  from e
 
 '''------------------------------------------------------'''
 from sqlalchemy import update
 
 # 更新
 @log_decorator
-async def update_menu(shop_name: str, menu_id: int, key: str, value: str) -> int:
+async def update_menu(
+    shop_name: str, menu_id: int, key: str, value: str) -> int:
     """
     指定された shop_name と menu_id に一致する Menu レコードの指定カラムを更新する。
     更新に成功したレコード数（通常は1）を返す。
@@ -235,11 +238,9 @@ async def update_menu(shop_name: str, menu_id: int, key: str, value: str) -> int
             method_name="update_menu()",
             detail=f"SQLAlchemy 実行中にエラーが発生しました: {e}",
             exception=e
-        )
-    except CustomException:
-        raise
+        ) from e
     except Exception as e:
-        raise CustomException(500, "update_menu()", f"Error: {e}")
+        raise CustomException(500, "update_menu()", f"Error: {e}") from e
 
 
 '''------------------------------------------------------'''
@@ -274,9 +275,9 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
             method_name="delete_menu()",
             detail=f"SQLAlchemy 実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "delete_menu()", f"Error: {e}")
+        raise CustomException(500, "delete_menu()", f"Error: {e}") from e
 
 
 from sqlalchemy import text
@@ -298,7 +299,7 @@ async def delete_all_menu():
             method_name="delete_all_menu()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "delete_all_menu()", f"Error: {e}")
+        raise CustomException(500, "delete_all_menu()", f"Error: {e}") from e
 

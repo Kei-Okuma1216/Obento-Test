@@ -1,5 +1,6 @@
 # database/sqlalchemy_database.py
 
+from ast import stmt
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator, get_today_str 
 
@@ -16,13 +17,13 @@ logging.basicConfig(level=logging.INFO)
 
 # 定数
 db_name_str = "example.db"
-default_shop_name = "shop01"
-
+#default_shop_name = "shop01"
+from .sqlalchemy_database import engine, default_shop_name
 '''------------------------------------------------------'''
 from .user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from .company import create_company_table, insert_company
 from .menu import create_menu_table, insert_menu
-from .orders import create_orders_table, insert_order
+from .order import create_orders_table, insert_order
 
 @log_decorator
 async def init_database():
@@ -38,7 +39,7 @@ async def init_database():
         # 2
         await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
         # 3
-        await insert_shop(default_shop_name, default_shop_name, "お店shop01")
+        await insert_shop(default_shop_name, "shop01", "お店shop01")
         # 4
         await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
         await update_user("manager", "permission", 2)
@@ -81,19 +82,23 @@ async def init_database():
         # 6
         await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
         print(f"insert_order() - {get_today_str(-1)}")
-        
+
         #await show_all_orders()
 
         logger.info("データベースファイル 'sample.db' が正常に作成されました。")
 
     except DatabaseError as e:
-        raise
+        raise SQLException(
+            sql_statement=str(stmt),
+            method_name="reset_all_autoincrement()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
-        import traceback 
-        traceback.print_exc()
-        raise CustomException(
-            500, "init_database()", f"例外発生: {e}")
+        #import traceback 
+        #traceback.print_exc()
+        raise CustomException(500, "init_database()", f"例外発生: {e}") from e
 
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット
@@ -122,7 +127,7 @@ async def reset_all_autoincrement():
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}")
+        raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}") from e
 
 '''------------------------------------------------------'''
 from sqlalchemy import engine, text
@@ -131,14 +136,14 @@ from sqlalchemy.exc import DatabaseError
 @log_decorator
 async def drop_all_table():
     """
-    全テーブル（Company、Orders、Menu、User）を削除する関数です。
+    全テーブル（Company、Order、Menu、User）を削除する関数です。
     SQLAlchemyの非同期エンジンを用いて各テーブルに対して
     'DROP TABLE IF EXISTS {table}' を実行します。
     """
     try:
         async with engine.begin() as conn:
             # 各テーブルに対してDROP文を実行
-            for table in ["Company", "Orders", "Menu", "User"]:
+            for table in ["Company", "Order", "Menu", "User"]:
                 sqlstr = f"DROP TABLE IF EXISTS {table}"
                 await conn.execute(text(sqlstr))
             logger.debug("全テーブルのDrop完了")
@@ -148,7 +153,7 @@ async def drop_all_table():
             method_name="drop_all_table()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "drop_all_table()", f"Error: {e}")
+        raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
 

@@ -12,9 +12,9 @@ class CustomException(HTTPException):
                 method_name="login_get()", message=str(e))
     '''
     def __init__(self,
-                 status_code: int,
-                 method_name: str,
-                 message: str):
+                 status_code: int = 500,
+                 method_name: str = "",
+                 message: str = ""):
         #print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
         logger.error(f"CustomException が発生！- {status_code} - {method_name}, {message}")
         super().__init__(

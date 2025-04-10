@@ -32,12 +32,7 @@
 '''
 from sqlalchemy import Column, Integer, String, select
 from sqlalchemy.exc import DatabaseError
-
-from schemas.order_schemas import OrderModel
 from .sqlalchemy_database import Base, AsyncSessionLocal
-
-from order_log_config import order_logger
-
 
 class Order(Base):
     __tablename__ = "Orders"
@@ -61,9 +56,9 @@ from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
 
-
 import logging
 logger = logging.getLogger(__name__)
+from order_log_config import order_logger
 
 
 from .sqlalchemy_database import engine
@@ -88,10 +83,11 @@ async def create_orders_table():
     except Exception as e:
         raise CustomException(500, "create_orders_table()", f"Error: {e}")
 
+'''-----------------------------------------------------------'''
 from datetime import date
 from typing import List, Optional
+from schemas.order_schemas import OrderModel
 
-'''-----------------------------------------------------------'''
 # 選択（１件）
 @log_decorator
 async def select_single_order(order_id: int) -> Optional[OrderModel]:

@@ -1,7 +1,7 @@
 # order_view.py
 '''
     1. order_table_view(request: Request, response: Response):
-        ordersリストを降順にソートし、チェックされた件数をカウント。
+        orderリストを降順にソートし、チェックされた件数をカウント。
         company_nameごとに注文件数を集計。
         ２件以上の注文がある会社のみを抽出。
         テンプレートをレンダリングして返す。
@@ -29,7 +29,7 @@ view_router = APIRouter(
 )
 
 #from database.sqlite_database import get_connection, select_shop_order, select_user
-from database.orders import select_orders_by_shop_ago
+from database.order import select_orders_by_shop_ago
 from database.user import select_user
 from database.sqlalchemy_database import AsyncSessionLocal
 

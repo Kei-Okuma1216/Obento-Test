@@ -1,9 +1,11 @@
 # schemas/user_schemas.py
 # pydantic用クラス
-from datetime import datetime
 from pydantic import BaseModel, Field, PrivateAttr
 from typing import Optional
 
+''' 使用例
+    user = UserBase(username="alice", company_id=123, shop_name="Shop A")
+'''
 class UserBase(BaseModel):
     username: str
     name: Optional[str] = None
@@ -14,11 +16,7 @@ class UserBase(BaseModel):
 
     class Config:
         from_attributes = True  # ここに設定することで全ての派生クラスに適用される
-    
-    '''
-    使用例
-    user = UserBase(username="alice", company_id=123, shop_name="Shop A")
-    '''
+
     # ゲッターメソッド
     def get_username(self) -> str:
         return self.username
@@ -38,7 +36,9 @@ class UserBase(BaseModel):
     def get_permission(self) -> Optional[int]:
         return self.permission
 
-
+''' 使用例
+    user = UserCreate(username="alice", company_id=123, shop_name="Shop A", password="")
+'''
 class UserCreate(UserBase):
     _password: str = PrivateAttr()
 
@@ -51,22 +51,23 @@ class UserCreate(UserBase):
         return self._password
 
 
+''' 使用例
+    user_response = UserResponse(
+            username="bob",
+            user_id=42,
+            token="abcdef12345",
+            exp="2025-12-31T23:59:59",
+            updated_at=datetime(2025, 3, 13, 12, 0, 0)
+    )
+'''
+from datetime import datetime
+
 class UserResponse(UserBase):
     user_id: int
     token: Optional[str] = None
     exp: Optional[str] = None
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
 
-    ''' 使用例
-        user_response = UserResponse(
-                username="bob",
-                user_id=42,
-                token="abcdef12345",
-                exp="2025-12-31T23:59:59",
-                updated_at=datetime(2025, 3, 13, 12, 0, 0)
-        )
-    '''
-    # ゲッターメソッド
     def get_user_id(self) -> int:
         return self.user_id
 

@@ -12,7 +12,7 @@ from utils.utils import check_permission, get_all_cookies, log_decorator
 
 from services.order_view import order_table_view
 #from database.sqlite_database import select_company_order, select_company_order2
-from database.orders import select_orders_by_company_all
+from database.order import select_orders_by_company_all
 from database.sqlalchemy_database import endpoint
 
 

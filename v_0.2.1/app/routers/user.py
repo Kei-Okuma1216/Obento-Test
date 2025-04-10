@@ -18,8 +18,8 @@ from services.order_view import order_table_view
 
 #from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
 from database.user import select_user
-from database.orders import select_orders_by_shop_ago, insert_order
-from schemas.schemas import UserResponse
+from database.order import select_orders_by_shop_ago, insert_order
+from schemas.user_schemas import UserResponse
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()

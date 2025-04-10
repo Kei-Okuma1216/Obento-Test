@@ -14,6 +14,7 @@
 
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
+from .sqlalchemy_database import Base, AsyncSessionLocal
 
 # Companyテーブル
 class Company(Base):
@@ -38,6 +39,7 @@ from .sqlalchemy_database import Base, AsyncSessionLocal
 import logging
 logger = logging.getLogger(__name__)
 
+
 # 作成
 from .sqlalchemy_database import engine
 @log_decorator
@@ -58,26 +60,37 @@ async def create_company_table():
             method_name="create_company_table()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
 from schemas.company_schemas import CompanyModel
-# 取得(1件)
 from sqlalchemy import select
+
+# 取得(1件)
+from typing import Optional
+from utils.utils import get_today_str
+
 @log_decorator
-async def select_company(company_id: int)-> CompanyModel:
+async def select_company(company_id: int) -> Optional[CompanyModel]:
     """
-    指定されたcompany_idのCompanyレコードを取得する
+    指定されたcompany_idのCompanyレコードを取得し、
+    CompanyModel型で返却する。
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(CompanyModel).where(CompanyModel.company_id == company_id)
+            # ORMモデルであるCompanyをクエリする
+            stmt = select(Company).where(Company.company_id == company_id)
             result = await session.execute(stmt)
-            company = result.scalar_one_or_none()
+            orm_company = result.scalar_one_or_none()
 
             logger.debug(f"select_company() - {stmt}")
-            return company
+            if orm_company is None:
+                return None
+
+            # ORMオブジェクトをPydanticモデルに変換する（Pydantic v2）
+            pydantic_company = CompanyModel.model_validate(orm_company)
+            return pydantic_company
 
     except DatabaseError as e:
         raise SQLException(
@@ -85,12 +98,13 @@ async def select_company(company_id: int)-> CompanyModel:
             method_name="select_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "select_company()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+
 
 # 取得（全件）
-from typing import List, Optional
+from typing import List
 @log_decorator
 async def select_all_company()-> Optional[List[CompanyModel]]:
     """
@@ -98,14 +112,14 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(CompanyModel)
+            stmt = select(Company)
             result = await session.execute(stmt)
             orm_companies = result.scalars().all()
             logger.debug(f"select_all_company() - {stmt}")
 
             # 取得したORMオブジェクトをpydanticモデル(CompanyModel)に変換
             if orm_companies:
-                companies = [CompanyModel.from_orm(company) for company in orm_companies]
+                companies = [CompanyModel.model_validate(company) for company in orm_companies]
                 return companies
             else:
                 return None
@@ -116,23 +130,36 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
             method_name="select_all_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "select_all_company()", f"Error: {e}")
+        raise CustomException(500, "select_all_company()", f"Error: {e}") from e
 
 
 from utils.utils import get_today_str
-
+from sqlalchemy import func
 # 追加
 @log_decorator
-async def insert_company(name: str, telephone: str, default_shop_name: str):
+async def insert_company(
+    company_name: str, telephone: str, default_shop_name: str) -> bool:
     """
     Companyテーブルに新規レコードを追加する
     """
     try:
         async with AsyncSessionLocal() as session:
-            new_company = CompanyModel(
-                name=name,
+            # すでに同じ会社名が存在するか確認（重複チェック）
+            stmt = select(func.count()).select_from(Company).where(Company.name == company_name)
+            result = await session.execute(stmt)
+            count = result.scalar()
+            logger.debug(f"insert_company() - COUNTクエリ - count: {count}")
+
+            if count > 0:
+                logger.info(f"会社名: {company_name} は既に存在します。挿入をスキップします。")
+                return False
+
+            # 新規企業レコードの作成
+            new_company = Company(
+                # company_id は自動採番される前提のため指定しない
+                name=company_name,
                 tel=telephone,
                 shop_name=default_shop_name,
                 created_at=get_today_str(),
@@ -143,10 +170,10 @@ async def insert_company(name: str, telephone: str, default_shop_name: str):
 
             logger.info("契約企業追加成功")
             logger.debug(
-                f"insert_company() - name: {name}, tel: {telephone}, default_shop_name: {default_shop_name}, "
+                f"insert_company() - company_name: {company_name}, tel: {telephone}, shop_name: {default_shop_name}, "
                 f"created_at: {get_today_str()}, disabled: False"
             )
-            return new_company
+            return True
 
     except DatabaseError as e:
         raise SQLException(
@@ -154,9 +181,10 @@ async def insert_company(name: str, telephone: str, default_shop_name: str):
             method_name="insert_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "insert_company()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+
 
 
 # 更新
@@ -182,9 +210,9 @@ async def update_company(company_id: int, key: str, value: str):
             method_name="update_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "update_company()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
 
 # 削除(1件)
@@ -210,9 +238,9 @@ async def delete_company(company_id: int):
             method_name="delete_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "delete_company()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
 # 削除（全件）
 from sqlalchemy import text
@@ -233,7 +261,7 @@ async def delete_all_company():
             method_name="delete_all_company()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "delete_all_company()", f"Error: {e}")
+        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 

@@ -24,12 +24,22 @@ AsyncSessionLocal = sessionmaker(
 Base = declarative_base()
 
 # データベースセッションを取得する関数
+'''async def get_db():
+    async with AsyncSessionLocal() as session:
+        yield session'''
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
 async def get_db():
     async with AsyncSessionLocal() as session:
-        yield session
+        try:
+            yield session
+        finally:
+            await session.close()
+
+
 
 endpoint = "https://192.168.3.19:8000"
-
 default_shop_name = "shop01"
 default_company_id = 1
 default_compamy_name = "テンシステム"

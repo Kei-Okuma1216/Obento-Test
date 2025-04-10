@@ -14,7 +14,9 @@ import os
 from fastapi import Request, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from database.sqlite_database import update_user, get_all_users
+#from database.sqlite_database import update_user, get_all_users
+from database.user import update_user, select_all_users
+
 from utils.exception import CustomException, NotAuthorizedException
 from helper import redirect_login
 from utils.utils import check_permission, log_decorator
@@ -23,17 +25,6 @@ templates = Jinja2Templates(directory="templates")
 
 admin_router = APIRouter()
 
-'''@log_decorator
-@deprecated
-def check_admin_permission(request: Request):
-    # 管理者の権限チェック
-    permission = request.cookies.get("permission")
-    #print(f"permission: {permission}")
-    if permission != "99":
-        raise CustomException(
-            status.HTTP_401_UNAUTHORIZED,
-            "check_admin_permission()",
-            f"Not Authorized permission={permission}")'''
 
 #endpoint = "https://192.168.3.19:8000"
 from database.sqlalchemy_database import endpoint
@@ -66,7 +57,7 @@ def admin_view(request: Request):
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
 async def update_existing_passwords():
     """既存ユーザーのパスワードをハッシュ化"""
-    users = await get_all_users()  # すべてのユーザーを取得する関数が必要
+    users = await select_all_users()  # すべてのユーザーを取得する関数が必要
     for user in users:
         if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
 

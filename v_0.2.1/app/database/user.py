@@ -2,7 +2,7 @@
 '''
     1. class UserModel(Base):
     2. create_user_table():
-    
+
     3. select_user(username: str) -> Optional[UserModel]:
     4. select_all_user() -> Optional[list[UserModel]]:
 
@@ -20,7 +20,7 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
 #default_shop_name = "shop01"
 from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name
+from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
 
 # database.Userクラス
 '''
@@ -44,6 +44,10 @@ class User(Base):
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+    def get_username(self):
+        return self.username
+    def get_password(self):
+        return self.password
 
 
 # ログ用の設定
@@ -55,12 +59,12 @@ logger = logging.getLogger(__name__)
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
-#default_shop_name = "shop01"
+
 
 from .sqlalchemy_database import engine
 # Userテーブル
 # 作成
-@log_decorator
+#@log_decorator
 async def create_user_table():
     try:
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
@@ -74,15 +78,15 @@ async def create_user_table():
 
 from sqlalchemy import select
 from typing import Optional
-
+from schemas.user_schemas import UserResponse
 # 選択
 @log_decorator
-async def select_user(username: str) -> Optional[UserModel]:
+async def select_user(username: str) -> Optional[UserResponse]:
     try:
         sanitized_username = username.strip()
 
         async with AsyncSessionLocal() as session:
-            stmt = select(User).where(UserModel.username == sanitized_username)
+            stmt = select(User).where(UserResponse.username == sanitized_username)
             print(f"**ここまでOK 1 execute前 stmt: {stmt}")
             result = await session.execute(stmt)
             print(f"**ここまでOK 2")
@@ -97,13 +101,13 @@ async def select_user(username: str) -> Optional[UserModel]:
 
 # 選択（全件）
 @log_decorator
-async def select_all_users() -> Optional[list[UserModel]]:
+async def select_all_users() -> Optional[list[UserResponse]]:
     """
     全てのUserレコードを取得する
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(UserModel)
+            stmt = select(User)
             result = await session.execute(stmt)
             users = result.scalars().all()
             logger.debug(f"select_all_user() - SQLAlchemyクエリ: {stmt}")
@@ -111,7 +115,6 @@ async def select_all_users() -> Optional[list[UserModel]]:
 
     except DatabaseError as e:
         raise CustomException(500, "select_all_user()", f"Error: {e}") from e
-
 
 
 import bcrypt
@@ -129,13 +132,26 @@ async def get_hashed_password(password: str)-> str:
     return new_hashed_password
 
 
-# パスワードをハッシュ化する関数
+"""既存ユーザーのパスワードをハッシュ化"""
 #@log_decorator
 async def update_existing_passwords():
-    """既存ユーザーのパスワードをハッシュ化"""
+
     users = await select_all_users()  # すべてのユーザーを取得する関数が必要
-    for user in users:
-        if not user['password'].startswith("$2b$"):  # bcryptのハッシュでない場合
+
+    # セッションオブジェクトを非同期コンテキストマネージャで取得
+    async with get_db() as session:
+        for user in users:
+            username = user.get_username()
+            # 非同期セッションの場合、クエリの実行もawaitが必要となる
+            result = await session.execute(select(User).filter_by(username=username))
+            db_user = result.scalars().first()
+            if db_user is None:
+                continue  # 該当ユーザーが存在しない場合はスキップ
+
+        password = db_user.password  # 直接属性にアクセス可能
+        print(f"=password")
+
+        if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
         #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
 
             """パスワードをハッシュ化する"""
@@ -143,25 +159,25 @@ async def update_existing_passwords():
             #password = user.get_password()
             password = user['password']
             hashed_password = bcrypt.hashpw(password.encode(), salt)
-            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
-            #new_hashed_password = hash_password(user.get_password())  # ハッシュ化
+            new_hashed_password = hashed_password.decode()
 
             await update_user(
-                user.username, "password", new_hashed_password)  # DB更新
+                user.username, "password", new_hashed_password)
+
             logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
-
-
 
 
 # 追加
 ''' 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
 '''
 @log_decorator
-async def insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
+async def insert_user(
+    username: str, password: str, name: str,
+    company_id: int, shop_name: str, menu_id: int=1)-> bool:
     async with AsyncSessionLocal() as session:
         try:
             # ユーザーが既に存在するか確認
-            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
+            stmt = select(func.count()).select_from(User).where(User.username == username)
             result = await session.execute(stmt)
             count = result.scalar()
             logger.debug(f"insert_user() - COUNTクエリ - count: {count}")
@@ -174,7 +190,7 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
             hashed_password = await get_hashed_password(password)
 
             # 新規ユーザーの作成
-            new_user = UserModel(
+            new_user = User(
                 username=username,
                 password=hashed_password,
                 name=name,
@@ -197,9 +213,9 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
                 method_name="insert_user()",
                 detail="SQL実行中にエラーが発生しました",
                 exception=e
-            )
+            ) from e
         except Exception as e:
-            raise CustomException("UserのINSERT処理", f"insert_user() Error: {e}")
+            raise CustomException("UserのINSERT処理", f"insert_user()", f"Error: {e}") from e
 
 
 # 新規ユーザー追加
@@ -214,7 +230,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
     try:
         async with AsyncSessionLocal() as session:
             # 既存ユーザーのチェック
-            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
+            stmt = select(func.count()).select_from(User).where(User.username == username)
             count = await session.scalar(stmt)
             #logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
 
@@ -223,7 +239,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
                 return
 
             # 新規ユーザーの作成（デフォルト値付き）
-            new_user = UserModel(
+            new_user = User(
                 username=username,
                 password=password,
                 name=name,
@@ -244,9 +260,9 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             method_name="insert_new_user()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "insert_new_user()", f"Error: {e}")
+        raise CustomException(500, "insert_new_user()", f"Error: {e}") from e
 
 
 # お弁当屋追加
@@ -255,7 +271,8 @@ from sqlalchemy import select, func
 from sqlalchemy.exc import DatabaseError
 
 @log_decorator
-async def insert_shop(username: str, password: str, shop_name: str) -> None:
+async def insert_shop(
+    username: str, password: str, shop_name: str) -> None:
     """
     店舗ユーザーを追加する関数です。
     既に指定の username が存在する場合は挿入をスキップします。
@@ -264,7 +281,7 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
     try:
         async with AsyncSessionLocal() as session:
             # 既存のユーザー数をチェックする
-            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
+            stmt = select(func.count()).select_from(User).where(User.username == username)
             count = await session.scalar(stmt)
             logger.debug(f"insert_shop() - ユーザー存在チェック: count = {count}")
 
@@ -273,7 +290,7 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
                 return
 
             # 新規ユーザーの作成（店舗ユーザーとして登録）
-            new_user = UserModel(
+            new_user = User(
                 username=username,
                 password=password,
                 name=shop_name,
@@ -298,9 +315,9 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
             method_name="insert_shop()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "insert_shop()", f"Error: {e}")
+        raise CustomException(500, "insert_shop()", f"Error: {e}") from e
 
 
 
@@ -311,7 +328,7 @@ async def update_user(username: str, key: str, value):
     try:
         async with AsyncSessionLocal() as session:
             # 動的にカラム名を指定して更新するため、values() に辞書を利用
-            stmt = update(UserModel).where(UserModel.username == username).values({key: value})
+            stmt = update(User).where(User.username == username).values({key: value})
             await session.execute(stmt)
             await session.commit()
             logger.debug(f"update_user() - {stmt}")
@@ -322,9 +339,9 @@ async def update_user(username: str, key: str, value):
             method_name="update_users()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except DatabaseError as e:
-        raise CustomException(500, "update_user()", f"Error: {e}")
+        raise CustomException(500, "update_user()", f"Error: {e}") from e
 
 # 削除(1件)
 from sqlalchemy import delete
@@ -333,7 +350,7 @@ from sqlalchemy import delete
 async def delete_user(username: str):
     try:
         async with AsyncSessionLocal() as session:
-            stmt = delete(UserModel).where(UserModel.username == username)
+            stmt = delete(User).where(User.username == username)
             await session.execute(stmt)
             await session.commit()
             logger.info(f"ユーザー {username} の削除に成功しました。")
@@ -346,9 +363,9 @@ async def delete_user(username: str):
             method_name="delete_user()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except DatabaseError as e:
-        raise CustomException(500, "delete_user()", f"Error: {e}")
+        raise CustomException(500, "delete_user()", f"Error: {e}") from e
 
 # 削除（全件）
 from sqlalchemy import text
@@ -369,9 +386,9 @@ async def delete_all_user():
             method_name="delete_all_user()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
-        )
+        ) from e
     except Exception as e:
-        raise CustomException(500, "delete_all_user()", f"Error: {e}")
+        raise CustomException(500, "delete_all_user()", f"Error: {e}") from e
 
 
 
