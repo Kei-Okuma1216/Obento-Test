@@ -1,4 +1,4 @@
-# models/menu.py
+# database/menu.py
 '''
     1. class Menu(Base):
     2. create_menu_table():

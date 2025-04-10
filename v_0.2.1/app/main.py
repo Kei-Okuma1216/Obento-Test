@@ -1,4 +1,4 @@
-# main.py
+# app/main.py
 # 2.1 SQLAlchemy移行開始
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):

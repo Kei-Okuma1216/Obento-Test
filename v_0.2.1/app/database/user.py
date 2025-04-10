@@ -3,8 +3,8 @@
     1. class UserModel(Base):
     2. create_user_table():
     
-    3. select_user(username: str) -> Optional[User]:
-    4. select_all_user() -> Optional[list[User]]:
+    3. select_user(username: str) -> Optional[UserModel]:
+    4. select_all_user() -> Optional[list[UserModel]]:
 
     5. get_hashed_password(password: str)-> str:
     6. update_existing_passwords():
@@ -22,11 +22,11 @@ from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, fun
 from sqlalchemy.exc import DatabaseError
 from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name
 
-# models.Userクラス
+# database.Userクラス
 '''
-    UserModelクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
+    Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
 '''
-class UserModel(Base):
+class User(Base):
     __tablename__ = "users"
 
     user_id = Column(Integer, primary_key=True, index=True)
@@ -77,12 +77,12 @@ from typing import Optional
 
 # 選択
 @log_decorator
-async def select_user(username: str) -> Optional[User]:
+async def select_user(username: str) -> Optional[UserModel]:
     try:
         sanitized_username = username.strip()
 
         async with AsyncSessionLocal() as session:
-            stmt = select(User).where(User.username == sanitized_username)
+            stmt = select(User).where(UserModel.username == sanitized_username)
             print(f"**ここまでOK 1 execute前 stmt: {stmt}")
             result = await session.execute(stmt)
             print(f"**ここまでOK 2")
@@ -97,13 +97,13 @@ async def select_user(username: str) -> Optional[User]:
 
 # 選択（全件）
 @log_decorator
-async def select_all_users() -> Optional[list[User]]:
+async def select_all_users() -> Optional[list[UserModel]]:
     """
     全てのUserレコードを取得する
     """
     try:
         async with AsyncSessionLocal() as session:
-            stmt = select(User)
+            stmt = select(UserModel)
             result = await session.execute(stmt)
             users = result.scalars().all()
             logger.debug(f"select_all_user() - SQLAlchemyクエリ: {stmt}")
@@ -161,7 +161,7 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
     async with AsyncSessionLocal() as session:
         try:
             # ユーザーが既に存在するか確認
-            stmt = select(func.count()).select_from(User).where(User.username == username)
+            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
             result = await session.execute(stmt)
             count = result.scalar()
             logger.debug(f"insert_user() - COUNTクエリ - count: {count}")
@@ -174,7 +174,7 @@ async def insert_user(username: str, password: str, name: str, company_id: int, 
             hashed_password = await get_hashed_password(password)
 
             # 新規ユーザーの作成
-            new_user = User(
+            new_user = UserModel(
                 username=username,
                 password=hashed_password,
                 name=name,
@@ -214,7 +214,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
     try:
         async with AsyncSessionLocal() as session:
             # 既存ユーザーのチェック
-            stmt = select(func.count()).select_from(User).where(User.username == username)
+            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
             count = await session.scalar(stmt)
             #logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
 
@@ -223,7 +223,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
                 return
 
             # 新規ユーザーの作成（デフォルト値付き）
-            new_user = User(
+            new_user = UserModel(
                 username=username,
                 password=password,
                 name=name,
@@ -264,7 +264,7 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
     try:
         async with AsyncSessionLocal() as session:
             # 既存のユーザー数をチェックする
-            stmt = select(func.count()).select_from(User).where(User.username == username)
+            stmt = select(func.count()).select_from(UserModel).where(UserModel.username == username)
             count = await session.scalar(stmt)
             logger.debug(f"insert_shop() - ユーザー存在チェック: count = {count}")
 
@@ -273,7 +273,7 @@ async def insert_shop(username: str, password: str, shop_name: str) -> None:
                 return
 
             # 新規ユーザーの作成（店舗ユーザーとして登録）
-            new_user = User(
+            new_user = UserModel(
                 username=username,
                 password=password,
                 name=shop_name,
@@ -311,7 +311,7 @@ async def update_user(username: str, key: str, value):
     try:
         async with AsyncSessionLocal() as session:
             # 動的にカラム名を指定して更新するため、values() に辞書を利用
-            stmt = update(User).where(User.username == username).values({key: value})
+            stmt = update(UserModel).where(UserModel.username == username).values({key: value})
             await session.execute(stmt)
             await session.commit()
             logger.debug(f"update_user() - {stmt}")
@@ -333,7 +333,7 @@ from sqlalchemy import delete
 async def delete_user(username: str):
     try:
         async with AsyncSessionLocal() as session:
-            stmt = delete(User).where(User.username == username)
+            stmt = delete(UserModel).where(UserModel.username == username)
             await session.execute(stmt)
             await session.commit()
             logger.info(f"ユーザー {username} の削除に成功しました。")
