@@ -1,6 +1,8 @@
 # database/sqlalchemy_database.py
 
 from ast import stmt
+
+
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator, get_today_str 
 
@@ -29,8 +31,8 @@ from .order import create_orders_table, insert_order
 async def init_database():
     try:
         # テーブル削除
-        await reset_all_autoincrement()
-        await drop_all_table()
+        #await reset_all_autoincrement_on_sqlite()
+        await drop_all_table_on_sqlite()
 
         # ユーザー情報の登録
         await create_user_table() 
@@ -104,6 +106,7 @@ async def init_database():
 # AUTOINCREMENTフィールドをリセット
 from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError
+from .sqlalchemy_database import engine
 
 @log_decorator
 async def reset_all_autoincrement():
@@ -135,8 +138,9 @@ async def reset_all_autoincrement():
 
 
 '''------------------------------------------------------'''
-from sqlalchemy import engine, text
+from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError
+from .sqlalchemy_database import engine
 
 @log_decorator
 async def drop_all_table():
@@ -161,4 +165,116 @@ async def drop_all_table():
         ) from e
     except Exception as e:
         raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
+
+
+'''---------------------------------------------------------------'''
+# sqlite用
+import aiosqlite
+import sqlite3
+import os
+from utils.exception import DatabaseConnectionException
+
+# インメモリデータベースを作成
+#conn = sqlite3.connect(':memory:')
+db_name_str = "example.db"
+default_shop_name = "shop01"
+
+# データベース初期化
+# プロジェクトルートからの絶対パスを取得
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 現在のファイルのディレクトリ
+DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフォルダの sample.db を指定
+#conn = sqlite3.connect(DB_PATH)
+
+# コネクション取得
+async def get_connection():
+    try:
+        return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
+
+    except Exception as e:
+        raise DatabaseConnectionException(
+            method_name="get_connection()",
+            detail="データベース接続に失敗しました。",
+            exception=e
+        )
+
+# コネクションを閉じる（実際のテストでは不要）
+#await conn.close()
+
+@log_decorator
+async def reset_all_autoincrement_and_drop_indexes_on_sqlite():
+    """
+    Orders, Companies, Menus, Users テーブルの自動採番用シーケンスをリセットし、
+    それに関連するINDEXも削除する関数です。
+    """
+    conn = None
+    try:
+        conn = await get_connection()
+
+        # AUTOINCREMENT のリセット
+        for table in ["Companies", "Orders", "Menus", "Users"]:
+            sqlstr = f'DELETE FROM sqlite_sequence WHERE name = "{table}"'
+            await conn.execute(sqlstr)
+
+        # INDEX の削除
+        indexes = [
+            "ix_companies_company_id",  # 会社IDに対するINDEX
+            "ix_users_user_id",         # ユーザーIDに対するINDEX
+            "ix_users_username"         # ユーザー名に対するUNIQUE INDEX
+        ]
+        for index in indexes:
+            sqlstr_index = f"DROP INDEX IF EXISTS {index}"
+            await conn.execute(sqlstr_index)
+
+        await conn.commit()  # すべての変更をコミットする
+        logger.debug("AUTOINCREMENTのリセットおよびINDEXの削除完了")
+
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sql_statement=sqlstr,
+            method_name="reset_all_autoincrement_and_drop_indexes_on_sqlite()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(
+            500,
+            "reset_all_autoincrement_and_drop_indexes_on_sqlite()",
+            f"Error: {e}"
+        ) from e
+    finally:
+        if conn is not None:
+            await conn.close()
+
+
+# 全テーブルをDrop
+#@log_decorator
+async def drop_all_table_on_sqlite():
+    conn = None
+    try:
+        #'DROP TABLE IF EXISTS Company'
+        conn = await get_connection()
+        # AUTOINCREMENT のリセット
+        for table in ["Company", "Orders", "Menu", "User"]:
+            sqlstr = f'DROP TABLE IF EXISTS {table}'
+            await conn.execute(sqlstr)
+
+        await conn.commit()  # コミットを一度だけ実行
+        logger.debug("全テーブルのDrop完了")
+    except DatabaseConnectionException as e:
+        raise
+    except sqlite3.DatabaseError as e:
+        raise SQLException(
+            sql_statement=sqlstr,
+            method_name="drop_all_table()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(
+            500, f"drop_all_table()", f"Error: {e}")    
+    finally:
+        if conn is not None:
+            await conn.close()
 
