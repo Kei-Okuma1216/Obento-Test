@@ -1,6 +1,6 @@
 # database/company.py
 '''
-    1. class CompanyModel(Base):
+    1. class Company(Base):
     2. create_company_table():
 
     3. select_company(company_id: int):
@@ -16,7 +16,7 @@ from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
 
 # Companyテーブル
-class CompanyModel(Base):
+class Company(Base):
     __tablename__ = "companies"
 
     company_id = Column(Integer, primary_key=True, index=True)
@@ -50,7 +50,7 @@ async def create_company_table():
     try:
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
         async with engine.begin() as conn:
-            await conn.run_sync(CompanyModel.__table__.create, checkfirst=True)
+            await conn.run_sync(Company.__table__.create, checkfirst=True)
         logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
     except DatabaseError as e:
         raise SQLException(
@@ -62,7 +62,7 @@ async def create_company_table():
     except Exception as e:
         raise CustomException(500, "create_company_table()", f"Error: {e}")
 
-
+from schemas.company_schemas import CompanyModel
 # 取得(1件)
 from sqlalchemy import select
 @log_decorator
