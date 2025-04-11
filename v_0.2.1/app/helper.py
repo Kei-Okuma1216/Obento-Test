@@ -164,6 +164,7 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
                 detail="パスワードが一致しません"
                 )
 
+        print(f"ここまで来た get_permission()")
         data = {
             "sub": user.get_username(),
             "permission": user.get_permission()

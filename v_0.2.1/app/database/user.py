@@ -17,11 +17,9 @@
     11. delete_user(username: str):
     12. delete_all_user():
 '''
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, select, func
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
 #default_shop_name = "shop01"
-from sqlalchemy.exc import DatabaseError
 from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
-
 # database.Userクラス
 '''
     Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
@@ -51,10 +49,14 @@ class User(Base):
 
 
 # ログ用の設定
+from log_config import logger
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
+from sqlalchemy.exc import DatabaseError
+from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
 
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
@@ -80,41 +82,105 @@ from sqlalchemy import select
 from typing import Optional
 from schemas.user_schemas import UserResponse
 # 選択
+from database.user import AsyncSessionLocal  # 適切なパスに合わせてください
+
+
 @log_decorator
 async def select_user(username: str) -> Optional[UserResponse]:
     try:
         sanitized_username = username.strip()
-
         async with AsyncSessionLocal() as session:
-            stmt = select(User).where(UserResponse.username == sanitized_username)
-            print(f"**ここまでOK 1 execute前 stmt: {stmt}")
-            result = await session.execute(stmt)
-            print(f"**ここまでOK 2")
-            user = result.scalars().first()
+            stmt = select(User).where(User.username == sanitized_username)
             logger.debug(f"select_user() - SQLAlchemyクエリ: {stmt}")
+            result = await session.execute(stmt)
+            orm_user = result.scalars().first()
 
-            return user
+            if orm_user is None:
+                return None
+
+            # ORMインスタンスの as_dict() メソッドを利用して辞書化する
+            user_dict = orm_user.as_dict()
+            logger.debug(f"user_dict: {user_dict}")
+
+            # その辞書をもとに pydantic モデル UserResponse を生成
+            user_model = UserResponse(**user_dict)
+            print(f"user_model: {user_model}")
+
+            return user_model
 
     except DatabaseError as e:
         raise CustomException(500, "select_user()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(500, "select_user()", f"Error: {e}") from e
 
 
-# 選択（全件）
+
+from sqlalchemy import select
+from sqlalchemy.exc import DatabaseError
+from typing import Optional, List
+from schemas.user_schemas import UserResponse
+from database.user import AsyncSessionLocal  # 適宜パスを調整してください
+from utils.exception import CustomException
+from utils.utils import log_decorator
+from log_config import logger
+
+from sqlalchemy import select
+from sqlalchemy.exc import DatabaseError
+from typing import Optional, List
+from schemas.user_schemas import UserResponse
+from database.user import AsyncSessionLocal  # 適宜パスを調整してください
+from .user import User  # ORMのUserモデル。適切なパスに合わせてください
+from utils.exception import CustomException
+from utils.utils import log_decorator
+from log_config import logger
+
+from sqlalchemy import select, inspect
+from sqlalchemy.exc import DatabaseError
+from typing import Optional, List
+from schemas.user_schemas import UserResponse
+from database.user import AsyncSessionLocal  # 必要に応じてパスを調整してください
+#from models.user import User  # ORMのUserモデル。適宜パスを調整してください
+from utils.exception import CustomException
+from utils.utils import log_decorator
+from log_config import logger
+
 @log_decorator
-async def select_all_users() -> Optional[list[UserResponse]]:
+async def select_all_users() -> Optional[List[UserResponse]]:
     """
-    全てのUserレコードを取得する
+    全てのUserレコードを取得し、pydanticのUserResponseのリストとして返します。
+    (ユーザーが存在しない場合は None を返します)
     """
     try:
         async with AsyncSessionLocal() as session:
             stmt = select(User)
+            logger.debug(f"select_all_users() - SQLAlchemyクエリ: {stmt}")
             result = await session.execute(stmt)
-            users = result.scalars().all()
-            logger.debug(f"select_all_user() - SQLAlchemyクエリ: {stmt}")
-            return users
+            # scalars() を使って ORM インスタンスを直接取得する
+            orm_users = result.scalars().all()
+
+            if not orm_users:
+                logger.warning("No user found")
+                return None
+
+            user_models: List[UserResponse] = []
+            for orm_user in orm_users:
+                # inspect() を利用して各カラムの辞書を生成する
+                inspector = inspect(orm_user)
+                user_dict = {column.key: getattr(orm_user, column.key) for column in inspector.mapper.columns}
+                # 得られた辞書データから UserResponse モデルを生成する
+                user_model = UserResponse(**user_dict)
+                user_models.append(user_model)
+
+            return user_models
 
     except DatabaseError as e:
-        raise CustomException(500, "select_all_user()", f"Error: {e}") from e
+        raise CustomException(500, "select_all_users()", f"Error: {e}") from e
+    except Exception as e:
+        raise CustomException(500, "select_all_users()", f"Error: {e}") from e
+
+
+
+
 
 
 import bcrypt
@@ -149,15 +215,15 @@ async def update_existing_passwords():
                 continue  # 該当ユーザーが存在しない場合はスキップ
 
         password = db_user.password  # 直接属性にアクセス可能
-        print(f"=password")
+        print(f"password: {password}")
 
         if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
         #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
 
             """パスワードをハッシュ化する"""
             salt = bcrypt.gensalt()
-            #password = user.get_password()
-            password = user['password']
+            password = user.get_password()
+            #password = user['password']
             hashed_password = bcrypt.hashpw(password.encode(), salt)
             new_hashed_password = hashed_password.decode()
 

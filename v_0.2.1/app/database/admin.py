@@ -31,8 +31,8 @@ from .order import create_orders_table, insert_order
 async def init_database():
     try:
         # テーブル削除
-        #await reset_all_autoincrement_on_sqlite()
-        await drop_all_table_on_sqlite()
+        '''#await reset_all_autoincrement_on_sqlite()'''
+        #await drop_all_table_on_sqlite()
 
         # ユーザー情報の登録
         await create_user_table() 

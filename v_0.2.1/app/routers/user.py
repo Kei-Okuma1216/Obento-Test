@@ -53,8 +53,9 @@ async def regist_complete(request: Request, response: Response):
             user.menu_id,
             amount=1)
 
+        username = user.get_username()
         orders = await select_orders_by_user_ago(
-            user.get_username, -7)
+            username, -7)
 
         #logger.debug(f"orders: {orders}")
         if orders is None or len(orders) == 0:
@@ -75,11 +76,11 @@ async def regist_complete(request: Request, response: Response):
             'base_url': endpoint,
         }
         #本当に必要か？
-        '''order_context = {
+        order_context = {
             'orders': orders,
             'order_count': len(orders),
             "order_details": orders[0].model_dump() if orders else None
-        }'''
+        }
         user_context.update(order_context)
         return await order_table_view(
             response, orders, "order_complete.html", user_context)

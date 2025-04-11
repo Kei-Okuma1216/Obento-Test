@@ -7,6 +7,7 @@ from typing import Optional
     user = UserBase(username="alice", company_id=123, shop_name="Shop A")
 '''
 class UserBase(BaseModel):
+    user_id: int
     username: str
     name: Optional[str] = None
     company_id: Optional[int] = None
@@ -62,10 +63,11 @@ class UserCreate(UserBase):
 '''
 from datetime import datetime
 
-class UserResponse(UserBase):
+class UserResponse(UserCreate):
     user_id: int
     token: Optional[str] = None
     exp: Optional[str] = None
+    is_modified: bool = False  # デフォルト値 False
     updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
 
     def get_user_id(self) -> int:
@@ -77,9 +79,18 @@ class UserResponse(UserBase):
     def get_exp(self) -> Optional[str]:
         return self.exp
 
+    # is_modified というフィールドとメソッド名が同じにならないように注意してください。
+    def get_is_modified(self) -> bool:
+        return self.is_modified
+
     def get_updated_at(self) -> Optional[datetime]:
         return self.updated_at
 
+    def set_token(self,token: str):
+        self.token = token
+
+    def set_exp(self, exp: str):
+        self.exp = exp
 
 
 
