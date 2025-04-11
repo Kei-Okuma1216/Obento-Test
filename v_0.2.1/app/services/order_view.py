@@ -39,8 +39,10 @@ from collections import Counter
 # 注文一覧テーブル表示
 @log_decorator
 async def order_table_view(
-    request: Request, response: Response,
-    orders , redirect_url: str, context: dict = None):
+    response: Response,
+    orders ,
+    redirect_url: str,
+    context: dict = None):
 
     try:
         # ordersリストをin-placeで降順にソート
