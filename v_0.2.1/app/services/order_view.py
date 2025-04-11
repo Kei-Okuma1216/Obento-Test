@@ -42,7 +42,7 @@ async def order_table_view(
     response: Response,
     orders ,
     redirect_url: str,
-    context: dict = None):
+    context: dict):
 
     try:
         # ordersリストをin-placeで降順にソート
@@ -53,19 +53,22 @@ async def order_table_view(
 
         # company_nameごとに注文件数を集計
         company_counts = Counter(order.company_name for order in orders)
-        # ２件以上の注文がある会社のみを抽出
-        # aggregated_orders = [[company, count] for company, count in company_counts.items() if count >= 2]
+
         # ※全件数を集計したい場合は、以下のようにフィルタを外します
         aggregated_orders = [[company, count] for company, count in company_counts.items()]
-
+        # ２件以上の注文がある会社のみを抽出
+        # aggregated_orders = [[company, count] for company, count in company_counts.items() if count >= 2]
 
         logger.debug(f"orders.model_dump(): {orders[0].model_dump()}")
 
-        adding_context = {        
+
+
+        calculated_orders_context = {        
             'checked_count': checked_count,
             'aggregated_orders': aggregated_orders,
         }
-        context.update(adding_context)
+
+        context.update(calculated_orders_context)
 
         templates.TemplateResponse("order_table.html", context)
 

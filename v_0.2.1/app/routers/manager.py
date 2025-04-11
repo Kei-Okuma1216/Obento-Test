@@ -71,7 +71,7 @@ async def manager_view(request: Request, response: Response):
             'order_count': len(orders),
             "order_details": orders[0].model_dump() if orders else None
         }
-
+        # FAX情報タブ用のデータ
         fax_context = {
             "shop_name": "はーとあーす勝谷",
             "menu_name": "お昼のお弁当",
@@ -84,7 +84,7 @@ async def manager_view(request: Request, response: Response):
         context.update(order_context)
         context.update(fax_context)
 
-        return await order_table_view(request, response, orders, "manager.html", context)
+        return await order_table_view(response, orders, "manager.html", context)
 
     except CookieException as e:
         raise

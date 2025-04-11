@@ -18,11 +18,13 @@ from services.order_view import order_table_view
 
 #from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
 from database.user import select_user
-from database.order import select_orders_by_shop_ago, insert_order
+from database.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
+
+from database.sqlalchemy_database import endpoint
 
 from log_config import logger
 
@@ -51,8 +53,8 @@ async def regist_complete(request: Request, response: Response):
             user.menu_id,
             amount=1)
 
-        orders = await select_orders_by_shop_ago(
-            user.shop_name, -7, user.username)
+        orders = await select_orders_by_user_ago(
+            user.get_username, -7)
 
         #logger.debug(f"orders: {orders}")
         if orders is None or len(orders) == 0:
@@ -67,8 +69,13 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
+        # 表示用データの作成
+        context = {
+            'request': request,
+            'base_url': endpoint,
+        }
         return await order_table_view(
-            request, response, orders, "order_complete.html")
+            response, orders, "order_complete.html", context)
 
 
     except (SQLException, HTTPException) as e:

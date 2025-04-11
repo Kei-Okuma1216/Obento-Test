@@ -14,12 +14,12 @@
     6. select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
     7. select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
 
-    # 会社発注者(company_id) を指定して、注文を取得する
+    # 契約企業(company_id) を指定して、注文を取得する
     8. select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
     9. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[OrderModel]]:
 
-    # 店舗名(shop_name) を指定して、注文を取得する
+    # 店舗(shop_name) を指定して、注文を取得する
     11. select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
     12. select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[OrderModel]]:
     13. select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[OrderModel]]:
