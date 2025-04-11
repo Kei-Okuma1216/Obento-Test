@@ -70,12 +70,19 @@ async def regist_complete(request: Request, response: Response):
         prevent_order_twice(response, last_order_date)
 
         # 表示用データの作成
-        context = {
+        user_context = {
             'request': request,
             'base_url': endpoint,
         }
+        #本当に必要か？
+        '''order_context = {
+            'orders': orders,
+            'order_count': len(orders),
+            "order_details": orders[0].model_dump() if orders else None
+        }'''
+        user_context.update(order_context)
         return await order_table_view(
-            response, orders, "order_complete.html", context)
+            response, orders, "order_complete.html", user_context)
 
 
     except (SQLException, HTTPException) as e:

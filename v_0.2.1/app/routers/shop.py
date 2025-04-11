@@ -43,14 +43,19 @@ async def shop_view(request: Request, response: Response):
 
         if orders is None:
             logger.debug('shop_view - ordersなし')
-
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         shop_context = {
             'request': request,
             'base_url': endpoint,
         }
-        return await order_table_view(request, response, orders, "shop.html", shop_context)
+        order_context = {
+            'orders': orders,
+            'order_count': len(orders),
+            "order_details": orders[0].model_dump() if orders else None
+        }
+        shop_context.update(order_context)
+        return await order_table_view(response, orders, "shop.html", shop_context)
 
     except SQLException as e:
         raise

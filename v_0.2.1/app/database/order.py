@@ -1,11 +1,11 @@
 # database/orders.py
 '''
-    注文クエリ
+    注文クエリ関数
 
     1. class Orders(Base):
     2. create_orders_table():
 
-    # 管理者用に1件・全件取得する
+    # 管理者(admin)用に注文を取得する
     3. select_single_order(order_id: int) -> OrderModel:
     4. select_all_orders() -> Optional[List[OrderModel]]:
 

@@ -42,7 +42,7 @@ async def order_table_view(
     response: Response,
     orders ,
     redirect_url: str,
-    context: dict):
+    order_table_context: dict):
 
     try:
         # ordersリストをin-placeで降順にソート
@@ -68,12 +68,12 @@ async def order_table_view(
             'aggregated_orders': aggregated_orders,
         }
 
-        context.update(calculated_orders_context)
+        order_table_context.update(calculated_orders_context)
 
-        templates.TemplateResponse("order_table.html", context)
+        templates.TemplateResponse("order_table.html", order_table_context)
 
         template_response = templates.TemplateResponse(
-            redirect_url, context)
+            redirect_url, order_table_context)
         # 必須！　Set-CookieヘッダーがNoneでないことを確認
         set_cookie_header = response.headers.get("Set-Cookie")
         if set_cookie_header:

@@ -24,18 +24,6 @@ manager_router = APIRouter()
 
 from venv import logger
 
-'''
-@deprecated
-@log_decorator
-def check_manager_permission(request: Request):
-    permission = request.cookies.get("permission")
-    #print(f"permission: {permission}")
-    if permission in [2,99]:
-        raise CustomException(
-            status.HTTP_403_FORBIDDEN,
-            "check_manager_permission()",
-            f"Not Authorized permission={permission}")'''
-
 
 # 会社お弁当担当者画面
 # 注意：エンドポイントにprefix:managerはつけない
@@ -61,7 +49,7 @@ async def manager_view(request: Request, response: Response):
 
 
         # 表示用データの作成
-        context = {
+        manager_context = {
             'request': request,
             'base_url': endpoint,
         }
@@ -81,10 +69,10 @@ async def manager_view(request: Request, response: Response):
             "facility_name": "テンシステム",
             "POC": "林"
         }
-        context.update(order_context)
-        context.update(fax_context)
+        manager_context.update(order_context)
+        manager_context.update(fax_context)
 
-        return await order_table_view(response, orders, "manager.html", context)
+        return await order_table_view(response, orders, "manager.html", manager_context)
 
     except CookieException as e:
         raise
