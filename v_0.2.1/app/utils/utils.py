@@ -332,22 +332,17 @@ async def check_permission_and_stop_order(request: Request, response: Response):
 
 @log_decorator
 async def check_permission(request: Request, permits: list):
-    ''' 権限チェック
-    使用例 '''
-    '''raise CustomException(
-        status.HTTP_401_UNAUTHORIZED,
-        "check_permission()",
-        f"Not Authorized permission={permission}")'''
+    ''' 権限チェック '''
     permission = request.cookies.get("permission")
 
-    #print(f"permission: {permission}")
+    # print(f"permission: {permission}")
     if permission is None or permission == '':
         permission = 0
 
     if isinstance(permission, str) and permission.isdigit():
         permission = int(permission)
 
-    #print(f"permits: {permits}")
+    # print(f"permits: {permits}")
     if permission in permits:
         return True
 

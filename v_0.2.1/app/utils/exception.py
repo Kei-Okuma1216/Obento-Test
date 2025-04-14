@@ -1,15 +1,16 @@
-
+# database/exception.py
 from venv import logger
 from fastapi import HTTPException
 from starlette import status
 
-'''
-encoded_message = urllib.parse.quote(f"login_get() Error:  {e.detail}")
-'''
+# encoded_message = urllib.parse.quote(f"login_get() Error:  {e.detail}")
+
 # カスタム例外クラス
 class CustomException(HTTPException):
-    ''' 例: raise CustomException(status_code=400,
-                method_name="login_get()", message=str(e))
+    ''' 例: raise CustomException(
+                status_code=400,
+                method_name="login_get()",
+                message=str(e))
     '''
     def __init__(self,
                  status_code: int = 500,

@@ -37,6 +37,13 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
+      @media (min-width: 577px) { /* PCモニタサイズ（576px以下）の場合 */
+        .fixed-footer {
+          position: static !important; /* 固定表示を解除 */
+          bottom: auto !important;
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>

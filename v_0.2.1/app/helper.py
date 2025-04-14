@@ -21,7 +21,7 @@ from schemas.user_schemas import UserBase, UserResponse
 @log_decorator
 async def get_main_url(permission: int) -> str:
     try:
-        # リダイレクト先の選択 1: "/order_complete",
+        # リダイレクト先の選択 
         redirect_url = {
             1: "/users/order_complete",
             2: "/manager/me",
@@ -30,9 +30,12 @@ async def get_main_url(permission: int) -> str:
         logger.debug(f"redirect_url: {redirect_url}")
 
         return redirect_url
+
     except Exception as e:
-        raise CustomException(status_code=400,
-                method_name="get_main_url()", message=str(e))
+        raise CustomException(
+            status_code=400,
+            method_name="get_main_url()",
+            message=str(e))
 
 
 from fastapi.responses import RedirectResponse

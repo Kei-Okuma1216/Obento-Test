@@ -30,8 +30,6 @@ from helper import authenticate_user, create_auth_response, get_main_url, redire
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
-#from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
-#from utils.helper import *
 from services.order_view import batch_update_orders
 from log_config import logger  # 先ほどのログ設定をインポート
 
@@ -74,7 +72,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        #await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.2.1")
 
@@ -106,8 +104,8 @@ async def root(request: Request, response: Response):
 
         if compare_expire_date(expires):
             # expires 無効
-            # return redirect_login(request, error=token_expired_error_message)
-            return redirect_login(request)
+            return redirect_login(request, error=token_expired_error_message)
+            # return redirect_login(request)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -123,9 +121,9 @@ async def root(request: Request, response: Response):
             username, permission, main_url)
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        # return redirect_login(
-            # request, error=token_expired_error_message)
-            return redirect_login(request)
+        return redirect_login(
+            request, error=token_expired_error_message)
+            # return redirect_login(request)
     except (CookieException, jwt.InvalidTokenError) as e:
         return redirect_error(
             request, token_expired_error_message, e)
@@ -166,8 +164,8 @@ async def login_post(request: Request,
     except NotAuthorizedException as e:
         return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-        return redirect_login(request)        
-        # return redirect_login(request, error=token_expired_error_message)
+        # return redirect_login(request)        
+         return redirect_login(request, error=token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
         return redirect_error(request, login_error_message)
     except Exception as e:

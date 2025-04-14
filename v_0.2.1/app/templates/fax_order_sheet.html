@@ -139,6 +139,9 @@
     </form>
   </div>
   <script>
+    // FastAPIから渡されたbase_urlをJinja2変数として利用
+    const base_url = "{{ base_url }}";
+
     // ページ読み込み時に今日の日付を取得して表示
     document.addEventListener('DOMContentLoaded', function() {
       const today = new Date();

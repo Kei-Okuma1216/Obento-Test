@@ -59,6 +59,13 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
+      @media (min-width: 577px) {
+        .fixed-footer {
+          position: static !important; /* 固定表示を解除 */
+          bottom: auto !important;
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -226,19 +233,11 @@
       document.getElementById("delivery-weekday").value = delivery_weekday;
     });
 
-    // Jinja2 の変数を用いて、faxContext オブジェクトに値を埋め込みます
-    /*const faxContext = {
-        shop_name: "{{ shop_name }}",
-        menu_name: "{{ menu_name }}",
-        price: "{{ price }}",
-        order_count: "{{ order_count }}",
-        total_amount: "{{ total_amount }}",
-        facility_name: "{{ facility_name }}",
-        POC: "{{ POC }}"
-    };*/
 
     function openFaxOrderSheet() {
-      const base_url = "https://192.168.3.19:8000";
+      // FastAPIから渡されたbase_urlをJinja2変数として利用
+      const base_url = "{{ base_url }}";
+      // const base_url = "https://192.168.3.19:8000";
 
         // 既存のFAX送信データ
         const faxContext = {
@@ -270,7 +269,7 @@
         faxContext.delivery_day = deliveryDay;
         faxContext.delivery_weekday = deliveryWeekday;
 
-        
+
       // faxContextオブジェクトをクエリパラメータに変換
       const params = new URLSearchParams(faxContext).toString();
       const url = base_url + "/manager/me/fax_order_sheet?" + params;

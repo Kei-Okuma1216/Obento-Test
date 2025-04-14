@@ -40,6 +40,7 @@ async def get_db():
 
 
 # endpoint = "https://192.168.3.19:8000"
+# ここのIPアドレスを変更したら、呼び出しスクリプトも同様に変更する。
 endpoint = "https://192.168.3.14:8000"
 
 default_shop_name = "shop01"

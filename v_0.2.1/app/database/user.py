@@ -198,7 +198,7 @@ async def get_hashed_password(password: str)-> str:
 
     return new_hashed_password
 
-import pprint
+from pprint import pprint
 """既存ユーザーのパスワードをハッシュ化"""
 @log_decorator
 async def update_existing_passwords():

@@ -35,6 +35,13 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
+      @media (min-width: 577px) {/* PCモニタサイズ（576px以下）の場合 */
+        .fixed-footer {
+          position: static !important; /* 固定表示を解除 */
+          bottom: auto !important;
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body class="bg-light">
@@ -81,6 +88,9 @@
                 <a href="{{ base_url }}/test_exception">
                   例外テスト
                 </a>
+              </li>
+              <li class="list-group-item">
+                <a href="{{ endpoint }}/clear" class="btn btn-primary">Cookieを消去</a>
               </li>
             </ul>
             <!--<a class="btn btn-secondary" href="#">未実装</a>-->

@@ -26,7 +26,6 @@ templates = Jinja2Templates(directory="templates")
 admin_router = APIRouter()
 
 
-#endpoint = "https://192.168.3.19:8000"
 from database.sqlalchemy_database import endpoint
 
 from venv import logger

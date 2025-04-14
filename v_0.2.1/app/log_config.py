@@ -37,7 +37,8 @@ def set_logger_levels(logger, levels):
 # デフォルトではINFOとWARNINGを設定
 #set_logger_levels(logger, ["INFO", "WARNING"])
 # すべてのログレベルを有効化
-set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+# set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+set_logger_levels(logger, ["INFO", "WARNING", "ERROR", "CRITICAL"])
 
 
 # ハンドラー（1日ごとに新しいログファイルを作成）
@@ -58,7 +59,7 @@ file_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)  # コンソールのログも同じフォーマット
 
 # ロガーにハンドラーを追加
-#logger.addHandler(file_handler) # ここは適宜有効にする
+logger.addHandler(file_handler) # ここは適宜有効にする
 logger.addHandler(console_handler)  # 追加
 
 

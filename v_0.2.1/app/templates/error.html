@@ -24,6 +24,13 @@
       .content-wrapper {
         padding-bottom: 80px; /* ※フッターの高さに合わせて調整 */
       }
+      @media (min-width: 577px) {/* PCモニタサイズ（576px以下）の場合 */
+        .fixed-footer {
+          position: static !important; /* 固定表示を解除 */
+          bottom: auto !important;
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
