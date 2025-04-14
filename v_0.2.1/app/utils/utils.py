@@ -58,6 +58,7 @@ JST = timezone(timedelta(hours=9))
 
 #@log_decorator
 def get_now(tz : timezone = None) -> datetime:
+    # utcnow()は禁止
     current_datetime = None
     if tz == JST:
         current_datetime = datetime.now(JST)

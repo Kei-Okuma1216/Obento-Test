@@ -85,10 +85,14 @@ def redirect_login(request: Request, message: str=None, error: str=None, e: Exce
     except HTTPException as e:
         raise
     except Exception as e:
+
+        token_expired_error_message = "有効期限が切れています。再登録をしてください。"
+        
         raise CustomException(
             status.HTTP_404_NOT_FOUND,
-            "redirect_login()",
-            f"Error: {e.detail}")
+            method_name="redirect_login()",
+            message=token_expired_error_message if e.detail else f"Error: {e.detail}"
+        )
 
 @log_decorator # eも組み込みたい
 def redirect_error(request: Request, message: str, e: Exception=None):
@@ -170,6 +174,7 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
             "permission": user.get_permission()
         }
         access_token, expires = get_new_token(data)
+
         user.set_token(access_token)        
         user.set_exp(expires)
 

@@ -47,32 +47,36 @@ async def manager_view(request: Request, response: Response):
             logger.debug('ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
+        target_url = "manager.html"
+        context = get_manager_context(request, orders)
 
-        # 表示用データの作成
-        manager_context = {
-            'request': request,
-            'base_url': endpoint,
-        }
-        # 注文一覧タブ用のデータ
-        order_context = {
-            'orders': orders,
-            'order_count': len(orders),
-            "order_details": orders[0].model_dump() if orders else None
-        }
-        # FAX情報タブ用のデータ
-        fax_context = {
-            "shop_name": "はーとあーす勝谷",
-            "menu_name": "お昼のお弁当",
-            "price": 450,
-            "order_count": 6,
-            "total_amount": 450*6,
-            "facility_name": "テンシステム",
-            "POC": "林"
-        }
-        manager_context.update(order_context)
-        manager_context.update(fax_context)
+        return await order_table_view(response, orders, target_url, context)
 
-        return await order_table_view(response, orders, "manager.html", manager_context)
+        # # 表示用データの作成
+        # manager_context = {
+        #     'request': request,
+        #     'base_url': endpoint,
+        # }
+        # # 注文一覧タブ用のデータ
+        # order_context = {
+        #     'orders': orders,
+        #     'order_count': len(orders),
+        #     "order_details": orders[0].model_dump() if orders else None
+        # }
+        # # FAX情報タブ用のデータ
+        # fax_context = {
+        #     "shop_name": "はーとあーす勝谷",
+        #     "menu_name": "お昼のお弁当",
+        #     "price": 450,
+        #     "order_count": 6,
+        #     "total_amount": 450*6,
+        #     "facility_name": "テンシステム",
+        #     "POC": "林"
+        # }
+        # manager_context.update(order_context)
+        # manager_context.update(fax_context)
+
+        # return await order_table_view(response, orders, "manager.html", manager_context)
 
     except CookieException as e:
         raise
@@ -82,11 +86,62 @@ async def manager_view(request: Request, response: Response):
             "/manager_view()",
             f"Error: {str(e)}")
 
+async def get_manager_context(request: Request, orders):
+    
+    # 表示用データの作成
+    manager_context = {
+        'request': request,
+        'base_url': endpoint,
+    }
+    # 注文一覧タブ用のデータ
+    order_context = {
+        'orders': orders,
+        'order_count': len(orders),
+        "order_details": orders[0].model_dump() if orders else None
+    }
+    # FAX情報タブ用のデータ
+    fax_context = {
+        "shop_name": "はーとあーす勝谷",
+        "menu_name": "お昼のお弁当",
+        "price": 450,
+        "order_count": 6,
+        "total_amount": 450*6,
+        "facility_name": "テンシステム",
+        "POC": "林"
+    }
+    manager_context.update(order_context)
+    manager_context.update(fax_context)
+    
+    return manager_context
+
 
 @manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
 @log_decorator
 async def fax_order_sheet_view(request: Request):
 
+    target_url = "fax_order_sheet.html"
+    context = get_fax_sheet_context(request)
+
+    return templates.TemplateResponse(target_url, {"request": request, **context})
+
+    # fax_context = {
+    #      "shop_name": request.query_params.get("shop_name"),
+    #      "menu_name": request.query_params.get("menu_name"),
+    #      "price": request.query_params.get("price"),
+    #      "order_count": request.query_params.get("order_count"),
+    #      "total_amount": request.query_params.get("total_amount"),
+    #      "facility_name": request.query_params.get("facility_name"),
+    #      "POC": request.query_params.get("POC"),
+    #      "delivery_year": request.query_params.get("delivery_year"),
+    #      "delivery_month": request.query_params.get("delivery_month"),
+    #      "delivery_day": request.query_params.get("delivery_day"),
+    #      "delivery_weekday": request.query_params.get("delivery_weekday")
+    # }
+
+    # return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **fax_context})
+
+async def get_fax_sheet_context(request: Request):
+    
     fax_context = {
          "shop_name": request.query_params.get("shop_name"),
          "menu_name": request.query_params.get("menu_name"),
@@ -100,6 +155,4 @@ async def fax_order_sheet_view(request: Request):
          "delivery_day": request.query_params.get("delivery_day"),
          "delivery_weekday": request.query_params.get("delivery_weekday")
     }
-
-    return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **fax_context})
-
+    return fax_context

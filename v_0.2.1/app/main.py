@@ -106,7 +106,8 @@ async def root(request: Request, response: Response):
 
         if compare_expire_date(expires):
             # expires 無効
-            return redirect_login(request, error=token_expired_error_message)
+            # return redirect_login(request, error=token_expired_error_message)
+            return redirect_login(request)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -122,8 +123,9 @@ async def root(request: Request, response: Response):
             username, permission, main_url)
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        return redirect_login(
-            request, error=token_expired_error_message)
+        # return redirect_login(
+            # request, error=token_expired_error_message)
+            return redirect_login(request)
     except (CookieException, jwt.InvalidTokenError) as e:
         return redirect_error(
             request, token_expired_error_message, e)
@@ -164,7 +166,8 @@ async def login_post(request: Request,
     except NotAuthorizedException as e:
         return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-        return redirect_login(request, error=token_expired_error_message)
+        return redirect_login(request)        
+        # return redirect_login(request, error=token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
         return redirect_error(request, login_error_message)
     except Exception as e:
