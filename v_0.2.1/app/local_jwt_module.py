@@ -1,5 +1,3 @@
-from pprint import pprint
-from typing import Union
 from fastapi import HTTPException, status
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -84,11 +82,8 @@ def get_new_token(data) -> str:
         # 更新
         to_encode.update({"expires": expires})
 
-        #pprint(to_encode)
-        #print("ここまできた 3")
         encoded_jwt = jwt.encode(to_encode, SECRET_KEY, 
                                  algorithm=ALGORITHM)
-        #print("ここまできた 4")
         return encoded_jwt, expires
     
     except jwt.ExpiredSignatureError:

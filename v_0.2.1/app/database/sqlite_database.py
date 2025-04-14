@@ -12,8 +12,8 @@ import bcrypt
 from order_log_config import order_logger
 from utils.exception import CustomException, DatabaseConnectionException, SQLException
 from utils.utils import deprecated, log_decorator, get_today_str 
-from schemas.schemas import Order, User
-from schemas.schemas import UserBase, UserCreate, UserResponse
+# from schemas.schemas import Order, User
+# from schemas.schemas import UserBase, UserCreate, UserResponse
 #from order_schemas import Order
 #from user_schemas import User
 
