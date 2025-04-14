@@ -2,6 +2,15 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
+
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://root:root@localhost:5432/your_database")
+
+
+
+
+
 DATABASE_URL = "sqlite+aiosqlite:///./example.db"
 
 db_name_str = "example.db"
