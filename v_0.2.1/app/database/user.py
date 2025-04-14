@@ -17,6 +17,7 @@
     11. delete_user(username: str):
     12. delete_all_user():
 '''
+from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
 #default_shop_name = "shop01"
 from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
@@ -197,40 +198,43 @@ async def get_hashed_password(password: str)-> str:
 
     return new_hashed_password
 
-
+import pprint
 """既存ユーザーのパスワードをハッシュ化"""
-#@log_decorator
+@log_decorator
 async def update_existing_passwords():
 
     users = await select_all_users()  # すべてのユーザーを取得する関数が必要
-
+    pprint(users)
     # セッションオブジェクトを非同期コンテキストマネージャで取得
     async with get_db() as session:
+
         for user in users:
             username = user.get_username()
+            print(f"username: {username}")
+
             # 非同期セッションの場合、クエリの実行もawaitが必要となる
             result = await session.execute(select(User).filter_by(username=username))
             db_user = result.scalars().first()
+
             if db_user is None:
                 continue  # 該当ユーザーが存在しない場合はスキップ
 
-        password = db_user.password  # 直接属性にアクセス可能
-        print(f"password: {password}")
+            password = db_user.password  # 直接属性にアクセス可能
+            print(f"password: {password}")
 
-        if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
-        #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+            if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
+            #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+                """パスワードをハッシュ化する"""
+                salt = bcrypt.gensalt()
+                plain_password = user.get_password()
+                #password = user['password']
+                hashed_password = bcrypt.hashpw(plain_password.encode(), salt)
+                new_hashed_password = hashed_password.decode()
 
-            """パスワードをハッシュ化する"""
-            salt = bcrypt.gensalt()
-            password = user.get_password()
-            #password = user['password']
-            hashed_password = bcrypt.hashpw(password.encode(), salt)
-            new_hashed_password = hashed_password.decode()
+                await update_user(
+                    user.username, "password", new_hashed_password)
 
-            await update_user(
-                user.username, "password", new_hashed_password)
-
-            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+                logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
 
 # 追加
@@ -338,7 +342,10 @@ from sqlalchemy.exc import DatabaseError
 
 @log_decorator
 async def insert_shop(
-    username: str, password: str, shop_name: str) -> None:
+    username: str,
+    password: str = Body(..., description="パスワードは平文"),
+    shop_name: str = default_shop_name
+) -> None:
     """
     店舗ユーザーを追加する関数です。
     既に指定の username が存在する場合は挿入をスキップします。

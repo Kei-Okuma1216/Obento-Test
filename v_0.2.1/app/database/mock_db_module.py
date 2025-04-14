@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 from functools import wraps
 import json
 import logging
-from pprint import pprint
 from typing import Optional
 import sqlite3
 import warnings
@@ -31,6 +30,8 @@ def get_connection():
      
      # データベースファイル名を指定 
      return conn
+
+from pprint import pprint
 
 # Userテーブルを作成する
 @log_decorator

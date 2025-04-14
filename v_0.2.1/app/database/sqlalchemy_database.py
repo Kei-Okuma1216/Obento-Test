@@ -39,7 +39,9 @@ async def get_db():
 
 
 
-endpoint = "https://192.168.3.19:8000"
+# endpoint = "https://192.168.3.19:8000"
+endpoint = "https://192.168.3.14:8000"
+
 default_shop_name = "shop01"
 default_company_id = 1
 default_compamy_name = "テンシステム"
