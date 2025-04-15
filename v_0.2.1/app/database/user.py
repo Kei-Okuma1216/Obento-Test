@@ -20,7 +20,9 @@
 from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
 #default_shop_name = "shop01"
-from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+# from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+from database.local_postgresql_database import Base, AsyncSessionLocal, engine, default_shop_name, get_db
+
 # database.Userクラス
 '''
     Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
@@ -57,14 +59,18 @@ logger = logging.getLogger(__name__)
 
 
 from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+# from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+from database.local_postgresql_database import Base, AsyncSessionLocal, default_shop_name, engine, get_db
+
 
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
 
 
-from .sqlalchemy_database import engine
+# from .sqlalchemy_database import engine
+from database.local_postgresql_database import engine, default_shop_name
+
 # Userテーブル
 # 作成
 #@log_decorator

@@ -61,7 +61,8 @@ logger = logging.getLogger(__name__)
 from order_log_config import order_logger
 
 
-from .sqlalchemy_database import engine
+# from .sqlalchemy_database import engine
+from .local_postgresql_database import engine
 # 作成
 @log_decorator
 async def create_orders_table():

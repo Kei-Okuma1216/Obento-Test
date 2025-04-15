@@ -51,7 +51,8 @@ app.include_router(user_router, prefix="/users")
 
 
 # エントリポイントの選択
-from database.sqlalchemy_database import endpoint
+# from database.sqlalchemy_database import endpoint
+from database.local_postgresql_database import endpoint
 
 # tracemallocを有効にする
 import tracemalloc
@@ -73,7 +74,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.2.1")
 

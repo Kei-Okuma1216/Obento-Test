@@ -26,7 +26,8 @@ templates = Jinja2Templates(directory="templates")
 admin_router = APIRouter()
 
 
-from database.sqlalchemy_database import endpoint
+# from database.sqlalchemy_database import endpoint
+from database.local_postgresql_database import endpoint
 
 from venv import logger
 

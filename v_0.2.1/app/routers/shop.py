@@ -21,7 +21,9 @@ shop_router = APIRouter()
 
 #from database.sqlite_database import select_shop_order
 from database.order import select_orders_by_shop_all
-from database.sqlalchemy_database import default_shop_name, endpoint
+# from database.sqlalchemy_database import default_shop_name, endpoint
+from database.local_postgresql_database import endpoint, default_shop_name
+
 from venv import logger
 
 @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])

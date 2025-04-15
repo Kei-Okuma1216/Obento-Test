@@ -24,7 +24,8 @@ from schemas.user_schemas import UserResponse
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
 
-from database.sqlalchemy_database import endpoint
+# from database.sqlalchemy_database import endpoint
+from database.local_postgresql_database import endpoint
 
 from log_config import logger
 
@@ -40,7 +41,7 @@ async def regist_complete(request: Request, response: Response):
             "Unauthorized.html", {"request": request})
 
         cookies = get_all_cookies(request)
-        #print("こっちがuser.py")
+
         user: UserResponse = await select_user(cookies['sub'])
 
         if user is None:
@@ -70,18 +71,8 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
-        # 表示用データの作成
-        user_context = {
-            'request': request,
-            'base_url': endpoint,
-        }
-        #本当に必要か？
-        order_context = {
-            'orders': orders,
-            'order_count': len(orders),
-            "order_details": orders[0].model_dump() if orders else None
-        }
-        user_context.update(order_context)
+        user_context = await Get_user_context(request, orders)
+
         return await order_table_view(
             response, orders, "order_complete.html", user_context)
 
@@ -93,6 +84,21 @@ async def regist_complete(request: Request, response: Response):
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "regist_complete()",
             f"予期せぬエラーが発生しました: {str(e)}")
+
+async def Get_user_context(request: Request, orders):  
+    # 表示用データの作成
+    user_context = {
+        'request': request,
+        'base_url': endpoint,
+    }
+    #本当に必要か？
+    order_context = {
+        'orders': orders,
+        'order_count': len(orders),
+        "order_details": orders[len(orders)-1].model_dump() if orders else None
+    }
+    user_context.update(order_context)
+    return user_context
 
 
 ''' 開発中止する ユーザーのメニュー選択 '''

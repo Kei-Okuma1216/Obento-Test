@@ -14,7 +14,8 @@
 
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import Base, AsyncSessionLocal
+# from .sqlalchemy_database import Base, AsyncSessionLocal
+from database.local_postgresql_database import Base, engine
 
 # Companyテーブル
 class Company(Base):
@@ -32,7 +33,8 @@ class Company(Base):
 
 from utils.utils import log_decorator
 from utils.exception import SQLException, CustomException
-from .sqlalchemy_database import Base, AsyncSessionLocal
+# from .sqlalchemy_database import Base, AsyncSessionLocal
+from database.local_postgresql_database import engine, Base, AsyncSessionLocal
 
 
 
@@ -41,7 +43,9 @@ logger = logging.getLogger(__name__)
 
 
 # 作成
-from .sqlalchemy_database import engine
+# from .sqlalchemy_database import engine
+from database.local_postgresql_database import engine
+
 @log_decorator
 async def create_company_table():
     """

@@ -20,7 +20,9 @@ logging.basicConfig(level=logging.INFO)
 # 定数
 db_name_str = "example.db"
 #default_shop_name = "shop01"
-from .sqlalchemy_database import engine, default_shop_name
+# from .sqlalchemy_database import engine, default_shop_name
+from database.local_postgresql_database import engine, default_shop_name
+
 '''------------------------------------------------------'''
 from .user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from .company import create_company_table, insert_company
@@ -106,7 +108,8 @@ async def init_database():
 # AUTOINCREMENTフィールドをリセット
 from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import engine
+# from .sqlalchemy_database import engine
+from database.local_postgresql_database import engine
 
 @log_decorator
 async def reset_all_autoincrement():
@@ -140,7 +143,9 @@ async def reset_all_autoincrement():
 '''------------------------------------------------------'''
 from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import engine
+# from .sqlalchemy_database import engine
+from database.local_postgresql_database import engine
+
 
 @log_decorator
 async def drop_all_table():
