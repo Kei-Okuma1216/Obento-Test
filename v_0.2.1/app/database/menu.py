@@ -11,7 +11,6 @@
     7. delete_menu(shop_name: str, menu_id: int) -> int:
     8. delete_all_menus():
 '''
-from datetime import datetime, timezone
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.exc import DatabaseError
 
@@ -22,7 +21,7 @@ from utils.utils import log_decorator
 '''------------------------------------------------------'''
 # Menuテーブル
 class Menu(Base):
-    __tablename__ = "menus"
+    __tablename__ = "Menus"
 
     menu_id = Column(Integer, primary_key=True, autoincrement=True)
     shop_name = Column(String, nullable=True)  # 店舗名
@@ -58,7 +57,7 @@ async def create_menu_table():
 
     except DatabaseError as e:
         raise SQLException(
-            sql_statement="CREATE TABLE menu",
+            sql_statement="CREATE TABLE Menu",
             method_name="create_menu_table()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e

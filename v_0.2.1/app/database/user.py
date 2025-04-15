@@ -26,7 +26,7 @@ from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get
     Userクラスは、SQLAlchemyのBaseクラスを継承しており、データベースのusersテーブルに対応しています。
 '''
 class User(Base):
-    __tablename__ = "users"
+    __tablename__ = "Users"
 
     user_id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
@@ -34,7 +34,7 @@ class User(Base):
     name = Column(String, nullable=True)
     token = Column(String, nullable=True)
     exp = Column(String, nullable=True)
-    company_id = Column(Integer, ForeignKey("companies.company_id"), nullable=True)
+    company_id = Column(Integer, ForeignKey("Companies.company_id"), nullable=True)
     shop_name = Column(String, nullable=True)
     menu_id = Column(Integer, nullable=True)
     permission = Column(Integer, default=1)

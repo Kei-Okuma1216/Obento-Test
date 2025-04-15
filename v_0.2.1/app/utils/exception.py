@@ -7,23 +7,56 @@ from starlette import status
 
 # カスタム例外クラス
 class CustomException(HTTPException):
-    ''' 例: raise CustomException(
+    '''
+    例: raise CustomException(
                 status_code=400,
                 method_name="login_get()",
-                message=str(e))
+                message=str(e),
+                request=request
+    )
     '''
     def __init__(self,
                  status_code: int = 500,
                  method_name: str = "",
-                 message: str = ""):
-        #print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
-        logger.error(f"CustomException が発生！- {status_code} - {method_name}, {message}")
+                 message: str = "",
+                 request=None):
+        # リクエスト情報をダンプしてログに記録
+        if request:
+            try:
+                request_info = f"URL: {request.url}, Headers: {request.headers}, Body: {request.body}"
+            except Exception as e:
+                request_info = f"リクエスト情報の取得中にエラーが発生しました: {str(e)}"
+        else:
+            request_info = "リクエスト情報が提供されていません"
+
+        logger.error(f"CustomException が発生！- {status_code} - {method_name}, {message}, Request Info: {request_info}")
+
+        # 親クラスの初期化を呼び出す
         super().__init__(
             status_code=status_code,
             detail={
-            "method_name": method_name,
-            "message": message
+                "method_name": method_name,
+                "message": message,
+                "request_info": request_info
             })
+# class CustomException(HTTPException):
+#     ''' 例: raise CustomException(
+#                 status_code=400,
+#                 method_name="login_get()",
+#                 message=str(e))
+#     '''
+#     def __init__(self,
+#                  status_code: int = 500,
+#                  method_name: str = "",
+#                  message: str = ""):
+#         #print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
+#         logger.error(f"CustomException が発生！- {status_code} - {method_name}, {message}")
+#         super().__init__(
+#             status_code=status_code,
+#             detail={
+#             "method_name": method_name,
+#             "message": message
+#             })
 
 # Token期限切れ例外クラス
 class TokenExpiredException(CustomException):

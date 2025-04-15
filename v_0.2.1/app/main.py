@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
 templates = Jinja2Templates(directory="templates")
 from starlette import status
 
@@ -72,7 +73,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        #await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
 
         print("v_0.2.1")
 
@@ -127,7 +128,17 @@ async def root(request: Request, response: Response):
     except (CookieException, jwt.InvalidTokenError) as e:
         return redirect_error(
             request, token_expired_error_message, e)
+    except Exception as e:
 
+        content_type = request.headers.get('Content-Type')
+        print(f"Content-Type: {content_type}")
+        if content_type == "application/json":
+            json_data = await request.json()
+            return redirect_error(
+                request, json_data, e)
+        else:
+            return redirect_error(
+                request, str(e), e)
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -206,7 +217,7 @@ async def update_cancel_status(update: CancelUpdate):
 @app.exception_handler(CustomException)
 async def custom_exception_handler(
     request: Request, exc: CustomException):
-    logger.error(f"例外ハンドラーが呼ばれました: {exc.detail}")  
+    logger.error(f"例外ハンドラーが呼ばれました: {exc.detail=}")  
     # 実装例
     # raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
 

@@ -59,7 +59,7 @@ async def order_table_view(
         # ２件以上の注文がある会社のみを抽出
         # aggregated_orders = [[company, count] for company, count in company_counts.items() if count >= 2]
 
-        logger.debug(f"orders.model_dump(): {orders[0].model_dump()}")
+        logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
 
 
 
@@ -101,7 +101,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
 
         user = await select_user(cookies['sub'])
         if user is None:
-            logger.debug(f"user:{user} 取得に失敗しました")
+            logger.debug(f"user:{user=} 取得に失敗しました")
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
         # days_ago の値が None、空文字、または数値形式でなければエラーを返す
@@ -115,7 +115,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
 
         # 正常な場合は整数に変換
         days_ago_int = int(days_ago)
-        logger.debug(f"days_ago: {days_ago_int}")
+        logger.debug(f"days_ago: {days_ago_int=}")
 
         # 履歴取得処理（days_ago_intを使って履歴を取得）
         orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
@@ -133,7 +133,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
     except Exception as e:
-        logger.warning(f"/order_json Error: {str(e)}")
+        logger.warning(f"/order_json Error: {str(e)=}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
 
@@ -160,7 +160,7 @@ async def batch_update_orders(updates: list[dict]):
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "batch_update_orders()",
-            f"予期せぬエラー: {str(e)}"
+            f"予期せぬエラー: {str(e)=}"
         )
 
 

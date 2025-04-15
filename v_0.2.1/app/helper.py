@@ -43,7 +43,9 @@ from local_jwt_module import get_new_token
 
 @log_decorator
 async def create_auth_response(
-    username: str, permission: int, redirect_url: str) -> Response:
+            username: str,
+            permission: int,
+            redirect_url: str) -> Response:
     try:
         """
         ユーザー情報を元に新しいトークンを生成し、Cookie を設定したリダイレクトレスポンスを返す。
@@ -65,7 +67,7 @@ async def create_auth_response(
     except NotAuthorizedException as e:
         raise
     except Exception as e:
-        raise CustomException(method_name="create_auth_response()")
+        raise CustomException(method_name="create_auth_response()",message=str(e))
 
 
 from fastapi.templating import Jinja2Templates

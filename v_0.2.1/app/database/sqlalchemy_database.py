@@ -7,10 +7,9 @@ import psycopg2
 # データベースとのコネクションを確立します。
 from sqlalchemy.ext.asyncio import create_async_engine
 
-DATABASE_URL = "postgresql+asyncpg://root:root@localhost/LunchOrder"
+'''
+DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost/LunchOrder"
 engine = create_async_engine(DATABASE_URL, echo=True)
-
-
 '''
 DATABASE_URL = "sqlite+aiosqlite:///database/example.db"
 
@@ -22,7 +21,7 @@ DB_PATH = os.path.join(BASE_DIR, db_name_str)  #
 
 # 非同期エンジン作成
 engine = create_async_engine(DATABASE_URL, echo=True)
-'''
+
 # セッションファクトリ
 AsyncSessionLocal = sessionmaker(
     bind=engine,
@@ -49,7 +48,6 @@ async def get_db():
 
 
 
-# endpoint = "https://192.168.3.19:8000"
 # ここのIPアドレスを変更したら、呼び出しスクリプトも同様に変更する。
 endpoint = "https://192.168.3.14:8000"
 
@@ -58,9 +56,3 @@ default_company_id = 1
 default_compamy_name = "テンシステム"
 default_menu_id = 1
 default_amount = 1
-'''メモ
-PostgreSQL や MySQL なら asyncpg.exceptions.PostgresError や aiomysql.Error などをキャッチすべきです。
-しかしasyncpg.exceptions.PostgresError や aiomysql.Error は、SQLAlchemy のエンジンを使用している場合は、SQLAlchemy の例外にラップされているため、直接キャッチする必要はありません。
-SQLAlchemy の例外は、SQLAlchemy のドキュメントに記載されています。
-'''
-

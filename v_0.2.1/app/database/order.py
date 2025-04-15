@@ -405,7 +405,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                 .where(Order.company_id == company_id)
             )
 
-            logger.debug(f"select_orders_by_company_all() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"- {stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
@@ -416,14 +416,13 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
 
             order_models: List[OrderModel] = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
-                row_dict = dict(row._mapping)
+                row_dict = dict(row._mapping) # _mapping 属性で変換
                 # canceled カラムは整数型の場合があるので bool 型に変換します
                 row_dict["canceled"] = bool(row_dict.get("canceled", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
-            logger.debug(f"select_orders_by_company_all() - order_models: {order_models}")
+            logger.debug(f"- {order_models=}")
             return order_models
 
     except DatabaseError as e:

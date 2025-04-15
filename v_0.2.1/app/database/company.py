@@ -18,7 +18,7 @@ from .sqlalchemy_database import Base, AsyncSessionLocal
 
 # Companyテーブル
 class Company(Base):
-    __tablename__ = "companies"
+    __tablename__ = "Companies"
 
     company_id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)

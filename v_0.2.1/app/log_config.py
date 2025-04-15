@@ -37,9 +37,12 @@ def set_logger_levels(logger, levels):
 # デフォルトではINFOとWARNINGを設定
 #set_logger_levels(logger, ["INFO", "WARNING"])
 # すべてのログレベルを有効化
-# set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
-set_logger_levels(logger, ["INFO", "WARNING", "ERROR", "CRITICAL"])
+set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
+# set_logger_levels(logger, ["INFO", "WARNING", "ERROR", "CRITICAL"])
 
+# 開発メモ
+# ログにエラー発生時のrequestを記録するように改良の必要あり
+# 今のままではデバッグに役に立たない
 
 # ハンドラー（1日ごとに新しいログファイルを作成）
 file_handler = TimedRotatingFileHandler(
