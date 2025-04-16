@@ -1,15 +1,13 @@
 # database/sqlalchemy_database.py
-
-from ast import stmt
-
-
-from utils.exception import CustomException, SQLException
-from utils.utils import log_decorator, get_today_str 
-
 '''
     1. init_database():
     2. reset_all_autoincrement():
-    3. drop_all_table():  
+    3. drop_all_table():
+    4. get_connection(): # sqlite用
+    5. reset_all_autoincrement_and_drop_indexes_on_sqlite(): # sqlite用
+    6. drop_all_table_on_sqlite(): # sqlite用
+    7. drop_all_table():
+    8. create_database(database_name: str = DATABASE_NAME):
 '''
 
 # ログ用の設定
@@ -18,23 +16,37 @@ from venv import logger
 logging.basicConfig(level=logging.INFO)
 
 # 定数
-db_name_str = "example.db"
-#default_shop_name = "shop01"
+from ast import stmt
+from utils.exception import CustomException, SQLException
+from utils.utils import log_decorator, get_today_str 
+from sqlalchemy.exc import DatabaseError
+
 # from .sqlalchemy_database import engine, default_shop_name
 from database.local_postgresql_database import engine, default_shop_name
-
 '''------------------------------------------------------'''
 from .user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from .company import create_company_table, insert_company
 from .menu import create_menu_table, insert_menu
 from .order import create_orders_table, insert_order
 
+from settings import settings
+
 @log_decorator
 async def init_database():
     try:
         # テーブル削除
-        '''#await reset_all_autoincrement_on_sqlite()'''
-        await drop_all_table_on_sqlite()
+        # await reset_all_autoincrement_on_sqlite()
+        # await drop_all_table_on_sqlite()
+        await drop_all_table()
+        
+        db_name = settings.database_name
+        await create_database(db_name)
+
+        # 会社情報の登録
+        # 備考：Userの外部キーがcompaniesのため、先に登録する
+        await create_company_table()
+        await insert_company("テンシステム", "083-999-9999", default_shop_name) # 1
+
 
         # ユーザー情報の登録
         await create_user_table() 
@@ -55,9 +67,9 @@ async def init_database():
         await update_existing_passwords() 
 
 
-        # 会社情報の登録
-        await create_company_table()
-        await insert_company("テンシステム", "083-999-9999", default_shop_name) # 1
+        # # 会社情報の登録
+        # await create_company_table()
+        # await insert_company("テンシステム", "083-999-9999", default_shop_name) # 1
 
 
         # メニュー情報の登録
@@ -66,7 +78,7 @@ async def init_database():
         picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
 
 
-        # 注文情報の登録        
+        # 注文情報の登録
         await create_orders_table()
         # 1
         await insert_order(1, "user1", default_shop_name, 1, 1, get_today_str(-5))
@@ -94,7 +106,7 @@ async def init_database():
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
-            method_name="reset_all_autoincrement()",
+            method_name="init_database()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
         )
@@ -107,7 +119,6 @@ async def init_database():
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット
 from sqlalchemy import text
-from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import engine
 from database.local_postgresql_database import engine
 
@@ -140,15 +151,14 @@ async def reset_all_autoincrement():
         raise CustomException(500, "reset_all_autoincrement()", f"Error: {e}") from e
 
 
-'''------------------------------------------------------'''
+# ------------------------------------------------------
 from sqlalchemy import text
-from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import engine
-from database.local_postgresql_database import engine
+from database.local_postgresql_database import engine, Base
 
 
 @log_decorator
-async def drop_all_table():
+async def drop_all_table_sqlite():
     """
     全テーブル（Companies、Orders、Menus、Users）を削除する関数です。
     SQLAlchemyの非同期エンジンを用いて各テーブルに対して
@@ -164,6 +174,34 @@ async def drop_all_table():
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,
+            method_name="drop_all_table_sqlite()",
+            detail="SQL実行中にエラーが発生しました",
+            exception=e
+        ) from e
+    except Exception as e:
+        raise CustomException(500, "drop_all_table_sqlite()", f"Error: {e}") from e
+
+# ------------------------------------------------------
+from sqlalchemy import text
+
+@log_decorator
+async def drop_all_table():
+    """
+    SQLAlchemy の非同期エンジンを利用して、
+    Base.metadata に含まれる全テーブルを CASCADE オプション付きで削除します。
+    """
+    try:
+        async with engine.begin() as conn:
+            # sorted_tables は依存関係順になっているため、逆順に drop することで依存性を回避
+            for table in reversed(Base.metadata.sorted_tables):
+                # テーブル名のみなら public スキーマの場合はそのままでOK。必要に応じてスキーマ指定を追加してください。
+                sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
+                await conn.execute(text(sql_command))
+                logger.debug(f"DROP TABLE: {sql_command}")
+        logger.debug("全テーブルのDrop完了 (CASCADE)")
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement=sql_command,
             method_name="drop_all_table()",
             detail="SQL実行中にエラーが発生しました",
             exception=e
@@ -172,6 +210,40 @@ async def drop_all_table():
         raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
 
 
+# ------------------------------------------------------------------------------
+from sqlalchemy.ext.asyncio import create_async_engine
+
+
+# postgreSQL用設定
+from .settings import settings   # settings は .env から環境変数をロード
+DATABASE_NAME = settings.database_name  # example
+DATABASE_URL = settings.database_url
+
+
+async def create_database(database_name: str = DATABASE_NAME):
+    # 管理用のデフォルトデータベース "postgres" に接続するためのURL
+    # default_database_url = "postgresql+asyncpg://postgres:root@localhost/postgres"
+
+    # 非同期エンジンを作成
+    engine = create_async_engine(DATABASE_URL, echo=True)
+
+    async with engine.connect() as conn:
+        # PostgreSQLのCREATE DATABASE文はトランザクションブロック外で実行する必要があるので、isolation_levelをAUTOCOMMITに設定
+        await conn.execution_options(isolation_level="AUTOCOMMIT")
+        try:
+            # データベースが既に存在している場合、例外が発生する可能性があります。
+            await conn.execute(text(f"CREATE DATABASE {database_name}"))
+            print(f"Database '{database_name}' created successfully.")
+        except Exception as e:
+            # 例えば、データベースが既に存在する場合などは例外が発生します。必要に応じてエラーハンドリングを行います。
+            print(f"An error occurred while creating database '{database_name}': {e}")
+    
+    # エンジンを破棄
+    await engine.dispose()
+
+# # 非同期関数を実行する例
+# if __name__ == "__main__":
+#     asyncio.run(create_database("example"))
 '''---------------------------------------------------------------'''
 # sqlite用
 import aiosqlite
@@ -282,4 +354,5 @@ async def drop_all_table_on_sqlite():
     finally:
         if conn is not None:
             await conn.close()
+
 

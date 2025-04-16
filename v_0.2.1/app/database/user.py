@@ -20,8 +20,8 @@
 from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
 #default_shop_name = "shop01"
-# from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
-from database.local_postgresql_database import Base, AsyncSessionLocal, engine, default_shop_name, get_db
+from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+
 
 # database.Userクラス
 '''
@@ -56,20 +56,13 @@ from log_config import logger
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+from utils.utils import log_decorator
 
 
 from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
-from database.local_postgresql_database import Base, AsyncSessionLocal, default_shop_name, engine, get_db
-
-
-from utils.exception import CustomException, SQLException
-from utils.utils import log_decorator
-
-
-
+from database.local_postgresql_database import AsyncSessionLocal, default_shop_name, engine, get_db
 # from .sqlalchemy_database import engine
-from database.local_postgresql_database import engine, default_shop_name
 
 # Userテーブル
 # 作成
@@ -86,11 +79,11 @@ async def create_user_table():
 
 
 from sqlalchemy import select
-from typing import Optional
+from typing import Optional, List
 from schemas.user_schemas import UserResponse
 # 選択
 from database.user import AsyncSessionLocal  # 適切なパスに合わせてください
-
+from utils.exception import CustomException
 
 @log_decorator
 async def select_user(username: str) -> Optional[UserResponse]:
@@ -121,35 +114,11 @@ async def select_user(username: str) -> Optional[UserResponse]:
         raise CustomException(500, "select_user()", f"Error: {e}") from e
 
 
-
-from sqlalchemy import select
-from sqlalchemy.exc import DatabaseError
-from typing import Optional, List
-from schemas.user_schemas import UserResponse
-from database.user import AsyncSessionLocal  # 適宜パスを調整してください
-from utils.exception import CustomException
-from utils.utils import log_decorator
-from log_config import logger
-
-from sqlalchemy import select
-from sqlalchemy.exc import DatabaseError
-from typing import Optional, List
-from schemas.user_schemas import UserResponse
-from database.user import AsyncSessionLocal  # 適宜パスを調整してください
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください
-from utils.exception import CustomException
-from utils.utils import log_decorator
-from log_config import logger
-
-from sqlalchemy import select, inspect
-from sqlalchemy.exc import DatabaseError
-from typing import Optional, List
-from schemas.user_schemas import UserResponse
+from sqlalchemy import inspect
 from database.user import AsyncSessionLocal  # 必要に応じてパスを調整してください
 #from models.user import User  # ORMのUserモデル。適宜パスを調整してください
-from utils.exception import CustomException
-from utils.utils import log_decorator
-from log_config import logger
+
 
 @log_decorator
 async def select_all_users() -> Optional[List[UserResponse]]:
@@ -184,10 +153,6 @@ async def select_all_users() -> Optional[List[UserResponse]]:
         raise CustomException(500, "select_all_users()", f"Error: {e}") from e
     except Exception as e:
         raise CustomException(500, "select_all_users()", f"Error: {e}") from e
-
-
-
-
 
 
 import bcrypt
@@ -243,6 +208,7 @@ async def update_existing_passwords():
                 logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
 
+from utils.exception import SQLException
 # 追加
 ''' 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
 '''
@@ -295,7 +261,7 @@ async def insert_user(
 
 
 # 新規ユーザー追加
-from sqlalchemy import select, func
+from sqlalchemy import func
 @log_decorator
 async def insert_new_user(username: str, password: str, name: str = '') -> None:
     """
@@ -343,8 +309,8 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
 
 # お弁当屋追加
 # 備考：username == shop_name とする
-from sqlalchemy import select, func
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy import func
+
 
 @log_decorator
 async def insert_shop(

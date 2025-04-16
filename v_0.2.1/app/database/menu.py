@@ -14,7 +14,9 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.exc import DatabaseError
 
-from .sqlalchemy_database import Base, AsyncSessionLocal
+# from .sqlalchemy_database import Base, AsyncSessionLocal
+from database.local_postgresql_database import Base, engine, AsyncSessionLocal
+
 from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
@@ -42,7 +44,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 '''------------------------------------------------------'''
-from .sqlalchemy_database import engine
 # 作成
 @log_decorator
 async def create_menu_table():

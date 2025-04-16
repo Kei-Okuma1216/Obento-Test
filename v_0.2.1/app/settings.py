@@ -14,6 +14,7 @@
 # from pydantic import ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
+    database_name: str
     database_url: str
     endpoint: str
 

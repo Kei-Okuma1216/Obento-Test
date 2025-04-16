@@ -4,8 +4,10 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 
 # postgreSQL用設定
 from .settings import settings   # settings は .env から環境変数をロード
+DATABASE_NAME = settings.database_name
 DATABASE_URL = settings.database_url
-
+ENDPOINT = settings.endpoint # "https://192.168.3.14:8000"
+endpoint = ENDPOINT
 
 # 非同期エンジン作成
 engine = create_async_engine(DATABASE_URL, echo=False) # echo=Trueでログを出力する
@@ -32,8 +34,6 @@ async def get_db():
             await session.close()
 
 # 定数
-ENDPOINT = settings.endpoint # "https://192.168.3.14:8000"
-endpoint = ENDPOINT
 default_shop_name = "shop01"
 default_company_id = 1
 default_compamy_name = "テンシステム"

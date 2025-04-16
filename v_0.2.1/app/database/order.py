@@ -31,8 +31,8 @@
     18. delete_all_orders():
 '''
 from sqlalchemy import Column, Integer, String, select
-from sqlalchemy.exc import DatabaseError
-from .sqlalchemy_database import Base, AsyncSessionLocal
+# from .sqlalchemy_database import engine
+from .local_postgresql_database import Base, engine
 
 class Order(Base):
     __tablename__ = "Orders"
@@ -60,9 +60,9 @@ import logging
 logger = logging.getLogger(__name__)
 from order_log_config import order_logger
 
+from sqlalchemy.exc import DatabaseError
 
-# from .sqlalchemy_database import engine
-from .local_postgresql_database import engine
+
 # 作成
 @log_decorator
 async def create_orders_table():
@@ -74,6 +74,7 @@ async def create_orders_table():
         async with engine.begin() as conn:
             await conn.run_sync(Order.__table__.create, checkfirst=True)
         logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
+
     except DatabaseError as e:
         raise SQLException(
             sql_statement="CREATE TABLE Orders",
@@ -88,6 +89,7 @@ async def create_orders_table():
 from datetime import date
 from typing import List, Optional
 from schemas.order_schemas import OrderModel
+from .local_postgresql_database import AsyncSessionLocal
 
 # 選択（１件）
 @log_decorator
@@ -114,7 +116,7 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.order_id == order_id)
             )
-            logger.debug(f"select_single_order() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_single_order() - {stmt=}")
             result = await session.execute(stmt)
             row = result.first()
 
@@ -159,7 +161,7 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                 .join(Company, Order.company_id == Company.company_id)
                 .join(Menu, Order.menu_id == Menu.menu_id)
             )
-            logger.debug(f"select_all_orders() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_all_orders() - {stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
@@ -219,7 +221,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.username == username)
             )
-            logger.debug(f"select_orders_by_user_all() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_user_all() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -285,7 +287,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                     Order.created_at.between(start_dt, end_dt)
                 )
             )
-            logger.debug(f"select_orders_by_user_at_date() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_user_at_date() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -348,7 +350,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             start_dt, end_dt = await get_created_at_period(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
-            logger.debug(f"select_orders_by_user_ago() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_user_ago() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -474,7 +476,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 .where(Order.created_at.between(start_datetime, end_datetime))
             )
             
-            logger.debug(f"select_orders_by_company_at_date() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_company_at_date() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -537,7 +539,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             start_dt, end_dt = await get_created_at_period(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
-            logger.debug(f"select_orders_by_company_ago() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_company_ago() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
@@ -594,7 +596,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.shop_name == shop_name)
             )
-            logger.debug(f"select_orders_by_shop_all() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_shop_all() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
@@ -654,7 +656,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.shop_name == shop_name, Order.company_id == company_id)
             )
-            logger.debug(f"select_orders_by_shop_company() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_shop_company() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
@@ -725,7 +727,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 .where(Order.created_at.between(start_datetime, end_datetime))
             )
             
-            logger.debug(f"select_orders_by_shop_at_date() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_shop_at_date() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
@@ -795,7 +797,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             # 期間条件を追加
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
-            logger.debug(f"select_orders_by_shop_ago() - SQLAlchemyクエリ: {stmt}")
+            logger.debug(f"select_orders_by_shop_ago() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
@@ -869,6 +871,7 @@ async def insert_order(
             logger.info("注文追加成功")
             logger.debug(f"insert_order() - 新規注文の値: {(company_id, username, shop_name, menu_id, amount, created_at)}")
             order_logger("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
+
             return order_id
 
     except DatabaseError as e:
@@ -917,11 +920,8 @@ async def update_order(order_id: int, canceled: bool):
     except Exception as e:
         raise CustomException(500, "update_order()", f"Error: {e}")
 '''-------------------------------------------------------------'''
-from sqlalchemy import text
-
 # 削除（指定ID）
 from sqlalchemy import delete, text
-from sqlalchemy.exc import DatabaseError
 
 @log_decorator
 async def delete_order(order_id: int) -> bool:
