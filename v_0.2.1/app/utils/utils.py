@@ -82,28 +82,12 @@ def get_today_str(offset: int = 0, date_format: str = None):
         ymd = new_date.strftime("%Y-%m-%d")
     else:
         ymd = new_date.strftime("%Y-%m-%d %H:%M:%S")
+
     print(f"get_today_str(): {ymd}")
     return ymd
 
-from typing import Tuple
-
-@log_decorator
-async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
-    """
-    指定された days_ago に基づいて、期間の開始日時と終了日時を生成して返す。
-    
-    :param days_ago: 本日から何日前かを整数で指定（例: 3 なら本日から3日前）
-    :return: (start_datetime, end_datetime) のタプル。例 ("2025-04-01 00:00:00", "2025-04-04 23:59:59")
-    """
-    start_day = get_today_str(days_ago, "YMD")
-    end_day = get_today_str(0, "YMD")
-    start_datetime = f"{start_day} 00:00:00"
-    end_datetime = f"{end_day} 23:59:59"
-
-    print(f"{start_datetime=}, {end_datetime=}")
-    return start_datetime, end_datetime
-
 import pytz
+@log_decorator
 def get_today_datetime(days_ago: int = 0)-> datetime:
     # テーブルで作成日にdatetimeを使う場合
     tz = pytz.timezone("Asia/Tokyo")
@@ -112,6 +96,50 @@ def get_today_datetime(days_ago: int = 0)-> datetime:
     #formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
 
     return new_time
+
+from typing import Tuple
+
+# @log_decorator
+# async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
+#     """
+#     指定された days_ago に基づいて、期間の開始日時と終了日時を生成して返す。
+    
+#     :param days_ago: 本日から何日前かを整数で指定（例: 3 なら本日から3日前）
+#     :return: (start_datetime, end_datetime) のタプル。例 ("2025-04-01 00:00:00", "2025-04-04 23:59:59")
+#     """
+#     start_day = get_today_str(days_ago, "YMD")
+#     end_day = get_today_str(0, "YMD")
+#     start_datetime = f"{start_day} 00:00:00"
+#     end_datetime = f"{end_day} 23:59:59"
+
+#     print(f"{start_datetime=}, {end_datetime=}")
+#     return start_datetime, end_datetime
+@log_decorator
+async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+    """
+    指定された days_ago に基づいて、開始日時と終了日時を返す（タイムゾーン付き）。
+    
+    :param days_ago: 何日前から開始か（例: 3 → 3日前から本日）
+    :return: (開始日時, 終了日時) のタプル。datetime型。例:
+             (2025-04-19 00:00:00+09:00, 2025-04-22 23:59:59.999999+09:00)
+    """
+    tz = pytz.timezone("Asia/Tokyo")
+
+    # 開始日時（days_ago日前の0時）
+    start_date = get_today_datetime(days_ago)
+    # start_date = datetime.now(tz) - timedelta(days=days_ago)
+    start_datetime = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0, tzinfo=tz)
+
+    # 終了日時（本日の23:59:59.999999）
+    # now = datetime.now(tz)
+    # end_datetime = datetime(now.year, now.month, now.day, 23, 59, 59, 999999, tzinfo=tz)
+    end_date = get_today_datetime(days_ago)
+    end_datetime = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0, tzinfo=tz)
+
+    print(f"{start_datetime=}, {end_datetime=}")
+    return start_datetime, end_datetime
+
+
 
 
 

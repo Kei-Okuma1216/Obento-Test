@@ -20,7 +20,7 @@
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[OrderModel]]:
 
     # 店舗(shop_name) を指定して、注文を取得する
-    11. select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
+    11. all(shop_name: str) -> Optional[List[OrderModel]]:
     12. select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[OrderModel]]:
     13. select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[OrderModel]]:
     14. select_orders_by_shop_ago(shop_name: str, days_ago_str: str) -> Optional[List[OrderModel]]:
@@ -31,7 +31,6 @@
     18. delete_all_orders():
 '''
 from sqlalchemy import Column, Integer, String, select
-# from .sqlalchemy_database import engine
 from .local_postgresql_database import Base, engine
 
 
@@ -50,7 +49,7 @@ class Order(Base):
     # updated_at = Column(String, default="")
     # PostgreSQL 専用：タイムゾーン付き
     created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-    # updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
+    updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
     canceled = Column(Integer, default=0)
 
     def as_dict(self):
@@ -351,7 +350,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.username == username)
             )
-            
+
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
@@ -826,10 +825,10 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-
             # 期間条件を追加
-            stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            logger.info(f"select_orders_by_shop_ago() - {stmt}")
+            stmt = stmt.where(Order.created_at.between(start_dt.isoformat(), end_dt.isoformat()))
+            print(f"{start_dt.isoformat()=}, {end_dt.isoformat()=}")
+            # logger.info(f"{stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
@@ -849,7 +848,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
-            logger.debug(f"select_orders_by_shop_ago() - order_models: {order_models}")
+            logger.debug(f"{order_models=}")
             return order_models
 
     except DatabaseError as e:
@@ -930,7 +929,7 @@ async def update_order(order_id: int, canceled: bool):
     """
     try:
         async with AsyncSessionLocal() as session:
-            current_time = get_today_str()
+            current_time = get_today_datetime()
             stmt = (
                 update(Order)
                 .where(Order.order_id == order_id)

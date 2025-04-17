@@ -73,7 +73,7 @@ from sqlalchemy import select
 
 # 取得(1件)
 from typing import Optional
-from utils.utils import get_today_str
+
 
 @log_decorator
 async def select_company(company_id: int) -> Optional[CompanyModel]:
@@ -137,7 +137,6 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
         ) from e
     except Exception as e:
         raise CustomException(500, "select_all_company()", f"Error: {e}") from e
-
 
 from utils.utils import get_today_str
 from sqlalchemy import func

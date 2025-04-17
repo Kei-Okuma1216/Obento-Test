@@ -82,24 +82,16 @@ async def init_database():
         await create_orders_table()
         # 1
         await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(-5))
-        # print(f"insert_order() - {get_today_str(-5)}")
         # 2
         await insert_order(1, "user2", default_shop_name, 1, 2, get_today_datetime(-4))
-        # print(f"insert_order() - {get_today_str(-4)}")
         # 3
         await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_datetime(-3))
-        # print(f"insert_order() - {get_today_str(-3)}")
         # 4
         await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_datetime(-2))
-        # print(f"insert_order() - {get_today_str(-2)}")
         # 5
         await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(-1))
-        # print(f"insert_order() - {get_today_str(-1)}")
         # 6
         await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime())
-        # print(f"insert_order() - {get_today_str(-1)}")
-
-        #await show_all_orders()
 
         logger.info("データベースファイル 'sample.db' が正常に作成されました。")
 
@@ -183,6 +175,11 @@ async def drop_all_table_sqlite():
 
 # ------------------------------------------------------
 from sqlalchemy import text
+from database.order import Order
+from database.company import Company
+from database.menu import Menu
+from database.user import User
+from .local_postgresql_database import Base
 
 @log_decorator
 async def drop_all_table():
@@ -195,7 +192,9 @@ async def drop_all_table():
             # sorted_tables は依存関係順になっているため、逆順に drop することで依存性を回避
             for table in reversed(Base.metadata.sorted_tables):
                 # テーブル名のみなら public スキーマの場合はそのままでOK。必要に応じてスキーマ指定を追加してください。
-                sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
+                # sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
+                sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
+                print(f"{sql_command=}")
                 #  スキーマ付きで明示的に DROP
                 # sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
                 await conn.execute(text(sql_command))
@@ -265,96 +264,96 @@ DB_PATH = os.path.join(BASE_DIR, db_name_str)  # sqlite_database.py と同じフ
 #conn = sqlite3.connect(DB_PATH)
 
 # コネクション取得
-async def get_connection():
-    try:
-        return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
+# async def get_connection():
+#     try:
+#         return await aiosqlite.connect(DB_PATH, isolation_level=None, check_same_thread=False)
 
-    except Exception as e:
-        raise DatabaseConnectionException(
-            method_name="get_connection()",
-            detail="データベース接続に失敗しました。",
-            exception=e
-        )
+#     except Exception as e:
+#         raise DatabaseConnectionException(
+#             method_name="get_connection()",
+#             detail="データベース接続に失敗しました。",
+#             exception=e
+#         )
 
 # コネクションを閉じる（実際のテストでは不要）
 #await conn.close()
 
-@log_decorator
-async def reset_all_autoincrement_and_drop_indexes_on_sqlite():
-    """
-    Orders, Companies, Menus, Users テーブルの自動採番用シーケンスをリセットし、
-    それに関連するINDEXも削除する関数です。
-    """
-    conn = None
-    try:
-        conn = await get_connection()
+# @log_decorator
+# async def reset_all_autoincrement_and_drop_indexes_on_sqlite():
+#     """
+#     Orders, Companies, Menus, Users テーブルの自動採番用シーケンスをリセットし、
+#     それに関連するINDEXも削除する関数です。
+#     """
+#     conn = None
+#     try:
+#         conn = await get_connection()
 
-        # AUTOINCREMENT のリセット
-        for table in ["Companies", "Orders", "Menus", "Users"]:
-            sqlstr = f'DELETE FROM sqlite_sequence WHERE name = "{table}"'
-            await conn.execute(sqlstr)
+#         # AUTOINCREMENT のリセット
+#         for table in ["Companies", "Orders", "Menus", "Users"]:
+#             sqlstr = f'DELETE FROM sqlite_sequence WHERE name = "{table}"'
+#             await conn.execute(sqlstr)
 
-        # INDEX の削除
-        indexes = [
-            "ix_companies_company_id",  # 会社IDに対するINDEX
-            "ix_users_user_id",         # ユーザーIDに対するINDEX
-            "ix_users_username"         # ユーザー名に対するUNIQUE INDEX
-        ]
-        for index in indexes:
-            sqlstr_index = f"DROP INDEX IF EXISTS {index}"
-            await conn.execute(sqlstr_index)
+#         # INDEX の削除
+#         indexes = [
+#             "ix_companies_company_id",  # 会社IDに対するINDEX
+#             "ix_users_user_id",         # ユーザーIDに対するINDEX
+#             "ix_users_username"         # ユーザー名に対するUNIQUE INDEX
+#         ]
+#         for index in indexes:
+#             sqlstr_index = f"DROP INDEX IF EXISTS {index}"
+#             await conn.execute(sqlstr_index)
 
-        await conn.commit()  # すべての変更をコミットする
-        logger.debug("AUTOINCREMENTのリセットおよびINDEXの削除完了")
+#         await conn.commit()  # すべての変更をコミットする
+#         logger.debug("AUTOINCREMENTのリセットおよびINDEXの削除完了")
 
-    except DatabaseConnectionException as e:
-        raise
-    except sqlite3.DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="reset_all_autoincrement_and_drop_indexes_on_sqlite()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
-    except Exception as e:
-        raise CustomException(
-            500,
-            "reset_all_autoincrement_and_drop_indexes_on_sqlite()",
-            f"Error: {e}"
-        ) from e
-    finally:
-        if conn is not None:
-            await conn.close()
+#     except DatabaseConnectionException as e:
+#         raise
+#     except sqlite3.DatabaseError as e:
+#         raise SQLException(
+#             sql_statement=sqlstr,
+#             method_name="reset_all_autoincrement_and_drop_indexes_on_sqlite()",
+#             detail="SQL実行中にエラーが発生しました",
+#             exception=e
+#         )
+#     except Exception as e:
+#         raise CustomException(
+#             500,
+#             "reset_all_autoincrement_and_drop_indexes_on_sqlite()",
+#             f"Error: {e}"
+#         ) from e
+#     finally:
+#         if conn is not None:
+#             await conn.close()
 
 
-# 全テーブルをDrop
-#@log_decorator
-async def drop_all_table_on_sqlite():
-    conn = None
-    try:
-        #'DROP TABLE IF EXISTS Company'
-        conn = await get_connection()
-        # AUTOINCREMENT のリセット
-        for table in ["Company", "Orders", "Menu", "User"]:
-            sqlstr = f'DROP TABLE IF EXISTS {table}'
-            await conn.execute(sqlstr)
+# # 全テーブルをDrop
+# #@log_decorator
+# async def drop_all_table_on_sqlite():
+#     conn = None
+#     try:
+#         #'DROP TABLE IF EXISTS Company'
+#         conn = await get_connection()
+#         # AUTOINCREMENT のリセット
+#         for table in ["Company", "Orders", "Menu", "User"]:
+#             sqlstr = f'DROP TABLE IF EXISTS {table}'
+#             await conn.execute(sqlstr)
 
-        await conn.commit()  # コミットを一度だけ実行
-        logger.debug("全テーブルのDrop完了")
-    except DatabaseConnectionException as e:
-        raise
-    except sqlite3.DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="drop_all_table()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
-    except Exception as e:
-        raise CustomException(
-            500, f"drop_all_table()", f"Error: {e}")    
-    finally:
-        if conn is not None:
-            await conn.close()
+#         await conn.commit()  # コミットを一度だけ実行
+#         logger.debug("全テーブルのDrop完了")
+#     except DatabaseConnectionException as e:
+#         raise
+#     except sqlite3.DatabaseError as e:
+#         raise SQLException(
+#             sql_statement=sqlstr,
+#             method_name="drop_all_table()",
+#             detail="SQL実行中にエラーが発生しました",
+#             exception=e
+#         )
+#     except Exception as e:
+#         raise CustomException(
+#             500, f"drop_all_table()", f"Error: {e}")    
+#     finally:
+#         if conn is not None:
+#             await conn.close()
 
 
