@@ -28,10 +28,8 @@ view_router = APIRouter(
     tags=["orders"]
 )
 
-#from database.sqlite_database import get_connection, select_shop_order, select_user
 from database.order import select_orders_by_shop_ago
 from database.user import select_user
-# from database.sqlalchemy_database import AsyncSessionLocal
 from database.local_postgresql_database import AsyncSessionLocal
 
 
@@ -40,10 +38,10 @@ from collections import Counter
 # 注文一覧テーブル表示
 @log_decorator
 async def order_table_view(
-    response: Response,
-    orders ,
-    redirect_url: str,
-    order_table_context: dict):
+                response: Response,
+                orders ,
+                redirect_url: str,
+                context: dict):
 
     try:
         # ordersリストをin-placeで降順にソート
@@ -69,12 +67,12 @@ async def order_table_view(
             'aggregated_orders': aggregated_orders,
         }
 
-        order_table_context.update(calculated_orders_context)
+        context.update(calculated_orders_context)
 
-        templates.TemplateResponse("order_table.html", order_table_context)
+        templates.TemplateResponse("order_table.html", context)
 
         template_response = templates.TemplateResponse(
-            redirect_url, order_table_context)
+            redirect_url, context)
         # 必須！　Set-CookieヘッダーがNoneでないことを確認
         set_cookie_header = response.headers.get("Set-Cookie")
         if set_cookie_header:
@@ -105,11 +103,13 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
             logger.debug(f"user:{user=} 取得に失敗しました")
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        # days_ago の値が None、空文字、または数値形式でなければエラーを返す
+        # days_ago の値が None、空文字、または数値形式以外はエラーを返す
         #if days_ago is None or days_ago.strip() == "":
+        
         if days_ago.__len__ == 0:
             logger.debug("days_ago の値が無効です (空文字または未指定)")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+        
         if not (days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit())):
             logger.debug("days_ago の値が無効です (半角数値以外)")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)

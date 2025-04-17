@@ -1,12 +1,10 @@
-# shop.py
+# routers/shop.py
 # ../shops/meになる
 '''
     1. shop_view(request: Request, response: Response):
-        service.order_table_view(request, response, orders, "shop.html")を呼び出す。
-    2. order_json(request: Request, days_ago: str = Query("0")):
-        get_order_json(request, days_ago)を呼び出す。
+    2. get_shop_context(request: Request, orders):
+    3. order_json(request: Request, days_ago: str = Query("0")):
 '''
-
 from fastapi import Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -19,7 +17,6 @@ templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter()
 
-#from database.sqlite_database import select_shop_order
 from database.order import select_orders_by_shop_all
 # from database.sqlalchemy_database import default_shop_name, endpoint
 from database.local_postgresql_database import endpoint, default_shop_name
@@ -47,16 +44,17 @@ async def shop_view(request: Request, response: Response):
             logger.debug('shop_view - ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
-        shop_context = {
-            'request': request,
-            'base_url': endpoint,
-        }
-        order_context = {
-            'orders': orders,
-            'order_count': len(orders),
-            "order_details": orders[0].model_dump() if orders else None
-        }
-        shop_context.update(order_context)
+        shop_context = await get_shop_context(request, orders)
+        # shop_context = {
+        #     'request': request,
+        #     'base_url': endpoint,
+        # }
+        # order_context = {
+        #     'orders': orders,
+        #     'order_count': len(orders),
+        #     "order_details": orders[0].model_dump() if orders else None
+        # }
+        # shop_context.update(order_context)
         return await order_table_view(response, orders, "shop.html", shop_context)
 
     except SQLException as e:
@@ -67,7 +65,24 @@ async def shop_view(request: Request, response: Response):
             f"/shop_view()",
             f"Error: {str(e)}")
 
+async def get_shop_context(request: Request, orders):
+        # 備考：ここはtarget_urlをcontextに入れる改善が必要
+        # 更に、order_table_view()も引数を2個にできる(response, shop_context)
+        shop_context = {
+            'request': request,
+            'base_url': endpoint,
+        }
+        order_context = {
+            'orders': orders,
+            'order_count': len(orders),
+            "order_details": orders[0].model_dump() if orders else None
+        }
+        shop_context.update(order_context)
+
+        return shop_context
+
 @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
+    # services/order_view.pyにある
     return await get_order_json(request, days_ago)

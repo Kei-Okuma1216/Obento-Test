@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 # 定数
 from ast import stmt
 from utils.exception import CustomException, SQLException
-from utils.utils import log_decorator, get_today_str 
+from utils.utils import log_decorator, get_today_str, get_today_datetime
 from sqlalchemy.exc import DatabaseError
 
 # from .sqlalchemy_database import engine, default_shop_name
@@ -81,23 +81,23 @@ async def init_database():
         # 注文情報の登録
         await create_orders_table()
         # 1
-        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_str(-5))
-        print(f"insert_order() - {get_today_str(-5)}")
+        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(-5))
+        # print(f"insert_order() - {get_today_str(-5)}")
         # 2
-        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_str(-4))
-        print(f"insert_order() - {get_today_str(-4)}")
+        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_datetime(-4))
+        # print(f"insert_order() - {get_today_str(-4)}")
         # 3
-        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_str(-3))
-        print(f"insert_order() - {get_today_str(-3)}")
+        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_datetime(-3))
+        # print(f"insert_order() - {get_today_str(-3)}")
         # 4
-        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_str(-2))
-        print(f"insert_order() - {get_today_str(-2)}")
+        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_datetime(-2))
+        # print(f"insert_order() - {get_today_str(-2)}")
         # 5
-        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_str(-1))
-        print(f"insert_order() - {get_today_str(-1)}")
+        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(-1))
+        # print(f"insert_order() - {get_today_str(-1)}")
         # 6
-        await insert_order(1, "user1", "shop02", 1, 1, get_today_str())
-        print(f"insert_order() - {get_today_str(-1)}")
+        await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime())
+        # print(f"insert_order() - {get_today_str(-1)}")
 
         #await show_all_orders()
 
@@ -196,6 +196,8 @@ async def drop_all_table():
             for table in reversed(Base.metadata.sorted_tables):
                 # テーブル名のみなら public スキーマの場合はそのままでOK。必要に応じてスキーマ指定を追加してください。
                 sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
+                #  スキーマ付きで明示的に DROP
+                # sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
                 await conn.execute(text(sql_command))
                 logger.debug(f"DROP TABLE: {sql_command}")
         logger.debug("全テーブルのDrop完了 (CASCADE)")

@@ -34,6 +34,10 @@ from sqlalchemy import Column, Integer, String, select
 # from .sqlalchemy_database import engine
 from .local_postgresql_database import Base, engine
 
+
+from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import TIMESTAMP as PG_TIMESTAMP
+
 class Order(Base):
     __tablename__ = "Orders"
 
@@ -43,8 +47,10 @@ class Order(Base):
     shop_name = Column(String)
     menu_id = Column(Integer)
     amount = Column(Integer)
-    created_at = Column(String, nullable=False)
-    updated_at = Column(String, default="")
+    # updated_at = Column(String, default="")
+    # PostgreSQL 専用：タイムゾーン付き
+    created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    # updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
     canceled = Column(Integer, default=0)
 
     def as_dict(self):
@@ -86,7 +92,7 @@ async def create_orders_table():
         raise CustomException(500, "create_orders_table()", f"Error: {e}")
 
 '''-----------------------------------------------------------'''
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 from schemas.order_schemas import OrderModel
 from .local_postgresql_database import AsyncSessionLocal
@@ -571,6 +577,19 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
         raise CustomException(500, "select_orders_by_company_ago()", f"Error: {e}")
 
 '''-----------------------------------------------------------'''
+from datetime import datetime
+from typing import Optional, List
+import logging
+
+from sqlalchemy import select
+from sqlalchemy.exc import DatabaseError
+
+#from models import Order, Company, Menu
+from schemas.order_schemas import OrderModel
+#from utils.exceptions import SQLException, CustomException
+
+logger = logging.getLogger(__name__)
+
 @log_decorator
 async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
     """
@@ -607,11 +626,23 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
             
             order_models: List[OrderModel] = []
             for row in rows:
-                # SQLAlchemy の Row オブジェクトは _mapping 属性を利用して辞書に変換できます
                 row_dict = dict(row._mapping)
-                # canceled が整数型で取得される場合があるため、bool型に変換
+
+                # DEBUG: created_at の型確認
+                logger.debug(f"[DEBUG] created_at type: {type(row_dict.get('created_at'))}, value: {row_dict.get('created_at')}")
+
+                # created_at を文字列から datetime に変換（必要な場合のみ）
+                created_at_val = row_dict.get("created_at")
+                if isinstance(created_at_val, str):
+                    try:
+                        row_dict["created_at"] = datetime.fromisoformat(created_at_val)
+                    except ValueError:
+                        row_dict["created_at"] = datetime.strptime(created_at_val, "%Y-%m-%d %H:%M:%S.%f%z")
+
+                # canceled を bool に明示変換
                 row_dict["canceled"] = bool(row_dict.get("canceled", False))
-                # 辞書から pydantic モデル OrderModel を生成
+
+                # OrderModel へ変換
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
             
@@ -627,6 +658,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
         )
     except Exception as e:
         raise CustomException(500, "select_orders_by_shop_all()", f"Error: {e}")
+
 
 
 
@@ -794,18 +826,18 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
+
             # 期間条件を追加
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            
-            logger.debug(f"select_orders_by_shop_ago() - {stmt=}")
-            
+            logger.info(f"select_orders_by_shop_ago() - {stmt}")
+
             result = await session.execute(stmt)
             rows = result.all()
-            
+
             if not rows:
                 logger.warning("No order found for the given shop_name with the specified period")
                 return None
-            
+
             order_models: List[OrderModel] = []
             for row in rows:
                 # Rowオブジェクトは _mapping 属性で辞書に変換可能
@@ -816,7 +848,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 row_dict["canceled"] = bool(row_dict.get("canceled", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
-            
+
             logger.debug(f"select_orders_by_shop_ago() - order_models: {order_models}")
             return order_models
 
@@ -833,7 +865,8 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
 '''-------------------------------------------------------------'''
 # 追加
-from utils.utils import get_today_str
+from utils.utils import get_today_str, get_today_datetime
+
 @log_decorator
 async def insert_order(
     company_id: int,
@@ -841,16 +874,17 @@ async def insert_order(
     shop_name: str,
     menu_id: int,
     amount: int,
-    created_at: Optional[str] = None) -> int:
+    created_at: Optional[datetime] = None) -> int:
     """
     Ordersテーブルに新規注文を挿入する関数です。
-    created_atがNoneの場合は、get_today_str()で生成した値を設定します。
-    挿入後、新規レコードの order_id を返します。
+    created_atがNoneの場合は、Asia/Tokyoで現在時刻を設定します。
     """
     try:
         async with AsyncSessionLocal() as session:
-            # created_atがNoneの場合、デフォルト値を設定
-            created_at = created_at if created_at else get_today_str()
+            # created_atがNoneの場合、現在時刻（Asia/Tokyo）で生成
+            # created_at = created_at if created_at else get_today_str()
+            if created_at is None:
+                created_at = get_today_datetime()
             logger.debug(f"insert_order() called with created_at = {created_at}")
 
             # Orderモデルの新規インスタンスを生成
@@ -860,7 +894,8 @@ async def insert_order(
                 shop_name=shop_name,
                 menu_id=menu_id,
                 amount=amount,
-                created_at=created_at
+                created_at=created_at,
+                canceled = 0
             )
             session.add(new_order)
             await session.commit()

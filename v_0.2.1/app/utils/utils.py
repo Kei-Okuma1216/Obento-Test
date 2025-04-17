@@ -12,6 +12,7 @@ import functools
 import inspect
 import warnings
 
+
 from utils.exception import CookieException
 
 # カスタムデコレーターを定義
@@ -86,6 +87,7 @@ def get_today_str(offset: int = 0, date_format: str = None):
 
 from typing import Tuple
 
+@log_decorator
 async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を生成して返す。
@@ -98,7 +100,19 @@ async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
     start_datetime = f"{start_day} 00:00:00"
     end_datetime = f"{end_day} 23:59:59"
 
+    print(f"{start_datetime=}, {end_datetime=}")
     return start_datetime, end_datetime
+
+import pytz
+def get_today_datetime(days_ago: int = 0)-> datetime:
+    # テーブルで作成日にdatetimeを使う場合
+    tz = pytz.timezone("Asia/Tokyo")
+    current_time = datetime.now(tz)
+    new_time = current_time - timedelta(days_ago * 1)
+    #formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
+
+    return new_time
+
 
 
 @log_decorator
