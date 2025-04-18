@@ -24,7 +24,7 @@ from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import engine, default_shop_name
 from database.local_postgresql_database import engine, default_shop_name
 '''------------------------------------------------------'''
-from .user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
+from .user import alter_orders_created_at_column_type, create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from .company import create_company_table, insert_company
 from .menu import create_menu_table, insert_menu
 from .order import create_orders_table, insert_order
@@ -38,7 +38,7 @@ async def init_database():
         # await reset_all_autoincrement_on_sqlite()
         # await drop_all_table_on_sqlite()
         await drop_all_table()
-        
+
         db_name = settings.database_name
         await create_database(db_name)
 
@@ -80,6 +80,9 @@ async def init_database():
 
         # 注文情報の登録
         await create_orders_table()
+        
+        # await alter_orders_created_at_column_type()
+        
         # 1
         await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=5))
         # 2
@@ -91,7 +94,9 @@ async def init_database():
         # 5
         await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(days_ago=1))
         # 6
-        await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime())
+        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=0))
+        # 7
+        await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime(days_ago=0))
 
         logger.info("データベースファイル 'sample.db' が正常に作成されました。")
 

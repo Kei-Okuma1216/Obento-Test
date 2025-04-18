@@ -1,4 +1,30 @@
-# utils.py
+# utils/utils.py
+'''
+    1. def log_decorator(func):
+    2. def deprecated(func):
+
+    3. JST
+    4. def get_now(tz : timezone = None) -> datetime:
+    5. def get_date_str(dt: datetime) -> str:
+    6. def get_datetime_str(dt: datetime) -> str:
+    7. def get_today_str(offset: int = 0, date_format: str = None):
+    8. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+    9. def get_today_datetime(days_ago: int = 0)-> datetime:
+    10. def get_naive_jst_now() -> datetime:
+
+    11. def set_all_cookies(response: Response, user: Dict):
+    12. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
+    13. def delete_all_cookies(response: Response):
+    14. def compare_expire_date(expires: str) -> bool:
+    15. def prevent_order_twice(response: Response, last_order_date: datetime):
+    16. def get_end_of_today(tz : timezone = None) -> datetime:
+    17. def get_token_expires(request: Request) -> str:
+
+    18. async def check_permission_and_stop_order(request: Request, response: Response):
+    19. async def check_permission(request: Request, permits: list):
+
+'''
+    
 from datetime import datetime, timezone, timedelta
 
 from venv import logger
@@ -13,7 +39,7 @@ import inspect
 import warnings
 
 
-from utils.exception import CookieException
+from utils.exception import CookieException, CustomException
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する
@@ -88,67 +114,68 @@ def get_today_str(offset: int = 0, date_format: str = None):
 
 from typing import Tuple
 
-# @log_decorator
-# async def get_created_at_period(days_ago: int) -> Tuple[str, str]:
-#     """
-#     指定された days_ago に基づいて、期間の開始日時と終了日時を生成して返す。
-    
-#     :param days_ago: 本日から何日前かを整数で指定（例: 3 なら本日から3日前）
-#     :return: (start_datetime, end_datetime) のタプル。例 ("2025-04-01 00:00:00", "2025-04-04 23:59:59")
-#     """
-#     start_day = get_today_str(days_ago, "YMD")
-#     end_day = get_today_str(0, "YMD")
-#     start_datetime = f"{start_day} 00:00:00"
-#     end_datetime = f"{end_day} 23:59:59"
-
-#     print(f"{start_datetime=}, {end_datetime=}")
-#     return start_datetime, end_datetime
 from datetime import datetime, timedelta
 from typing import Tuple
 import pytz
+
+from datetime import datetime, timedelta
+from typing import Tuple
 
 @log_decorator
 async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
     返す datetime は tzinfo を持たない naive datetime。
+    開始: 00:00:00.000000、終了: 23:59:59.999999
     """
-    # tz = pytz.timezone("Asia/Tokyo")
+    try:
+        # JST基準で days_ago日前の日付を取得（tzなし、00:00:00）
+        base_date = get_today_datetime(days_ago)
 
-    # 開始日時（days_ago日前の0時）
-    start_dt = get_today_datetime(days_ago)
-    # start_date = datetime.now(tz) - timedelta(days=days_ago)
-    # start_dt = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0)
+        start_dt = datetime(
+            base_date.year,
+            base_date.month,
+            base_date.day,
+            # 0, 0, 0, 0  # 明示的にマイクロ秒=0
+            0, 0, 0  # 明示的にマイクロ秒=0
+        )
 
-    
-    # 終了日時（本日の23:59:59.999999）
-    now = get_today_datetime(0)
-    end_dt = datetime(now.year, now.month, now.day, 23, 59, 59, 999999)
-    print(f"{start_dt=},{end_dt=}")
+        end_date = get_today_datetime(0)
 
-    return start_dt, end_dt
+        end_dt = datetime(
+            end_date.year,
+            end_date.month,
+            end_date.day,
+            # 23, 59, 59, 0  # 終了の最大時刻（当日中）
+            23, 59, 59  # 終了の最大時刻（当日中）
+        )
+        print(f"{start_dt=}, {end_dt=}")
+        return start_dt, end_dt
+
+    except Exception as e:    
+        raise CustomException(500, "get_created_at_period()", f"Error: {e}")
 
 
-import pytz
+
 @log_decorator
-def get_today_datetime(days_ago: int = 0)-> datetime:
-    # テーブルで作成日にdatetimeを使う場合
+def get_today_datetime(days_ago: int = 0) -> datetime:
+    """
+    JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
+    例: days_ago=0 -> 今日の 00:00:00（タイムゾーンなし）
+    """
     tz = pytz.timezone("Asia/Tokyo")
-    current_time = datetime.now(tz)
+    current_time = datetime.now(tz) - timedelta(days=days_ago)
 
-    if days_ago == 0:
-        new_time = current_time
-    else:
-        new_time = current_time - timedelta(days_ago * 1)
+    # JST基準で「0時0分0秒」の日時を作成（tzなしで返す）
+    naive_datetime = datetime(
+        current_time.year,
+        current_time.month,
+        current_time.day,
+        0, 0, 0, 000000
+    )
 
-    # JSTタイムゾーン付きで00:00:00のdatetimeを生成
-    new_date = tz.localize(datetime(new_time.year, new_time.month, new_time.day, 0, 0, 0))
-    formatted_date = datetime.strptime(
-        new_date.strftime("%Y-%m-%d %H:%M:%S"),
-        "%Y-%m-%d %H:%M:%S")
-    
-    print(f"{formatted_date=}")
-    return formatted_date
+    print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
+    return naive_datetime
 
 
 def get_naive_jst_now() -> datetime:

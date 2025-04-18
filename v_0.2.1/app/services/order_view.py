@@ -103,24 +103,23 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
             logger.debug(f"user:{user=} 取得に失敗しました")
             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        # days_ago の値が None、空文字、または数値形式以外はエラーを返す
-        #if days_ago is None or days_ago.strip() == "":
-        
-        if days_ago.__len__ == 0:
-            logger.debug("days_ago の値が無効です (空文字または未指定)")
-            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
-        
-        if not (days_ago.isdigit() or (days_ago.startswith('-') and days_ago[1:].isdigit())):
-            logger.debug("days_ago の値が無効です (半角数値以外)")
+        # --- ✅ days_ago のバリデーション ---
+        if days_ago is None or days_ago.strip() == "":
+            logger.debug("days_ago の値が無効です（None または 空文字）")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
 
-        # 正常な場合は整数に変換
-        days_ago_int = int(days_ago)
-        logger.debug(f"days_ago: {days_ago_int=}")
+        try:
+            days_ago_int = int(days_ago)
+        except ValueError:
+            logger.debug("days_ago の値が数値でないため無効です")
+            return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+
+        logger.debug(f"---days_ago: {days_ago_int=}")
+        # -----------------------------------
 
         # 履歴取得処理（days_ago_intを使って履歴を取得）
         orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
-
+        print(f"orders.len(): {len(orders)}")
         if not orders:
             logger.info("No orders found or error occurred.")
             return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
@@ -134,7 +133,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
     except Exception as e:
-        logger.warning(f"/order_json Error: {str(e)=}")
+        logger.warning(f"get_order_json Error: {str(e)=}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
 

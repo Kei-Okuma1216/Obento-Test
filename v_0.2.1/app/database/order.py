@@ -58,7 +58,7 @@ class Order(Base):
 
 
 from utils.exception import CustomException, SQLException
-from utils.utils import log_decorator
+from utils.utils import get_today_datetime, log_decorator
 
 
 import logging
@@ -91,7 +91,7 @@ async def create_orders_table():
         raise CustomException(500, "create_orders_table()", f"Error: {e}")
 
 '''-----------------------------------------------------------'''
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import List, Optional
 from schemas.order_schemas import OrderModel
 from .local_postgresql_database import AsyncSessionLocal
@@ -357,6 +357,17 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 .where(Order.username == username)
             )
 
+            # 検証用
+            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
+            recent = await session.execute(
+                select(Order.order_id, Order.created_at)
+                .where(Order.shop_name == username)
+                .order_by(Order.created_at.desc())
+                .limit(5)
+            )
+            for row in recent.fetchall():
+                print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
+
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
@@ -545,19 +556,21 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.company_id == company_id)
             )
-            
+
+
             # 期間指定: days_ago日前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             # stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             logger.debug(f"select_orders_by_company_ago() - {stmt=}")
-            
+
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
                 logger.warning("No order found for the given company_id")
-                return None
+                return [] 
+                #return None
             
             order_models: List[OrderModel] = []
             for row in rows:
@@ -809,6 +822,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
     該当する注文が存在しなければ None を返します。
     """
+    print(f"{shop_name=}, {days_ago=}")
     try:
         async with AsyncSessionLocal() as session:
             # JOINして基本クエリを構築
@@ -829,20 +843,47 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 .where(Order.shop_name == shop_name)
             )
 
+
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
+            print(f"start_dt: {start_dt}, end_dt: {end_dt}")
+
+            # 検証用
+            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
+            recent = await session.execute(
+                select(Order.order_id, Order.created_at)
+                .where(Order.shop_name == shop_name)
+                .order_by(Order.created_at.desc())
+                .limit(10)
+            )
+            for row in recent.fetchall():
+                print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
+
             # 期間条件を追加
-            # stmt = stmt.where(Order.created_at.between(start_dt.isoformat(), end_dt.isoformat()))
-            stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            print(f"{start_dt=}, {end_dt=}")
+            print(f"days_ago: {days_ago}")
+            if days_ago == 0:
+                stmt = stmt.where(
+                    Order.created_at >= start_dt,
+                    Order.created_at <= start_dt + timedelta(days=1)
+                )
+            else:
+                stmt = stmt.where(
+                    Order.created_at >= start_dt,
+                    Order.created_at <= end_dt  # ここは `<=` にするのが素直で安全
+                )
+            # stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
+            # print(f"{start_dt=}, {end_dt=}")
             # logger.info(f"{stmt=}")
+            print(f"str(stmt):--->{str(stmt)}")
 
             result = await session.execute(stmt)
             rows = result.all()
 
             if not rows:
                 logger.warning("No order found for the given shop_name with the specified period")
-                return None
+                return []# return None
+
+            print(f"rows count: {len(rows)}")
 
             order_models: List[OrderModel] = []
             for row in rows:

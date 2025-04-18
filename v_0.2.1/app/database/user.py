@@ -16,6 +16,7 @@
     10. update_user(username: str, key: str, value):
     11. delete_user(username: str):
     12. delete_all_user():
+    13. alter_orders_created_at_column_type():
 '''
 from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
@@ -436,5 +437,29 @@ async def delete_all_user():
         raise CustomException(500, "delete_all_user()", f"Error: {e}") from e
 
 
+log_decorator
+async def alter_orders_created_at_column_type():
+    """
+    Ordersテーブルの created_at カラムを timestamp without time zone に変更する。
+    """
+    try:
+        async with engine.begin() as conn:
+            # PostgreSQL用 ALTER TABLE 文
+            sql = """
+            ALTER TABLE "Orders"
+            ALTER COLUMN "created_at" TYPE timestamp without time zone;
+            """
+            await conn.execute(text(sql))
+            logger.info("Orders.created_at カラムを timestamp without time zone に変更しました。")
+
+    except DatabaseError as e:
+        raise SQLException(
+            sql_statement="ALTER TABLE Orders ALTER COLUMN created_at",
+            method_name="alter_orders_created_at_column_type()",
+            detail=f"SQL実行中にエラーが発生しました: {e}",
+            exception=e
+        )
+    except Exception as e:
+        raise CustomException(500, "alter_orders_created_at_column_type()", f"Error: {e}")
 
 
