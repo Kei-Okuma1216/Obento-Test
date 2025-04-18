@@ -86,17 +86,6 @@ def get_today_str(offset: int = 0, date_format: str = None):
     print(f"get_today_str(): {ymd}")
     return ymd
 
-import pytz
-@log_decorator
-def get_today_datetime(days_ago: int = 0)-> datetime:
-    # テーブルで作成日にdatetimeを使う場合
-    tz = pytz.timezone("Asia/Tokyo")
-    current_time = datetime.now(tz)
-    new_time = current_time - timedelta(days_ago * 1)
-    #formatted_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
-
-    return new_time
-
 from typing import Tuple
 
 # @log_decorator
@@ -114,33 +103,62 @@ from typing import Tuple
 
 #     print(f"{start_datetime=}, {end_datetime=}")
 #     return start_datetime, end_datetime
+from datetime import datetime, timedelta
+from typing import Tuple
+import pytz
+
 @log_decorator
 async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
     """
-    指定された days_ago に基づいて、開始日時と終了日時を返す（タイムゾーン付き）。
-    
-    :param days_ago: 何日前から開始か（例: 3 → 3日前から本日）
-    :return: (開始日時, 終了日時) のタプル。datetime型。例:
-             (2025-04-19 00:00:00+09:00, 2025-04-22 23:59:59.999999+09:00)
+    指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
+    返す datetime は tzinfo を持たない naive datetime。
     """
-    tz = pytz.timezone("Asia/Tokyo")
+    # tz = pytz.timezone("Asia/Tokyo")
 
     # 開始日時（days_ago日前の0時）
-    start_date = get_today_datetime(days_ago)
+    start_dt = get_today_datetime(days_ago)
     # start_date = datetime.now(tz) - timedelta(days=days_ago)
-    start_datetime = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0, tzinfo=tz)
+    # start_dt = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0)
 
+    
     # 終了日時（本日の23:59:59.999999）
-    # now = datetime.now(tz)
-    # end_datetime = datetime(now.year, now.month, now.day, 23, 59, 59, 999999, tzinfo=tz)
-    end_date = get_today_datetime(days_ago)
-    end_datetime = datetime(start_date.year, start_date.month, start_date.day, 0, 0, 0, tzinfo=tz)
+    now = get_today_datetime(0)
+    end_dt = datetime(now.year, now.month, now.day, 23, 59, 59, 999999)
+    print(f"{start_dt=},{end_dt=}")
 
-    print(f"{start_datetime=}, {end_datetime=}")
-    return start_datetime, end_datetime
+    return start_dt, end_dt
 
 
+import pytz
+@log_decorator
+def get_today_datetime(days_ago: int = 0)-> datetime:
+    # テーブルで作成日にdatetimeを使う場合
+    tz = pytz.timezone("Asia/Tokyo")
+    current_time = datetime.now(tz)
 
+    if days_ago == 0:
+        new_time = current_time
+    else:
+        new_time = current_time - timedelta(days_ago * 1)
+
+    # JSTタイムゾーン付きで00:00:00のdatetimeを生成
+    new_date = tz.localize(datetime(new_time.year, new_time.month, new_time.day, 0, 0, 0))
+    formatted_date = datetime.strptime(
+        new_date.strftime("%Y-%m-%d %H:%M:%S"),
+        "%Y-%m-%d %H:%M:%S")
+    
+    print(f"{formatted_date=}")
+    return formatted_date
+
+
+def get_naive_jst_now() -> datetime:
+    """Asia/Tokyo の現在時刻を tzinfo なしで返す
+    日付取得はasyncにする必要なし
+    """
+    return datetime.strptime(
+        datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
+        "%Y-%m-%d %H:%M:%S"
+    )
 
 
 @log_decorator

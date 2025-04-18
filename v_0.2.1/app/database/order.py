@@ -30,12 +30,10 @@
     17. delete_order(order_id: int) -> bool:
     18. delete_all_orders():
 '''
-from sqlalchemy import Column, Integer, String, select
+from sqlalchemy import Column, Integer, String, DateTime
 from .local_postgresql_database import Base, engine
 
 
-from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import TIMESTAMP as PG_TIMESTAMP
 
 class Order(Base):
     __tablename__ = "Orders"
@@ -48,8 +46,10 @@ class Order(Base):
     amount = Column(Integer)
     # updated_at = Column(String, default="")
     # PostgreSQL 専用：タイムゾーン付き
-    created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
+    created_at = Column(DateTime) # このままでOK
+    updated_at = Column(DateTime) # このままでOK
+    # created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    # updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
     canceled = Column(Integer, default=0)
 
     def as_dict(self):
@@ -292,6 +292,12 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                     Order.created_at.between(start_dt, end_dt)
                 )
             )
+            # SELECT * FROM "Orders"
+            # WHERE created_at BETWEEN 
+            # '2025-04-22 00:00:00+09'::timestamptz AND 
+            # '2025-04-22 23:59:59+09'::timestamptz;
+
+            
             logger.debug(f"select_orders_by_user_at_date() - {stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
@@ -542,8 +548,8 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             
             # 期間指定: days_ago日前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
+            # stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            
             logger.debug(f"select_orders_by_company_ago() - {stmt=}")
             
             result = await session.execute(stmt)
@@ -826,8 +832,9 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             # 期間条件を追加
-            stmt = stmt.where(Order.created_at.between(start_dt.isoformat(), end_dt.isoformat()))
-            print(f"{start_dt.isoformat()=}, {end_dt.isoformat()=}")
+            # stmt = stmt.where(Order.created_at.between(start_dt.isoformat(), end_dt.isoformat()))
+            stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
+            print(f"{start_dt=}, {end_dt=}")
             # logger.info(f"{stmt=}")
 
             result = await session.execute(stmt)
@@ -864,8 +871,11 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
 '''-------------------------------------------------------------'''
 # 追加
-from utils.utils import get_today_str, get_today_datetime
-
+from utils.utils import get_naive_jst_now  # ここでインポート
+from sqlalchemy.exc import DatabaseError
+from sqlalchemy import text
+import traceback
+        
 @log_decorator
 async def insert_order(
     company_id: int,
@@ -873,20 +883,24 @@ async def insert_order(
     shop_name: str,
     menu_id: int,
     amount: int,
-    created_at: Optional[datetime] = None) -> int:
+    created_at: Optional[datetime] = None
+) -> int:
     """
     Ordersテーブルに新規注文を挿入する関数です。
-    created_atがNoneの場合は、Asia/Tokyoで現在時刻を設定します。
+    created_atがNoneの場合は、Asia/Tokyoの現在時刻（ナイーブなdatetime）を設定します。
     """
+
     try:
         async with AsyncSessionLocal() as session:
-            # created_atがNoneの場合、現在時刻（Asia/Tokyo）で生成
-            # created_at = created_at if created_at else get_today_str()
             if created_at is None:
-                created_at = get_today_datetime()
-            logger.debug(f"insert_order() called with created_at = {created_at}")
+                created_at = get_naive_jst_now()
 
-            # Orderモデルの新規インスタンスを生成
+            # 念のため tzinfo を削除（ナイーブ化）
+            if created_at.tzinfo is not None:
+                created_at = created_at.replace(tzinfo=None)
+
+            logger.debug(f"insert_order() - 使用する created_at: {created_at} (tzinfo={created_at.tzinfo})")
+
             new_order = Order(
                 company_id=company_id,
                 username=username,
@@ -894,12 +908,12 @@ async def insert_order(
                 menu_id=menu_id,
                 amount=amount,
                 created_at=created_at,
-                canceled = 0
+                canceled=0
             )
             session.add(new_order)
             await session.commit()
-            # 挿入後、refreshして自動採番された主キーを取得
             await session.refresh(new_order)
+
             order_id = new_order.order_id
 
             logger.info("注文追加成功")
@@ -910,13 +924,14 @@ async def insert_order(
 
     except DatabaseError as e:
         raise SQLException(
-            sql_statement="INSERT INTO Orders ...",
+            sql_statement="insert_order() で Orders テーブルへのINSERT中に発生",
             method_name="insert_order()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "insert_order()", f"Error: {e}")
+        raise CustomException(500, "insert_order()", f"Error: {e}\n{traceback.format_exc()}")
+
 
 '''-------------------------------------------------------------'''
 # 更新
@@ -929,6 +944,8 @@ async def update_order(order_id: int, canceled: bool):
     """
     try:
         async with AsyncSessionLocal() as session:
+            await session.execute(text("SET TIME ZONE 'Asia/Tokyo'"))  # タイムゾーン設定
+
             current_time = get_today_datetime()
             stmt = (
                 update(Order)

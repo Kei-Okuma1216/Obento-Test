@@ -81,15 +81,15 @@ async def init_database():
         # 注文情報の登録
         await create_orders_table()
         # 1
-        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(-5))
+        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=5))
         # 2
-        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_datetime(-4))
+        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_datetime(days_ago=4))
         # 3
-        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_datetime(-3))
+        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_datetime(days_ago=3))
         # 4
-        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_datetime(-2))
+        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_datetime(days_ago=2))
         # 5
-        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(-1))
+        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(days_ago=1))
         # 6
         await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime())
 
