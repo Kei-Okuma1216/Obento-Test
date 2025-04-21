@@ -98,7 +98,7 @@ async def get_menu_json(request: Request, shop_id: str = Query(None)):
 async def batch_update_orders(updates: list[dict]):
     try:
         values = [(change["canceled"], change["order_id"]) for change in updates]
-        sql = "UPDATE orders SET canceled = ? WHERE order_id = ?"
+        sql = "UPDATE Orders SET canceled = ? WHERE order_id = ?"
 
         conn = await get_connection()  # ✅ 非同期DB接続
         try:

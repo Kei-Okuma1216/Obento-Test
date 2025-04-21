@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 # 定数
 from ast import stmt
 from utils.exception import CustomException, SQLException
-from utils.utils import log_decorator, get_today_str, get_today_datetime
+from utils.utils import log_decorator, get_today_datetime
 from sqlalchemy.exc import DatabaseError
 
 # from .sqlalchemy_database import engine, default_shop_name

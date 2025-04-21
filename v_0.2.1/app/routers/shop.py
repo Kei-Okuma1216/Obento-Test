@@ -45,16 +45,7 @@ async def shop_view(request: Request, response: Response):
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         shop_context = await get_shop_context(request, orders)
-        # shop_context = {
-        #     'request': request,
-        #     'base_url': endpoint,
-        # }
-        # order_context = {
-        #     'orders': orders,
-        #     'order_count': len(orders),
-        #     "order_details": orders[0].model_dump() if orders else None
-        # }
-        # shop_context.update(order_context)
+
         return await order_table_view(response, orders, "shop.html", shop_context)
 
     except SQLException as e:
@@ -77,6 +68,7 @@ async def get_shop_context(request: Request, orders):
             'order_count': len(orders),
             "order_details": orders[0].model_dump() if orders else None
         }
+
         shop_context.update(order_context)
 
         return shop_context

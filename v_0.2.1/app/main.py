@@ -31,7 +31,6 @@ from helper import authenticate_user, create_auth_response, get_main_url, redire
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
-from services.order_view import batch_update_orders
 from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
@@ -197,21 +196,16 @@ async def clear_cookie(response: Response):
 
     return response
 
+# from services.order_view import OrderUpdateList  # または相対import
+from schemas.order_schemas import OrderUpdateList
+from services.order_view import batch_update_orders
 
-from typing import List
-from pydantic import BaseModel
+@app.post("/update_cancel_status")
+async def update_cancel_status(update: OrderUpdateList):
+    print(f"受信内容: {update.updates}")
 
-class CancelUpdate(BaseModel):
-    updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
+    return await batch_update_orders([item.model_dump() for item in update.updates])
 
-@app.post("/update_cancel_status", tags=["shops"])
-@log_decorator
-async def update_cancel_status(update: CancelUpdate):
-    ''' チェックの更新 '''
-    try:
-        return await batch_update_orders(update.updates)
-    except Exception:
-        raise 
 
 
 # デバッグ用 例外ハンドラーの設定

@@ -196,6 +196,40 @@
 
     <!-- JavaScript: JSON取得処理とリンク更新 -->
     <script>
+      document.getElementById("save-changes-button").addEventListener("click", function() {
+        const checkboxes = document.querySelectorAll('input.cancel-checkbox');
+        const updates = [];
+      
+        checkboxes.forEach(function(checkbox) {
+          const orderId = checkbox.getAttribute("data-order-id");
+          const canceled = checkbox.checked;
+          updates.push({
+            order_id: Number(orderId),
+            canceled: canceled
+          });
+          // alert(orderId + ' ' + canceled); // 修正済み
+        });
+      
+        fetch("/update_cancel_status", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ updates: updates })
+        })
+        .then(response => {
+          if (!response.ok) throw new Error("保存に失敗しました");
+          return response.json();
+        })
+        .then(data => {
+          alert("保存が完了しました");
+        })
+        .catch(error => {
+          console.error("Error:", error);
+          alert("エラーが発生しました");
+        });
+      });
+
       // JSON取得ボタンの処理
       document.getElementById("fetch-json-btn").addEventListener("click", function(){
         var days = document.getElementById("daysAgoInput").value.trim();

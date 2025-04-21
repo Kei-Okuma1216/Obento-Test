@@ -47,6 +47,7 @@ class Order(Base):
     # updated_at = Column(String, default="")
     # PostgreSQL 専用：タイムゾーン付き
     created_at = Column(DateTime) # このままでOK
+    # created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
     updated_at = Column(DateTime) # このままでOK
     # created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
     # updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())

@@ -5,12 +5,17 @@
 
     3. JST
     4. def get_now(tz : timezone = None) -> datetime:
-    5. def get_date_str(dt: datetime) -> str:
-    6. def get_datetime_str(dt: datetime) -> str:
+    -5. def get_date_str(dt: datetime) -> str:
+    -6. def get_datetime_str(dt: datetime) -> str:
     7. def get_today_str(offset: int = 0, date_format: str = None):
+        JSTの("%Y-%m-%d %H:%M:%S")を返す
     8. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
     9. def get_today_datetime(days_ago: int = 0)-> datetime:
     10. def get_naive_jst_now() -> datetime:
+        return datetime.strptime(
+            datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
+            "%Y-%m-%d %H:%M:%S"
+        )
 
     11. def set_all_cookies(response: Response, user: Dict):
     12. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
@@ -91,14 +96,13 @@ def get_now(tz : timezone = None) -> datetime:
         current_datetime = datetime.now(JST)
     else:
         current_datetime = datetime.now()
-    #print(f"get_now(): {current_datetime}")
     return current_datetime
 
-def get_date_str(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d")
+# def get_date_str(dt: datetime) -> str:
+#     return dt.strftime("%Y-%m-%d")
 
-def get_datetime_str(dt: datetime) -> str:
-    return dt.strftime("%Y-%m-%d %H:%M")
+# def get_datetime_str(dt: datetime) -> str:
+#     return dt.strftime("%Y-%m-%d %H:%M")
 
 # 今日の日付取得 update_datetime用
 #@log_decorator

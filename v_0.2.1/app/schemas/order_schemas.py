@@ -26,3 +26,15 @@ class OrderModel(BaseModel):
                 end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
                 print(f"order_id: {self.created_at}, end_of_day: {end_of_day}")
                 return end_of_day
+
+# schemas/order.py
+from pydantic import BaseModel
+from typing import List
+
+class OrderUpdate(BaseModel):
+    order_id: int
+    canceled: bool
+
+class OrderUpdateList(BaseModel):
+    updates: List[OrderUpdate]
+

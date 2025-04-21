@@ -1,4 +1,4 @@
-# order_view.py
+# services/order_view.py
 '''
     1. order_table_view(request: Request, response: Response):
         orderリストを降順にソートし、チェックされた件数をカウント。
@@ -23,10 +23,10 @@ from utils.exception import CustomException
 
 templates = Jinja2Templates(directory="templates")
 
-view_router = APIRouter(
-    prefix="/orders",
-    tags=["orders"]
-)
+view_router = APIRouter()
+#     prefix="/orders",
+#     tags=["orders"]
+# )
 
 from database.order import select_orders_by_shop_ago
 from database.user import select_user
@@ -137,20 +137,26 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
 
 
-# キャンセルチェック状態を更新
-from sqlalchemy import text
+# from sqlalchemy import text
+# from schemas.order_schemas import OrderUpdateList
+from sqlalchemy import update
+from database.order import Order  # OrdersはSQLAlchemyのモデル定義を想定
 
 @log_decorator
 async def batch_update_orders(updates: list[dict]):
     """
-    キャンセルチェック状態をバッチで更新します。
-    `updates` は各要素が { "canceled": <状態>, "order_id": <注文ID> } の形の辞書リストです。
+    DB更新の実処理。キャンセルチェック状態をバッチで更新します。
+    SQLAlchemyのORM updateを使用して各注文を更新します。
     """
     try:
         async with AsyncSessionLocal() as session:
-            sql = text("UPDATE orders SET canceled = :canceled WHERE order_id = :order_id")
-            # updates が辞書のリストの場合、executemany モードで処理されます。
-            await session.execute(sql, updates)
+            for update_data in updates:
+                stmt = (
+                    update(Order)
+                    .where(Order.order_id == update_data["order_id"])
+                    .values(canceled=update_data["canceled"])
+                )
+                await session.execute(stmt)
             await session.commit()
 
         return {"message": "Orders updated successfully"}
