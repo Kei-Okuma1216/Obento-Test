@@ -5,13 +5,11 @@
 
     3. JST
     4. def get_now(tz : timezone = None) -> datetime:
-    -5. def get_date_str(dt: datetime) -> str:
-    -6. def get_datetime_str(dt: datetime) -> str:
-    7. def get_today_str(offset: int = 0, date_format: str = None):
+    5. def get_today_str(offset: int = 0, date_format: str = None):
         JSTの("%Y-%m-%d %H:%M:%S")を返す
-    8. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
-    9. def get_today_datetime(days_ago: int = 0)-> datetime:
-    10. def get_naive_jst_now() -> datetime:
+    6. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+    7. def get_today_datetime(days_ago: int = 0)-> datetime:
+    8. def get_naive_jst_now() -> datetime:
         return datetime.strptime(
             datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
             "%Y-%m-%d %H:%M:%S"
@@ -130,18 +128,16 @@ async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
     返す datetime は tzinfo を持たない naive datetime。
-    開始: 00:00:00.000000、終了: 23:59:59.999999
+    開始: 00:00:00、終了: 23:59:59
     """
     try:
-        # JST基準で days_ago日前の日付を取得（tzなし、00:00:00）
-        base_date = get_today_datetime(days_ago)
+        start_date = get_today_datetime(days_ago)
 
         start_dt = datetime(
-            base_date.year,
-            base_date.month,
-            base_date.day,
-            # 0, 0, 0, 0  # 明示的にマイクロ秒=0
-            0, 0, 0  # 明示的にマイクロ秒=0
+            start_date.year,
+            start_date.month,
+            start_date.day,
+            0, 0, 0
         )
 
         end_date = get_today_datetime(0)
@@ -150,14 +146,15 @@ async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
             end_date.year,
             end_date.month,
             end_date.day,
-            # 23, 59, 59, 0  # 終了の最大時刻（当日中）
-            23, 59, 59  # 終了の最大時刻（当日中）
+            23, 59, 59
         )
+
         print(f"{start_dt=}, {end_dt=}")
         return start_dt, end_dt
 
     except Exception as e:    
         raise CustomException(500, "get_created_at_period()", f"Error: {e}")
+
 
 
 
@@ -168,14 +165,14 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
     例: days_ago=0 -> 今日の 00:00:00（タイムゾーンなし）
     """
     tz = pytz.timezone("Asia/Tokyo")
-    current_time = datetime.now(tz) - timedelta(days=days_ago)
+    current_time = datetime.now(tz) + timedelta(days=days_ago)
 
     # JST基準で「0時0分0秒」の日時を作成（tzなしで返す）
     naive_datetime = datetime(
         current_time.year,
         current_time.month,
         current_time.day,
-        0, 0, 0, 000000
+        0, 0, 0, 0
     )
 
     print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")

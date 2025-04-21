@@ -359,7 +359,6 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             )
 
             # 検証用
-            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
             recent = await session.execute(
                 select(Order.order_id, Order.created_at)
                 .where(Order.shop_name == username)
@@ -371,6 +370,8 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
+            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
+            print(f"{start_dt=}, {end_dt=}")
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
             logger.debug(f"select_orders_by_user_ago() - {stmt=}")
@@ -913,7 +914,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
 '''-------------------------------------------------------------'''
 # 追加
-from utils.utils import get_naive_jst_now  # ここでインポート
+# from utils.utils import get_naive_jst_now  # ここでインポート
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy import text
 import traceback
@@ -935,7 +936,7 @@ async def insert_order(
     try:
         async with AsyncSessionLocal() as session:
             if created_at is None:
-                created_at = get_naive_jst_now()
+                created_at = get_today_datetime()#get_naive_jst_now()
 
             # 念のため tzinfo を削除（ナイーブ化）
             if created_at.tzinfo is not None:
