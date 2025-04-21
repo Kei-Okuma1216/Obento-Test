@@ -2,14 +2,14 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
-from utils.utils import JST, get_now
+from utils.utils import get_today_datetime
 
 # 注文ログ用のディレクトリを作成（※ディレクトリ名はadmin側と統一する必要があります）
 log_dir = "order_logs"
 os.makedirs(log_dir, exist_ok=True)
 
 # 日付付きのログファイル名を生成
-current_time = get_now(JST)
+current_time = get_today_datetime() # get_now(JST)
 log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
 # 注文ログ専用のロガーを作成

@@ -9,11 +9,6 @@
         JSTの("%Y-%m-%d %H:%M:%S")を返す
     6. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
     7. def get_today_datetime(days_ago: int = 0)-> datetime:
-    8. def get_naive_jst_now() -> datetime:
-        return datetime.strptime(
-            datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
-            "%Y-%m-%d %H:%M:%S"
-        )
 
     11. def set_all_cookies(response: Response, user: Dict):
     12. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
@@ -96,16 +91,14 @@ def get_now(tz : timezone = None) -> datetime:
         current_datetime = datetime.now()
     return current_datetime
 
-# def get_date_str(dt: datetime) -> str:
-#     return dt.strftime("%Y-%m-%d")
-
-# def get_datetime_str(dt: datetime) -> str:
-#     return dt.strftime("%Y-%m-%d %H:%M")
 
 # 今日の日付取得 update_datetime用
 #@log_decorator
 def get_today_str(offset: int = 0, date_format: str = None):
-    new_date = get_now(JST) + timedelta(days=offset)
+    # new_date = get_now(JST) + timedelta(days=offset)
+    new_date = get_today_datetime() + timedelta(days=offset)
+    
+    get_today_datetime
     if date_format == "YMD":
         ymd = new_date.strftime("%Y-%m-%d")
     else:
@@ -114,48 +107,40 @@ def get_today_str(offset: int = 0, date_format: str = None):
     print(f"get_today_str(): {ymd}")
     return ymd
 
-from typing import Tuple
 
-from datetime import datetime, timedelta
-from typing import Tuple
+
 import pytz
 
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import NamedTuple
+
+class Period(NamedTuple):
+    # 返却値が入れ替わるので、専用のクラスを作った
+    start: datetime
+    end: datetime
 
 @log_decorator
-async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datetime]:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
     返す datetime は tzinfo を持たない naive datetime。
     開始: 00:00:00、終了: 23:59:59
     """
     try:
-        start_date = get_today_datetime(days_ago)
+        now = datetime.now(pytz.timezone("Asia/Tokyo"))
+        
+        start_target = now - timedelta(days=days_ago)
+        end_target = now  # 今日の終端とするため、nowの日付だけ使う
 
-        start_dt = datetime(
-            start_date.year,
-            start_date.month,
-            start_date.day,
-            0, 0, 0
-        )
-
-        end_date = get_today_datetime(0)
-
-        end_dt = datetime(
-            end_date.year,
-            end_date.month,
-            end_date.day,
-            23, 59, 59
-        )
+        start_dt = datetime(start_target.year, start_target.month, start_target.day, 0, 0, 0)
+        end_dt   = datetime(end_target.year, end_target.month, end_target.day, 23, 59, 59)
 
         print(f"{start_dt=}, {end_dt=}")
-        return start_dt, end_dt
+
+        return Period(start_dt, end_dt)
 
     except Exception as e:    
         raise CustomException(500, "get_created_at_period()", f"Error: {e}")
-
-
 
 
 @log_decorator
@@ -165,14 +150,18 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
     例: days_ago=0 -> 今日の 00:00:00（タイムゾーンなし）
     """
     tz = pytz.timezone("Asia/Tokyo")
-    current_time = datetime.now(tz) + timedelta(days=days_ago)
+    current_time = datetime.now(tz) - timedelta(days=days_ago)
 
     # JST基準で「0時0分0秒」の日時を作成（tzなしで返す）
     naive_datetime = datetime(
         current_time.year,
         current_time.month,
         current_time.day,
-        0, 0, 0, 0
+        current_time.hour,
+        current_time.minute,
+        current_time.second,
+        0
+        # 0, 0, 0, 0
     )
 
     print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
@@ -291,7 +280,7 @@ def compare_expire_date(expires: str) -> bool:
         expire_datetime = datetime.fromisoformat(expires.replace('Z', '+00:00')).astimezone(timezone.utc)
 
         # 現在の UTC 時刻
-        now_utc_datetime = get_now()
+        now_utc_datetime = datetime.now()#get_now()
         now_utc_int = int(now_utc_datetime.timestamp())
         expire_int = int(expire_datetime.timestamp())
 
@@ -319,7 +308,7 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
     end_of_day = get_end_of_today(JST)
     end_time = int(end_of_day.timestamp())
 
-    current = get_now(JST)
+    current = get_today_datetime()#get_now(JST)
     current_time = int(current.timestamp())
 
     future_time = end_time - current_time

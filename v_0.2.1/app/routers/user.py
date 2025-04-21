@@ -56,7 +56,7 @@ async def regist_complete(request: Request, response: Response):
 
         username = user.get_username()
         orders = await select_orders_by_user_ago(
-            username, -7)
+            username, 7)
 
         #logger.debug(f"orders: {orders}")
         if orders is None or len(orders) == 0:

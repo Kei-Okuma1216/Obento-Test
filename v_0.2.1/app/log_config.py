@@ -2,13 +2,13 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os
-from utils.utils import JST, get_now
 # ログディレクトリの作成
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 
 # 日付付きのログファイル名
-current_time = get_now(JST)
+from utils.utils import get_today_datetime
+current_time = get_today_datetime()
 log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
 # ログ設定

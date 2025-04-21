@@ -358,19 +358,18 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 .where(Order.username == username)
             )
 
-            # 検証用
-            recent = await session.execute(
-                select(Order.order_id, Order.created_at)
-                .where(Order.shop_name == username)
-                .order_by(Order.created_at.desc())
-                .limit(5)
-            )
-            for row in recent.fetchall():
-                print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
+            # # 検証用
+            # recent = await session.execute(
+            #     select(Order.order_id, Order.created_at)
+            #     .where(Order.shop_name == username)
+            #     .order_by(Order.created_at.desc())
+            #     .limit(5)
+            # )
+            # for row in recent.fetchall():
+            #     print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
             print(f"{start_dt=}, {end_dt=}")
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
@@ -562,7 +561,6 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
 
             # 期間指定: days_ago日前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            # stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             logger.debug(f"select_orders_by_company_ago() - {stmt=}")
 
@@ -845,21 +843,20 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 .where(Order.shop_name == shop_name)
             )
 
+            # # 検証用
+            # print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
+            # recent = await session.execute(
+            #     select(Order.order_id, Order.created_at)
+            #     .where(Order.shop_name == shop_name)
+            #     .order_by(Order.created_at.desc())
+            #     .limit(10)
+            # )
+            # for row in recent.fetchall():
+            #     print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            print(f"start_dt: {start_dt}, end_dt: {end_dt}")
-
-            # 検証用
-            print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
-            recent = await session.execute(
-                select(Order.order_id, Order.created_at)
-                .where(Order.shop_name == shop_name)
-                .order_by(Order.created_at.desc())
-                .limit(10)
-            )
-            for row in recent.fetchall():
-                print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
+            # print(f"start_dt: {start_dt}, end_dt: {end_dt}")
 
             # 期間条件を追加
             print(f"days_ago: {days_ago}")
@@ -914,7 +911,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
 '''-------------------------------------------------------------'''
 # 追加
-# from utils.utils import get_naive_jst_now  # ここでインポート
 from sqlalchemy.exc import DatabaseError
 from sqlalchemy import text
 import traceback
@@ -936,7 +932,7 @@ async def insert_order(
     try:
         async with AsyncSessionLocal() as session:
             if created_at is None:
-                created_at = get_today_datetime()#get_naive_jst_now()
+                created_at = get_today_datetime()
 
             # 念のため tzinfo を削除（ナイーブ化）
             if created_at.tzinfo is not None:
