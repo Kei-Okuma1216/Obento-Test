@@ -27,7 +27,7 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from starlette import status
 
-from helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
+from utils.helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError

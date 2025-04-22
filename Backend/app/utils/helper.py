@@ -1,4 +1,4 @@
-# helper.py
+# utils/helper.py
 # 必ずmain.pyとセットにすること
 '''
     1. get_main_url(permission: int) -> str:
@@ -14,8 +14,10 @@
 from fastapi import HTTPException, Request, Response, status
 
 from core.security import verify_password
-from utils.utils import log_decorator, set_all_cookies
-from utils.exception import CustomException, NotAuthorizedException, SQLException
+# from utils.utils import log_decorator, set_all_cookies
+# from utils.exception import CustomException, NotAuthorizedException, SQLException
+from .utils import log_decorator, set_all_cookies
+from .exception import CustomException, NotAuthorizedException, SQLException
 from log_config import logger
 from schemas.user_schemas import UserBase, UserResponse
 
