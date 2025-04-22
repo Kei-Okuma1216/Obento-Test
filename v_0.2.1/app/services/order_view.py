@@ -24,9 +24,6 @@ from utils.exception import CustomException
 templates = Jinja2Templates(directory="templates")
 
 view_router = APIRouter()
-#     prefix="/orders",
-#     tags=["orders"]
-# )
 
 from database.order import select_orders_by_shop_ago
 from database.user import select_user

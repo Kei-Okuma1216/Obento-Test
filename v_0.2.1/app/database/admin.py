@@ -226,26 +226,35 @@ DATABASE_NAME = settings.database_name  # example
 DATABASE_URL = settings.database_url
 
 
-async def create_database(database_name: str = DATABASE_NAME):
-    # 管理用のデフォルトデータベース "postgres" に接続するためのURL
-    # default_database_url = "postgresql+asyncpg://postgres:root@localhost/postgres"
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.sql import text
 
-    # 非同期エンジンを作成
-    engine = create_async_engine(DATABASE_URL, echo=True)
+async def create_database(database_name: str = DATABASE_NAME):
+    # 非同期エンジンを作成（管理用データベース "postgres" に接続）
+    engine = create_async_engine(DATABASE_URL, echo=False)
 
     async with engine.connect() as conn:
-        # PostgreSQLのCREATE DATABASE文はトランザクションブロック外で実行する必要があるので、isolation_levelをAUTOCOMMITに設定
+        # トランザクション外で実行する必要があるため、AUTOCOMMITに設定
         await conn.execution_options(isolation_level="AUTOCOMMIT")
-        try:
-            # データベースが既に存在している場合、例外が発生する可能性があります。
-            await conn.execute(text(f"CREATE DATABASE {database_name}"))
-            print(f"Database '{database_name}' created successfully.")
-        except Exception as e:
-            # 例えば、データベースが既に存在する場合などは例外が発生します。必要に応じてエラーハンドリングを行います。
-            print(f"An error occurred while creating database '{database_name}': {e}")
-    
-    # エンジンを破棄
+
+        # データベースの存在をチェック
+        result = await conn.execute(
+            text("SELECT 1 FROM pg_database WHERE datname = :name"),
+            {"name": database_name}
+        )
+        exists = result.scalar() is not None
+
+        if exists:
+            print(f"Database '{database_name}' already exists. Skipping creation.")
+        else:
+            try:
+                await conn.execute(text(f'CREATE DATABASE "{database_name}"'))
+                print(f"Database '{database_name}' created successfully.")
+            except Exception as e:
+                print(f"An error occurred while creating database '{database_name}': {e}")
+
     await engine.dispose()
+
 
 # # 非同期関数を実行する例
 # if __name__ == "__main__":

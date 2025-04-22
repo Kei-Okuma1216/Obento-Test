@@ -12,7 +12,7 @@
     8. delete_all_company():
 '''
 
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import Base, AsyncSessionLocal
 from database.local_postgresql_database import Base, engine
@@ -25,7 +25,8 @@ class Company(Base):
     name = Column(String, nullable=False)
     tel = Column(String, nullable=True)
     shop_name = Column(String, nullable=True)
-    created_at = Column(String, nullable=True)
+    # created_at = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=True)
     disabled = Column(Boolean, default=False)
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
@@ -138,12 +139,13 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
     except Exception as e:
         raise CustomException(500, "select_all_company()", f"Error: {e}") from e
 
-from utils.utils import get_today_str
+from utils.utils import get_today_datetime, get_today_str
 from sqlalchemy import func
 # 追加
 @log_decorator
-async def insert_company(
-    company_name: str, telephone: str, default_shop_name: str) -> bool:
+async def insert_company(company_name: str,
+                         telephone: str,
+                         default_shop_name: str) -> bool:
     """
     Companyテーブルに新規レコードを追加する
     """
@@ -159,13 +161,14 @@ async def insert_company(
                 logger.info(f"会社名: {company_name} は既に存在します。挿入をスキップします。")
                 return False
 
+            print(f"get_today_datetime: {get_today_datetime}")
             # 新規企業レコードの作成
             new_company = Company(
                 # company_id は自動採番される前提のため指定しない
                 name=company_name,
                 tel=telephone,
                 shop_name=default_shop_name,
-                created_at=get_today_str(),
+                created_at=get_today_datetime(), #get_today_str(),
                 disabled=False
             )
             session.add(new_company)
@@ -174,7 +177,7 @@ async def insert_company(
             logger.info("契約企業追加成功")
             logger.debug(
                 f"insert_company() - company_name: {company_name}, tel: {telephone}, shop_name: {default_shop_name}, "
-                f"created_at: {get_today_str()}, disabled: False"
+                f"created_at: {get_today_datetime()}, disabled: False"
             )
             return True
 

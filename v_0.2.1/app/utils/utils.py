@@ -78,18 +78,18 @@ def deprecated(func):
         return func(*args, **kwargs)
     return wrapper
 
-# 日本標準時 (JST) のタイムゾーン定義
-JST = timezone(timedelta(hours=9))
+# # 日本標準時 (JST) のタイムゾーン定義
+# JST = timezone(timedelta(hours=9))
 
-#@log_decorator
-def get_now(tz : timezone = None) -> datetime:
-    # utcnow()は禁止
-    current_datetime = None
-    if tz == JST:
-        current_datetime = datetime.now(JST)
-    else:
-        current_datetime = datetime.now()
-    return current_datetime
+# #@log_decorator
+# def get_now(tz : timezone = None) -> datetime:
+#     # utcnow()は禁止
+#     current_datetime = None
+#     if tz == JST:
+#         current_datetime = datetime.now(JST)
+#     else:
+#         current_datetime = datetime.now()
+#     return current_datetime
 
 
 # 今日の日付取得 update_datetime用
@@ -161,7 +161,6 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
         current_time.minute,
         current_time.second,
         0
-        # 0, 0, 0, 0
     )
 
     print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
@@ -305,7 +304,9 @@ def compare_expire_date(expires: str) -> bool:
 @log_decorator
 def prevent_order_twice(response: Response, last_order_date: datetime):
 
-    end_of_day = get_end_of_today(JST)
+    # end_of_day = get_end_of_today(JST)
+    today = get_today_datetime()
+    end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     end_time = int(end_of_day.timestamp())
 
     current = get_today_datetime()#get_now(JST)
@@ -321,19 +322,19 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
         max_age=future_time, httponly=True)
     logger.debug("# 期限を本日の23:59:59にした")
 
-# 期限として本日の23:59:59を作成
-#@log_decorator
-def get_end_of_today(tz : timezone = None) -> datetime:
-    today = None
-    if tz == JST:
-        today = datetime.now(JST)
-    else:
-        today = datetime.now()
+# # 期限として本日の23:59:59を作成
+# #@log_decorator
+# def get_end_of_today(tz : timezone = None) -> datetime:
+#     today = None
+#     if tz == JST:
+#         today = datetime.now(JST)
+#     else:
+#         today = datetime.now()
 
-    end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
-    logger.debug(f"JST end_of_day: {end_of_day}")
+#     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
+#     logger.debug(f"JST end_of_day: {end_of_day}")
 
-    return end_of_day
+#     return end_of_day
 
 
 @log_decorator
