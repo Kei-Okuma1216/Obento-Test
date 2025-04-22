@@ -26,7 +26,7 @@ templates = Jinja2Templates(directory="templates")
 view_router = APIRouter()
 
 from database.order import select_orders_by_shop_ago
-from database.user import select_user
+from models.user import select_user
 from database.local_postgresql_database import AsyncSessionLocal
 
 

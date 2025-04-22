@@ -21,7 +21,7 @@
 from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
 #default_shop_name = "shop01"
-from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
+from database.sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
 
 
 # database.Userクラス
@@ -83,7 +83,7 @@ from sqlalchemy import select
 from typing import Optional, List
 from schemas.user_schemas import UserResponse
 # 選択
-from database.user import AsyncSessionLocal  # 適切なパスに合わせてください
+from models.user import AsyncSessionLocal  # 適切なパスに合わせてください
 from utils.exception import CustomException
 
 @log_decorator
@@ -117,7 +117,7 @@ async def select_user(username: str) -> Optional[UserResponse]:
 
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください
 from sqlalchemy import inspect
-from database.user import AsyncSessionLocal  # 必要に応じてパスを調整してください
+from models.user import AsyncSessionLocal  # 必要に応じてパスを調整してください
 #from models.user import User  # ORMのUserモデル。適宜パスを調整してください
 
 

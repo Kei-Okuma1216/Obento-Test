@@ -15,7 +15,7 @@ from fastapi import Request, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 #from database.sqlite_database import update_user, get_all_users
-from database.user import update_user, select_all_users
+from models.user import update_user, select_all_users
 
 from utils.exception import CustomException, NotAuthorizedException
 from helper import redirect_login

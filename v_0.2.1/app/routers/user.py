@@ -17,7 +17,7 @@ from services.order_view import order_table_view
 
 
 #from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
-from database.user import select_user
+from models.user import select_user
 from database.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
 

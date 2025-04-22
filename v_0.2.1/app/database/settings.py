@@ -1,4 +1,4 @@
-# settings.py
+# core/settings.py
 # manual of setting management
 # https://docs.pydantic.dev/2.11/concepts/pydantic_settings/
 

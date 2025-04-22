@@ -3,23 +3,22 @@
     1. def log_decorator(func):
     2. def deprecated(func):
 
-    3. JST
-    4. def get_now(tz : timezone = None) -> datetime:
-    5. def get_today_str(offset: int = 0, date_format: str = None):
+    3. def get_today_str(offset: int = 0, date_format: str = None):
         JSTの("%Y-%m-%d %H:%M:%S")を返す
-    6. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
-    7. def get_today_datetime(days_ago: int = 0)-> datetime:
+    4. async def get_created_at_period(days_ago: int) -> Period:
 
-    11. def set_all_cookies(response: Response, user: Dict):
-    12. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
-    13. def delete_all_cookies(response: Response):
-    14. def compare_expire_date(expires: str) -> bool:
-    15. def prevent_order_twice(response: Response, last_order_date: datetime):
-    16. def get_end_of_today(tz : timezone = None) -> datetime:
-    17. def get_token_expires(request: Request) -> str:
+    5. def get_today_datetime(days_ago: int = 0)-> datetime:
 
-    18. async def check_permission_and_stop_order(request: Request, response: Response):
-    19. async def check_permission(request: Request, permits: list):
+    6. def set_all_cookies(response: Response, user: Dict):
+    7. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
+    8. def delete_all_cookies(response: Response):
+    9. def compare_expire_date(expires: str) -> bool:
+    10. def prevent_order_twice(response: Response, last_order_date: datetime):
+    11. def get_end_of_today(tz : timezone = None) -> datetime:
+    12. def get_token_expires(request: Request) -> str:
+
+    13. async def check_permission_and_stop_order(request: Request, response: Response):
+    14. async def check_permission(request: Request, permits: list):
 
 '''
     
@@ -78,27 +77,11 @@ def deprecated(func):
         return func(*args, **kwargs)
     return wrapper
 
-# # 日本標準時 (JST) のタイムゾーン定義
-# JST = timezone(timedelta(hours=9))
-
-# #@log_decorator
-# def get_now(tz : timezone = None) -> datetime:
-#     # utcnow()は禁止
-#     current_datetime = None
-#     if tz == JST:
-#         current_datetime = datetime.now(JST)
-#     else:
-#         current_datetime = datetime.now()
-#     return current_datetime
-
-
 # 今日の日付取得 update_datetime用
 #@log_decorator
 def get_today_str(offset: int = 0, date_format: str = None):
-    # new_date = get_now(JST) + timedelta(days=offset)
     new_date = get_today_datetime() + timedelta(days=offset)
     
-    get_today_datetime
     if date_format == "YMD":
         ymd = new_date.strftime("%Y-%m-%d")
     else:
@@ -142,8 +125,8 @@ async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datet
     except Exception as e:    
         raise CustomException(500, "get_created_at_period()", f"Error: {e}")
 
-
-@log_decorator
+# 注意：この関数を出力するとログ設定でも出力する
+# @log_decorator
 def get_today_datetime(days_ago: int = 0) -> datetime:
     """
     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
@@ -163,7 +146,8 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
         0
     )
 
-    print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
+    logger.debug(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
+
     return naive_datetime
 
 
@@ -279,7 +263,7 @@ def compare_expire_date(expires: str) -> bool:
         expire_datetime = datetime.fromisoformat(expires.replace('Z', '+00:00')).astimezone(timezone.utc)
 
         # 現在の UTC 時刻
-        now_utc_datetime = datetime.now()#get_now()
+        now_utc_datetime = datetime.now()
         now_utc_int = int(now_utc_datetime.timestamp())
         expire_int = int(expire_datetime.timestamp())
 
@@ -309,7 +293,7 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     end_time = int(end_of_day.timestamp())
 
-    current = get_today_datetime()#get_now(JST)
+    current = get_today_datetime()
     current_time = int(current.timestamp())
 
     future_time = end_time - current_time

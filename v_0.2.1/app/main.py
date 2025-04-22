@@ -47,6 +47,10 @@ app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
 
+# 例外ハンドラーを登録
+from utils.handlers import register_exception_handlers, test_exception_router  # 追加！
+register_exception_handlers(app) # 例外ハンドラー登録
+app.include_router(test_exception_router) # テストルーター登録（任意）
 
 
 # エントリポイントの選択
@@ -207,29 +211,6 @@ async def update_cancel_status(update: OrderUpdateList):
 
 
 
-# デバッグ用 例外ハンドラーの設定
-@app.exception_handler(CustomException)
-async def custom_exception_handler(
-    request: Request, exc: CustomException):
-    logger.error(f"例外ハンドラーが呼ばれました: {exc.detail=}")  
-    # 実装例
-    # raise CustomException(400, "token の有効期限が切れています。再登録をしてください。")
-
-    """カスタム例外をキャッチして、HTML にエラーを表示"""
-    return templates.TemplateResponse(
-        "error.html",  # templates/error.html を表示
-        {"request": request, "message": exc.detail["message"], "status_code": exc.status_code},
-        status_code=exc.status_code
-    )
-
-# デバッグ用 例外テスト
-@app.get("/test_exception", tags=["admin"])
-async def test_exception():
-    logger.error("test_exception() testエラーが発生しました!")
-    raise CustomException(
-        status.HTTP_400_BAD_REQUEST,
-        "test_exception()",
-        "これはテストエラーです")
 
 
 @app.get('/favicon.ico', include_in_schema=False)

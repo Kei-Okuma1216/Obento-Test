@@ -9,7 +9,7 @@ log_dir = "order_logs"
 os.makedirs(log_dir, exist_ok=True)
 
 # 日付付きのログファイル名を生成
-current_time = get_today_datetime() # get_now(JST)
+current_time = get_today_datetime()
 log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
 # 注文ログ専用のロガーを作成

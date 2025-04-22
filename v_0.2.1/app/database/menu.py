@@ -70,7 +70,7 @@ async def create_menu_table():
 from typing import Optional
 from sqlalchemy import select
 
-from .user import User # ここを修正する。
+from models.user import User # ここを修正する。
 from .menu import Menu
 from schemas.menu_schemas import MenuModel
 

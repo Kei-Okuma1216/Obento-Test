@@ -24,12 +24,12 @@ from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import engine, default_shop_name
 from database.local_postgresql_database import engine, default_shop_name
 '''------------------------------------------------------'''
-from .user import alter_orders_created_at_column_type, create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
+from models.user import alter_orders_created_at_column_type, create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from .company import create_company_table, insert_company
 from .menu import create_menu_table, insert_menu
 from .order import create_orders_table, insert_order
 
-from settings import settings
+from core.settings import settings
 
 @log_decorator
 async def init_database():
@@ -183,7 +183,7 @@ from sqlalchemy import text
 from database.order import Order
 from database.company import Company
 from database.menu import Menu
-from database.user import User
+from models.user import User
 from .local_postgresql_database import Base
 
 @log_decorator
@@ -221,7 +221,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 
 # postgreSQL用設定
-from .settings import settings   # settings は .env から環境変数をロード
+from core.settings import settings   # settings は .env から環境変数をロード
 DATABASE_NAME = settings.database_name  # example
 DATABASE_URL = settings.database_url
 
@@ -261,10 +261,11 @@ async def create_database(database_name: str = DATABASE_NAME):
 #     asyncio.run(create_database("example"))
 '''---------------------------------------------------------------'''
 # sqlite用
-import aiosqlite
-import sqlite3
+# import aiosqlite
+# import sqlite3
+# from utils.exception import DatabaseConnectionException
+
 import os
-from utils.exception import DatabaseConnectionException
 
 # インメモリデータベースを作成
 #conn = sqlite3.connect(':memory:')
