@@ -74,7 +74,6 @@ def get_new_token(data) -> str:
         to_encode.update({"sub": data['sub']})
         to_encode.update({"permission": data['permission']})
 
-        # expired_time = get_now() + timedelta(days=TOKEN_EXPIRE_DAYS)
         expired_time = datetime.now() + timedelta(days=TOKEN_EXPIRE_DAYS)
         expired_time_utc = expired_time.astimezone(timezone.utc)
 
