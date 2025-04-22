@@ -25,7 +25,7 @@ templates = Jinja2Templates(directory="templates")
 
 view_router = APIRouter()
 
-from database.order import select_orders_by_shop_ago
+from models.order import select_orders_by_shop_ago
 from models.user import select_user
 from database.local_postgresql_database import AsyncSessionLocal
 
@@ -137,7 +137,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
 # from sqlalchemy import text
 # from schemas.order_schemas import OrderUpdateList
 from sqlalchemy import update
-from database.order import Order  # OrdersはSQLAlchemyのモデル定義を想定
+from models.order import Order  # OrdersはSQLAlchemyのモデル定義を想定
 
 @log_decorator
 async def batch_update_orders(updates: list[dict]):

@@ -1,4 +1,4 @@
-# database/orders.py
+# models/orders.py
 '''
     注文クエリ関数
 
@@ -31,7 +31,7 @@
     18. delete_all_orders():
 '''
 from sqlalchemy import Column, Integer, String, DateTime
-from .local_postgresql_database import Base, engine
+from database.local_postgresql_database import Base, engine
 
 
 
@@ -95,7 +95,7 @@ async def create_orders_table():
 from datetime import date, datetime, timedelta
 from typing import List, Optional
 from schemas.order_schemas import OrderModel
-from .local_postgresql_database import AsyncSessionLocal
+from database.local_postgresql_database import AsyncSessionLocal
 
 # 選択（１件）
 @log_decorator
@@ -402,8 +402,8 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
     except Exception as e:
         raise CustomException(500, "select_orders_by_user_ago()", f"Error: {e}")
 '''-----------------------------------------------------------'''
-from .company import Company
-from .menu import Menu
+from models.company import Company
+from models.menu import Menu
 
 @log_decorator
 async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:

@@ -1,4 +1,4 @@
-# database/menu.py
+# models/menu.py
 '''
     1. class Menu(Base):
     2. create_menu_table():
@@ -71,7 +71,7 @@ from typing import Optional
 from sqlalchemy import select
 
 from models.user import User # ここを修正する。
-from .menu import Menu
+from models.menu import Menu
 from schemas.menu_schemas import MenuModel
 
 # 選択

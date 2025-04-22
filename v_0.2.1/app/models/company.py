@@ -1,4 +1,4 @@
-# database/company.py
+# models/company.py
 '''
     1. class Company(Base):
     2. create_company_table():
@@ -15,7 +15,7 @@
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
 # from .sqlalchemy_database import Base, AsyncSessionLocal
-from database.local_postgresql_database import Base, engine
+from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
 # Companyテーブル
 class Company(Base):
@@ -34,9 +34,6 @@ class Company(Base):
 
 from utils.utils import log_decorator
 from utils.exception import SQLException, CustomException
-# from .sqlalchemy_database import Base, AsyncSessionLocal
-from database.local_postgresql_database import engine, Base, AsyncSessionLocal
-
 
 
 import logging
@@ -45,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 # 作成
 # from .sqlalchemy_database import engine
-from database.local_postgresql_database import engine
+
 
 @log_decorator
 async def create_company_table():

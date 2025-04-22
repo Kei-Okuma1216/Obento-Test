@@ -1,4 +1,4 @@
-# database/user.py
+# models/user.py
 '''
     1. class UserModel(Base):
     2. create_user_table():

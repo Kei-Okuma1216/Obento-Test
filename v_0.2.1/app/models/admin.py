@@ -1,4 +1,4 @@
-# database/sqlalchemy_database.py
+# models/admin.py
 '''
     1. init_database():
     2. reset_all_autoincrement():
@@ -25,9 +25,9 @@ from sqlalchemy.exc import DatabaseError
 from database.local_postgresql_database import engine, default_shop_name
 '''------------------------------------------------------'''
 from models.user import alter_orders_created_at_column_type, create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
-from .company import create_company_table, insert_company
-from .menu import create_menu_table, insert_menu
-from .order import create_orders_table, insert_order
+from models.company import create_company_table, insert_company
+from models.menu import create_menu_table, insert_menu
+from models.order import create_orders_table, insert_order
 
 from core.settings import settings
 
@@ -180,11 +180,11 @@ async def drop_all_table_sqlite():
 
 # ------------------------------------------------------
 from sqlalchemy import text
-from database.order import Order
-from database.company import Company
-from database.menu import Menu
+from models.order import Order
+from models.company import Company
+from models.menu import Menu
 from models.user import User
-from .local_postgresql_database import Base
+from database.local_postgresql_database import Base
 
 @log_decorator
 async def drop_all_table():

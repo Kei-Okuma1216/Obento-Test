@@ -16,15 +16,13 @@ from utils.exception import CustomException, SQLException
 from services.order_view import order_table_view
 
 
-#from database.sqlite_database import select_menu, select_shop_order, select_user, insert_order
 from models.user import select_user
-from database.order import select_orders_by_user_ago, insert_order
+from models.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
 
-# from database.sqlalchemy_database import endpoint
 from database.local_postgresql_database import endpoint
 
 from log_config import logger

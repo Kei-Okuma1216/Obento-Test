@@ -68,7 +68,7 @@ login_error_message = "ログインに失敗しました。"
 # -----------------------------------------------------
 import jwt
 from local_jwt_module import SECRET_KEY, ALGORITHM
-from database.admin import init_database
+from models.admin import init_database
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator

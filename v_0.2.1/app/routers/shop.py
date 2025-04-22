@@ -17,8 +17,7 @@ templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter()
 
-from database.order import select_orders_by_shop_all
-# from database.sqlalchemy_database import default_shop_name, endpoint
+from models.order import select_orders_by_shop_all
 from database.local_postgresql_database import endpoint, default_shop_name
 
 from venv import logger
