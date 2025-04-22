@@ -34,25 +34,25 @@ private_key = load_private_key("./my-local.key")
 #private_key = load_private_key(KEY_FILE)
 
 
-# 秘密鍵を元に署名を生成する関数:
-def sign_message(private_key, message: str, date: date):
+# # 秘密鍵を元に署名を生成する関数:
+# def sign_message(private_key, message: str, date: date):
 
-    # メッセージに日付を追加 
-    combined_message = message + str(date)
+#     # メッセージに日付を追加 
+#     combined_message = message + str(date)
 
-    # 署名を生成
-    signature = private_key.sign(
-        combined_message.encode(),
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    return signature
+#     # 署名を生成
+#     signature = private_key.sign(
+#         combined_message.encode(),
+#         padding.PSS(
+#             mgf=padding.MGF1(hashes.SHA256()),
+#             salt_length=padding.PSS.MAX_LENGTH
+#         ),
+#         hashes.SHA256()
+#     )
+#     return signature
 
-# 備考：crtファイルはuvicorn起動だけで使っているためここでは使わない。
-#certificate = load_certificate("./my-local.crt")
+# # 備考：crtファイルはuvicorn起動だけで使っているためここでは使わない。
+# #certificate = load_certificate("./my-local.crt")
 
 
 # TODO：ここはアクセストークン取得ラッパーをつくる

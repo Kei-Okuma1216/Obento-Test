@@ -5,8 +5,8 @@
 
     3. def get_today_str(offset: int = 0, date_format: str = None):
         JSTの("%Y-%m-%d %H:%M:%S")を返す
-    4. async def get_created_at_period(days_ago: int) -> Period:
-
+    4. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+    
     5. def get_today_datetime(days_ago: int = 0)-> datetime:
 
     6. def set_all_cookies(response: Response, user: Dict):
@@ -82,6 +82,7 @@ def deprecated(func):
 def get_today_str(offset: int = 0, date_format: str = None):
     new_date = get_today_datetime() + timedelta(days=offset)
     
+    get_today_datetime
     if date_format == "YMD":
         ymd = new_date.strftime("%Y-%m-%d")
     else:
@@ -125,8 +126,8 @@ async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datet
     except Exception as e:    
         raise CustomException(500, "get_created_at_period()", f"Error: {e}")
 
-# 注意：この関数を出力するとログ設定でも出力する
-# @log_decorator
+
+@log_decorator
 def get_today_datetime(days_ago: int = 0) -> datetime:
     """
     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
@@ -146,8 +147,7 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
         0
     )
 
-    logger.debug(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
-
+    print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
     return naive_datetime
 
 

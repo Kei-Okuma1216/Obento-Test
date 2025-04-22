@@ -13,6 +13,7 @@
 '''
 from fastapi import HTTPException, Request, Response, status
 
+from core.security import verify_password
 from utils.utils import log_decorator, set_all_cookies
 from utils.exception import CustomException, NotAuthorizedException, SQLException
 from log_config import logger
@@ -39,8 +40,8 @@ async def get_main_url(permission: int) -> str:
 
 
 from fastapi.responses import RedirectResponse
-from local_jwt_module import get_new_token
-
+# from local_jwt_module import get_new_token
+from core.security import get_access_token
 @log_decorator
 async def create_auth_response(
             username: str,
@@ -51,7 +52,7 @@ async def create_auth_response(
         ユーザー情報を元に新しいトークンを生成し、Cookie を設定したリダイレクトレスポンスを返す。
         """
         data = {"sub": username, "permission": permission}
-        access_token, expires = get_new_token(data)
+        access_token, expires = get_access_token(data)#get_new_token(data)
         new_data = {
             "sub": username,
             "permission": permission,
@@ -120,28 +121,28 @@ def redirect_error(request: Request, message: str, e: Exception=None):
             "redirect_error()",
             f"Error: {str(e)}")
 
-import bcrypt
+# import bcrypt
 
-@log_decorator
-def hash_password(password: str) -> str:
-    """パスワードをハッシュ化する"""
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
+# @log_decorator
+# def hash_password(password: str) -> str:
+#     """パスワードをハッシュ化する"""
+#     salt = bcrypt.gensalt()
+#     hashed_password = bcrypt.hashpw(password.encode(), salt)
 
-    return hashed_password.decode()  # バイト列を文字列に変換
+#     return hashed_password.decode()  # バイト列を文字列に変換
 
-@log_decorator
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """入力されたパスワードがハッシュと一致するか検証
-       True: 一致, False: 不一致"""
-    try:
-        if(bcrypt.checkpw(plain_password.encode(), hashed_password.encode())):
-            return True
-        else:
-            return False
+# @log_decorator
+# def verify_password(plain_password: str, hashed_password: str) -> bool:
+#     """入力されたパスワードがハッシュと一致するか検証
+#        True: 一致, False: 不一致"""
+#     try:
+#         if(bcrypt.checkpw(plain_password.encode(), hashed_password.encode())):
+#             return True
+#         else:
+#             return False
 
-    except Exception as e:
-        raise CustomException("verify_password()", message=str(e))
+#     except Exception as e:
+#         raise CustomException("verify_password()", message=str(e))
 
 
 from typing import Optional
@@ -178,7 +179,7 @@ async def authenticate_user(username, password, name) -> Optional[UserBase]:
             "sub": user.get_username(),
             "permission": user.get_permission()
         }
-        access_token, expires = get_new_token(data)
+        access_token, expires = get_access_token(data) #get_new_token(data)
 
         user.set_token(access_token)        
         user.set_exp(expires)

@@ -67,7 +67,9 @@ login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
 import jwt
-from local_jwt_module import SECRET_KEY, ALGORITHM
+# from local_jwt_module import SECRET_KEY, ALGORITHM
+from core.security import SECRET_KEY, ALGORITHM
+
 from models.admin import init_database
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
@@ -109,7 +111,6 @@ async def root(request: Request, response: Response):
         if compare_expire_date(expires):
             # expires 無効
             return redirect_login(request, error=token_expired_error_message)
-            # return redirect_login(request)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -127,7 +128,7 @@ async def root(request: Request, response: Response):
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
         return redirect_login(
             request, error=token_expired_error_message)
-            # return redirect_login(request)
+ 
     except (CookieException, jwt.InvalidTokenError) as e:
         return redirect_error(
             request, token_expired_error_message, e)

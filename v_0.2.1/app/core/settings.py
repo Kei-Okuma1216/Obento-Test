@@ -1,4 +1,4 @@
-# database/settings.py
+# core/settings.py
 # manual of setting management
 # https://docs.pydantic.dev/2.11/concepts/pydantic_settings/
 
@@ -23,5 +23,6 @@ class Settings(BaseSettings):
 # 設定インスタンスを生成（どこでもインポートして利用できます）
 settings = Settings()
 
-print(Settings().model_dump()) # 本番環境ではコメントアウトする
+# print("設定をよみだしています")
+# print(Settings().model_dump()) # 本番環境ではコメントアウトする
 

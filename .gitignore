@@ -28,3 +28,5 @@ Documents/
 **/DBBrowser/
 Obento-Test.git/
 **.env
+**/security.py
+**/app/core/

@@ -53,6 +53,7 @@ def admin_view(request: Request):
             "/admin_view()",
             f"予期せぬエラーが発生しました: {str(e)}")
 
+from core.security import hash_password, verify_password
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
 async def update_existing_passwords():

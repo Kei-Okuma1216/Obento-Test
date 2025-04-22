@@ -1,4 +1,4 @@
-# manager.py
+# routers/manager.py
 # ../manager/meになる
 '''
     1. manager_view(request: Request, response: Response):

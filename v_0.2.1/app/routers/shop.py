@@ -8,19 +8,21 @@
 from fastapi import Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from venv import logger
 
 from utils.utils import get_all_cookies, check_permission, log_decorator
 from utils.exception import SQLException, CookieException, CustomException
 from services.order_view import order_table_view, get_order_json
+from models.order import select_orders_by_shop_all
+from database.local_postgresql_database import endpoint, default_shop_name
+
 
 templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter()
 
-from models.order import select_orders_by_shop_all
-from database.local_postgresql_database import endpoint, default_shop_name
 
-from venv import logger
+
 
 @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
 @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
@@ -47,13 +49,15 @@ async def shop_view(request: Request, response: Response):
 
         return await order_table_view(response, orders, "shop.html", shop_context)
 
-    except SQLException as e:
+
+    except (CookieException, SQLException) as e:
         raise
     except Exception as e:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
             f"/shop_view()",
             f"Error: {str(e)}")
+
 
 async def get_shop_context(request: Request, orders):
         # 備考：ここはtarget_urlをcontextに入れる改善が必要
@@ -71,6 +75,7 @@ async def get_shop_context(request: Request, orders):
         shop_context.update(order_context)
 
         return shop_context
+
 
 @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
 @log_decorator
