@@ -111,8 +111,7 @@ def redirect_error(request: Request, message: str, e: Exception=None):
             logger.error(f"{message} - detail: {detail_message.get('message', str(e))}")
         else:
             logger.error(f"{message} - detail: {str(e)}")
-        #logger.error(f"{message} - detail:{e.detail["message"]}")
-        #logger.error(e.detail["message"])
+
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": message})
     except HTTPException as e:
