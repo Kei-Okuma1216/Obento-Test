@@ -5,7 +5,9 @@
     2. create_auth_response(
     username: str, permission: int, redirect_url: str) -> Response:
     3. redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
-    4. redirect_error(request: Request, message: str, e: Exception):
+    4. redirect_login_success(request: Request, message: str = "ようこそ"):
+    5. redirect_login_error(request: Request, error: str, e: Exception = None):
+    6. redirect_error(request: Request, message: str, e: Exception):
 '''
 from fastapi import HTTPException, Request, Response, status
 
@@ -143,82 +145,3 @@ def redirect_error(request: Request, message: str, e: Exception=None):
         raise
     except Exception as e:
         logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_404_NOT_FOUND,
-        #     "redirect_error()",
-        #     f"Error: {str(e)}")
-
-# import bcrypt
-
-# @log_decorator
-# def hash_password(password: str) -> str:
-#     """パスワードをハッシュ化する"""
-#     salt = bcrypt.gensalt()
-#     hashed_password = bcrypt.hashpw(password.encode(), salt)
-
-#     return hashed_password.decode()  # バイト列を文字列に変換
-
-# @log_decorator
-# def verify_password(plain_password: str, hashed_password: str) -> bool:
-#     """入力されたパスワードがハッシュと一致するか検証
-#        True: 一致, False: 不一致"""
-#     try:
-#         if(bcrypt.checkpw(plain_password.encode(), hashed_password.encode())):
-#             return True
-#         else:
-#             return False
-
-#     except Exception as e:
-#         raise CustomException("verify_password()", message=str(e))
-
-
-# from typing import Optional
-
-#from database.sqlite_database import select_user, insert_new_user
-#from database.database import select_user, insert_new_user
-# from models.user import insert_new_user, select_user
-
-
-# @log_decorator
-# async def authenticate_user(username, password, name) -> Optional[UserBase]:
-#     """ ログイン認証 """
-#     try:
-#         user : UserResponse = await select_user(username) # UserCreateにするべき
-
-#         if user is None:
-#             await insert_new_user(username, password, name)
-#             user: UserResponse = await select_user(username)
-
-#         logger.info(f"authenticate_user() - 認証試行: {user.username}")
-
-#         # ハッシュ化されたパスワードと入力パスワードを比較
-#         if not verify_password(password, user.get_password()):
-#             ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
-#             #logger.info("パスワードが一致しません")
-#             #return None
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="パスワードが一致しません"
-#                 )
-
-#         print(f"ここまで来た get_permission()")
-#         data = {
-#             "sub": user.get_username(),
-#             "permission": user.get_permission()
-#         }
-#         access_token, expires = get_access_token(data) #get_new_token(data)
-
-#         user.set_token(access_token)        
-#         user.set_exp(expires)
-
-#         logger.info(f"認証成功: {user.username}")
-
-#         return user
-
-#     except (NotAuthorizedException, SQLException, HTTPException) as e:
-#         raise
-#     except Exception as e:
-#         raise CustomException(
-#             status.HTTP_405_METHOD_NOT_ALLOWED,
-#             f"authenticate_user()",
-#             f"予期せぬエラー{e}")

@@ -1,6 +1,8 @@
 from fastapi import Request, APIRouter
 from fastapi.templating import Jinja2Templates
 
+from utils.helper import redirect_error
+
 from .exception import CustomException, NotAuthorizedException   # 必要に応じて修正
 from log_unified import logger
 
@@ -36,9 +38,10 @@ async def not_authorized_exception_handler(request: Request, exc: NotAuthorizedE
 test_exception_router = APIRouter()
 
 @test_exception_router.get("/test_exception", tags=["admin"])
-async def test_exception():
+async def test_exception(request: Request):
     logger.error("test_exception() testエラーが発生しました!")
-    raise CustomException(400, "これはテストエラーです")
+    redirect_error(request, "test_exception()", "これはテストエラーです")
+    # raise CustomException(400, "これはテストエラーです")
 
 # かつてmain.pyにあった
 
