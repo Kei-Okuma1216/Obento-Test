@@ -6,12 +6,6 @@ from starlette import status
 # encoded_message = urllib.parse.quote(f"login_get() Error:  {e.detail}")
 
 # カスタム例外クラス
-'''
-error.html
-<h1 class="text-dark">エラー発生</h1>
-<p>ステータスコード: {{ status_code }}</p>
-<p>エラーメッセージ: {{ message }}</p>
-'''
 class CustomException(HTTPException):
     '''
     例: raise CustomException(
@@ -45,6 +39,24 @@ class CustomException(HTTPException):
                 "message": message,
                 "request_info": request_info
             })
+# class CustomException(HTTPException):
+#     ''' 例: raise CustomException(
+#                 status_code=400,
+#                 method_name="login_get()",
+#                 message=str(e))
+#     '''
+#     def __init__(self,
+#                  status_code: int = 500,
+#                  method_name: str = "",
+#                  message: str = ""):
+#         #print(f"🚨 CustomException 発生！ status_code={status_code}, message={message}")
+#         logger.error(f"CustomException が発生！- {status_code} - {method_name}, {message}")
+#         super().__init__(
+#             status_code=status_code,
+#             detail={
+#             "method_name": method_name,
+#             "message": message
+#             })
 
 # Token期限切れ例外クラス
 class TokenExpiredException(CustomException):

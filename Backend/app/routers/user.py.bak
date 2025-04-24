@@ -11,18 +11,21 @@ from fastapi.templating import Jinja2Templates
 
 from utils.helper import redirect_error
 from utils.utils import get_all_cookies, log_decorator, check_permission, prevent_order_twice
-from utils.exception import CookieException, CustomException, SQLException
+from utils.exception import CustomException, SQLException
+
+from services.order_view import order_table_view
+
+
 from models.user import select_user
 from models.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
-from services.order_view import order_table_view
-
-from database.local_postgresql_database import endpoint
-from log_config import logger
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
 
+from database.local_postgresql_database import endpoint
+
+from log_config import logger
 
 
 # お弁当の注文完了　ユーザーのみ
@@ -66,13 +69,13 @@ async def regist_complete(request: Request, response: Response):
         #last_order_date = orders[0].created_at # DESCの場合
         prevent_order_twice(response, last_order_date)
 
-        user_context = await get_user_context(request, orders)
+        user_context = await Get_user_context(request, orders)
 
         return await order_table_view(
             response, orders, "order_complete.html", user_context)
 
 
-    except (SQLException, HTTPException, CookieException) as e:
+    except (SQLException, HTTPException) as e:
         return redirect_error(request, "注文確定に失敗しました", e)
     except Exception as e:
         raise CustomException(
@@ -80,7 +83,7 @@ async def regist_complete(request: Request, response: Response):
             "regist_complete()",
             f"予期せぬエラーが発生しました: {str(e)}")
 
-async def get_user_context(request: Request, orders):  
+async def Get_user_context(request: Request, orders):  
     # 表示用データの作成
     user_context = {
         'request': request,

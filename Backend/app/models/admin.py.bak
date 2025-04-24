@@ -40,7 +40,6 @@ async def init_database():
         await drop_all_table()
 
         db_name = settings.database_name
-        print("create_databse前まで")
         await create_database(db_name)
 
         # 会社情報の登録
@@ -110,10 +109,9 @@ async def init_database():
         )
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
-        
         #import traceback 
         #traceback.print_exc()
-        # raise CustomException(500, "init_database()", f"例外発生: {e}") from e
+        raise CustomException(500, "init_database()", f"例外発生: {e}") from e
 
 '''------------------------------------------------------'''
 # AUTOINCREMENTフィールドをリセット

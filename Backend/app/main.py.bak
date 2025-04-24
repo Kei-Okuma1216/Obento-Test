@@ -27,12 +27,11 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 from starlette import status
 
-from utils.helper import create_auth_response, get_main_url
+from utils.helper import authenticate_user, create_auth_response, get_main_url, redirect_error, redirect_login
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
-# from log_config import logger
-from log_unified import logger
+from log_config import logger  # 先ほどのログ設定をインポート
 
 from routers.router import sample_router
 from routers.admin import admin_router
@@ -55,6 +54,7 @@ app.include_router(test_exception_router) # テストルーター登録（任意
 
 
 # エントリポイントの選択
+# from database.sqlalchemy_database import endpoint
 from database.local_postgresql_database import endpoint
 
 # tracemallocを有効にする
@@ -62,15 +62,14 @@ import tracemalloc
 tracemalloc.start()
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-access_denied_error_message = "アクセス権限がありません。"
 forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。"
 login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
 import jwt
+# from local_jwt_module import SECRET_KEY, ALGORITHM
 from core.security import SECRET_KEY, ALGORITHM
-from utils.helper import redirect_login_error, redirect_login_success
-from utils.utils import delete_all_cookies
+
 from models.admin import init_database
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
@@ -80,12 +79,11 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
-        print("このappはBackend versionです。")
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        print("v_0.2.1")
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request, response)
-        print(f"last_order: {last_order}")
         if result:
             return templates.TemplateResponse(
                 "duplicate_order.html",
@@ -105,15 +103,14 @@ async def root(request: Request, response: Response):
             raise TokenExpiredException("check_cookie_token()")
             '''
             logger.debug("token: ありません")
-            return redirect_login_success(request, message="ようこそ")
+            return redirect_login(request, message="ようこそ")
 
         # token チェック
         expires = get_token_expires(request)
 
         if compare_expire_date(expires):
             # expires 無効
-            logger.debug("token is expired.")
-            return redirect_login_success(request, error=token_expired_error_message)
+            return redirect_login(request, error=token_expired_error_message)
         else:
             # expires 有効
             logger.debug("token is not expired.")
@@ -129,20 +126,23 @@ async def root(request: Request, response: Response):
             username, permission, main_url)
 
     except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        return redirect_login_success(
+        return redirect_login(
             request, error=token_expired_error_message)
  
     except (CookieException, jwt.InvalidTokenError) as e:
-         redirect_login_error(request, token_expired_error_message, e)
+        return redirect_error(
+            request, token_expired_error_message, e)
     except Exception as e:
 
         content_type = request.headers.get('Content-Type')
         print(f"Content-Type: {content_type}")
         if content_type == "application/json":
             json_data = await request.json()
-            return redirect_login_error(request, json_data, e)
+            return redirect_error(
+                request, json_data, e)
         else:
-            return redirect_login_error(request, str(e), e)
+            return redirect_error(
+                request, str(e), e)
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -150,14 +150,10 @@ async def root(request: Request, response: Response):
 async def login_get(request: Request):
     try:
         pass
-        return redirect_login_success(request)
-
+        return redirect_login(request, message="ようこそ")
     except Exception as e:
-        return redirect_login_error(
-            request, login_error_message, e)
+        return redirect_error(request, login_error_message, e)
 
-
-from core.security import authenticate_user
 
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
@@ -181,22 +177,17 @@ async def login_post(request: Request,
     except DatabaseError as e:
         raise
     except NotAuthorizedException as e:
-
-        return redirect_login_success(request, error=access_denied_error_message)
-    
+        return redirect_login(request, error="アクセス権限がありません。")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-
-         return redirect_login_success(request,error=token_expired_error_message)
-
+        # return redirect_login(request)        
+         return redirect_login(request, error=token_expired_error_message)
     except (CookieException, SQLException, HTTPException) as e:
-        return redirect_login_error(request, login_error_message)
-
+        return redirect_error(request, login_error_message)
     except Exception as e:
-        logger.error(f"予期せぬエラーが発生しました: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     "/login_post()",
-        #     f"予期せぬエラーが発生しました: {str(e)}")
+        raise CustomException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "/login_post()",
+            f"予期せぬエラーが発生しました: {str(e)}")
 
 
 # cookieを削除してログアウト
@@ -209,6 +200,7 @@ async def clear_cookie(response: Response):
 
     return response
 
+# from services.order_view import OrderUpdateList  # または相対import
 from schemas.order_schemas import OrderUpdateList
 from services.order_view import batch_update_orders
 

@@ -260,8 +260,6 @@ async def insert_user(
         except Exception as e:
             raise CustomException("UserのINSERT処理", f"insert_user()", f"Error: {e}") from e
 
-# デフォルト company_id を環境変数や設定ファイルで管理する
-DEFAULT_COMPANY_ID = 1
 
 # 新規ユーザー追加
 from sqlalchemy import func
@@ -277,6 +275,8 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             # 既存ユーザーのチェック
             stmt = select(func.count()).select_from(User).where(User.username == username)
             count = await session.scalar(stmt)
+            #logger.debug(f"insert_new_user() - ユーザー存在チェック: count = {count}")
+
             if count > 0:
                 logger.debug(f"ユーザー {username} は既に存在します。挿入をスキップします。")
                 return
@@ -288,7 +288,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
                 name=name,
                 token="",
                 exp="",
-                company_id=DEFAULT_COMPANY_ID,
+                company_id=1,
                 shop_name=default_shop_name,  # default_shop_name は適宜定義済みとします
                 menu_id=1,
                 permission=1  # 新規ユーザーのデフォルト権限（必要に応じて変更してください）
@@ -305,17 +305,13 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             exception=e
         ) from e
     except Exception as e:
-        raise CustomException(
-            status_code=400,
-            method_name="insert_new_user()",
-            message=f"Error: {e}"
-        ) from e
-
+        raise CustomException(500, "insert_new_user()", f"Error: {e}") from e
 
 
 # お弁当屋追加
 # 備考：username == shop_name とする
 from sqlalchemy import func
+
 
 @log_decorator
 async def insert_shop(

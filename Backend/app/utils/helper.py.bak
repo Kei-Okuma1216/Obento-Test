@@ -6,12 +6,21 @@
     username: str, permission: int, redirect_url: str) -> Response:
     3. redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
     4. redirect_error(request: Request, message: str, e: Exception):
+    5. hash_password(password: str) -> str:
+    6. verify_password(plain_password: str, hashed_password: str) -> bool:
+    7. authenticate_user(username, password, name) -> Optional[UserBase]:
+    8. get_user_by_username(username: str) -> UserBase:
 '''
 from fastapi import HTTPException, Request, Response, status
 
+from core.security import verify_password
+# from utils.utils import log_decorator, set_all_cookies
+# from utils.exception import CustomException, NotAuthorizedException, SQLException
 from .utils import log_decorator, set_all_cookies
-from .exception import CustomException, NotAuthorizedException
-from log_config import logger
+from .exception import CustomException, NotAuthorizedException, SQLException
+# from log_config import logger
+from log_unified import logger
+from schemas.user_schemas import UserBase, UserResponse
 
 @log_decorator
 async def get_main_url(permission: int) -> str:
@@ -34,6 +43,7 @@ async def get_main_url(permission: int) -> str:
 
 
 from fastapi.responses import RedirectResponse
+# from local_jwt_module import get_new_token
 from core.security import get_access_token
 @log_decorator
 async def create_auth_response(
@@ -68,11 +78,7 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 @log_decorator
-def redirect_login(
-    request: Request,
-    message: str=None,
-    error: str=None,
-    e: Exception=None):
+def redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
     '''login.htmlに戻る'''
     try:
         if error:
@@ -88,65 +94,35 @@ def redirect_login(
     except HTTPException as e:
         raise
     except Exception as e:
-        # token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-        logger.error(f"redirect_login() - 予期せぬエラー: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_404_NOT_FOUND,
-        #     method_name="redirect_login()",
-        #     message=token_expired_error_message if e.detail else f"Error: {e.detail}"
-        # )
 
-# ログイン成功時のリダイレクト
-# 正常系
-# return redirect_login_success(request, message="再ログインしてください")
-@log_decorator
-def redirect_login_success(request: Request, message: str = "ようこそ"):
-    logger.info(f"Redirect Login - {message}")
-    return templates.TemplateResponse(
-        "login.html", {"request": request, "message": message, "error": None}
-    )
+        token_expired_error_message = "有効期限が切れています。再登録をしてください。"
+        
+        raise CustomException(
+            status.HTTP_404_NOT_FOUND,
+            method_name="redirect_login()",
+            message=token_expired_error_message if e.detail else f"Error: {e.detail}"
+        )
 
-# エラー時のリダイレクト
-# 異常系
-# return redirect_login_error(request, error="有効期限が切れています", e=e)
-@log_decorator
-def redirect_login_error(request: Request, error: str, e: Exception = None):
-    logger.error(f"Redirect Login - {error}")
-    if e:
-        detail_message = getattr(e, "detail", str(e))
-        logger.error(f"Error detail: {detail_message}")
-
-    return templates.TemplateResponse(
-        "login.html", {"request": request, "message": None, "error": error}
-    )
-
-
-
-@log_decorator
+@log_decorator # eも組み込みたい
 def redirect_error(request: Request, message: str, e: Exception=None):
-    '''error.htmlに戻る
-    messageにエラー内容を表示する'''
+    '''error.htmlに戻る'''
     try:
-        # e.detailの有無チェック
-        # ValueErrorの場合、e.detailはdict型で、messageはstr型
         detail_message = getattr(e, "detail", None)
-
         if detail_message:
             logger.error(f"{message} - detail: {detail_message.get('message', str(e))}")
         else:
             logger.error(f"{message} - detail: {str(e)}")
-
+        #logger.error(f"{message} - detail:{e.detail["message"]}")
+        #logger.error(e.detail["message"])
         return templates.TemplateResponse(
             "error.html", {"request": request, "error": message})
-
     except HTTPException as e:
         raise
     except Exception as e:
-        logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_404_NOT_FOUND,
-        #     "redirect_error()",
-        #     f"Error: {str(e)}")
+        raise CustomException(
+            status.HTTP_404_NOT_FOUND,
+            "redirect_error()",
+            f"Error: {str(e)}")
 
 # import bcrypt
 
@@ -172,53 +148,53 @@ def redirect_error(request: Request, message: str, e: Exception=None):
 #         raise CustomException("verify_password()", message=str(e))
 
 
-# from typing import Optional
+from typing import Optional
 
 #from database.sqlite_database import select_user, insert_new_user
 #from database.database import select_user, insert_new_user
-# from models.user import insert_new_user, select_user
+from models.user import insert_new_user, select_user
 
 
-# @log_decorator
-# async def authenticate_user(username, password, name) -> Optional[UserBase]:
-#     """ ログイン認証 """
-#     try:
-#         user : UserResponse = await select_user(username) # UserCreateにするべき
+@log_decorator
+async def authenticate_user(username, password, name) -> Optional[UserBase]:
+    """ ログイン認証 """
+    try:
+        user : UserResponse = await select_user(username) # UserCreateにするべき
 
-#         if user is None:
-#             await insert_new_user(username, password, name)
-#             user: UserResponse = await select_user(username)
+        if user is None:
+            await insert_new_user(username, password, name)
+            user: UserResponse = await select_user(username)
 
-#         logger.info(f"authenticate_user() - 認証試行: {user.username}")
+        logger.info(f"authenticate_user() - 認証試行: {user.username}")
 
-#         # ハッシュ化されたパスワードと入力パスワードを比較
-#         if not verify_password(password, user.get_password()):
-#             ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
-#             #logger.info("パスワードが一致しません")
-#             #return None
-#             raise HTTPException(
-#                 status_code=status.HTTP_401_UNAUTHORIZED,
-#                 detail="パスワードが一致しません"
-#                 )
+        # ハッシュ化されたパスワードと入力パスワードを比較
+        if not verify_password(password, user.get_password()):
+            ''' 注意：1回目は admin.pyにある、/me/update_existing_passwordsを実行して、Userテーブルのパスワードをハッシュ化する必要がある '''
+            #logger.info("パスワードが一致しません")
+            #return None
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="パスワードが一致しません"
+                )
 
-#         print(f"ここまで来た get_permission()")
-#         data = {
-#             "sub": user.get_username(),
-#             "permission": user.get_permission()
-#         }
-#         access_token, expires = get_access_token(data) #get_new_token(data)
+        print(f"ここまで来た get_permission()")
+        data = {
+            "sub": user.get_username(),
+            "permission": user.get_permission()
+        }
+        access_token, expires = get_access_token(data) #get_new_token(data)
 
-#         user.set_token(access_token)        
-#         user.set_exp(expires)
+        user.set_token(access_token)        
+        user.set_exp(expires)
 
-#         logger.info(f"認証成功: {user.username}")
+        logger.info(f"認証成功: {user.username}")
 
-#         return user
+        return user
 
-#     except (NotAuthorizedException, SQLException, HTTPException) as e:
-#         raise
-#     except Exception as e:
-#         raise CustomException(
-#             status.HTTP_405_METHOD_NOT_ALLOWED,
-#             f"authenticate_user()",
-#             f"予期せぬエラー{e}")
+    except (NotAuthorizedException, SQLException, HTTPException) as e:
+        raise
+    except Exception as e:
+        raise CustomException(
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+            f"authenticate_user()",
+            f"予期せぬエラー{e}")

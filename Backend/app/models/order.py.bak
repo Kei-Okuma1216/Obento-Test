@@ -33,8 +33,7 @@
 from sqlalchemy import Column, Integer, String, DateTime
 from database.local_postgresql_database import Base, engine
 
-# SELECT * FROM public."Orders"
-# ORDER BY order_id DESC
+
 
 class Order(Base):
     __tablename__ = "Orders"
@@ -45,6 +44,8 @@ class Order(Base):
     shop_name = Column(String)
     menu_id = Column(Integer)
     amount = Column(Integer)
+    # updated_at = Column(String, default="")
+    # PostgreSQL 専用：タイムゾーン付き
     created_at = Column(DateTime) # このままでOK
     # created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
     updated_at = Column(DateTime) # このままでOK

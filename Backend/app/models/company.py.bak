@@ -14,6 +14,7 @@
 
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
+# from .sqlalchemy_database import Base, AsyncSessionLocal
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
 # Companyテーブル
@@ -24,14 +25,12 @@ class Company(Base):
     name = Column(String, nullable=False)
     tel = Column(String, nullable=True)
     shop_name = Column(String, nullable=True)
+    # created_at = Column(String, nullable=True)
     created_at = Column(DateTime, nullable=True)
     disabled = Column(Boolean, default=False)
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
-
-# SELECT * FROM public."Companies"
-# ORDER BY company_id DESC
 
 from utils.utils import log_decorator
 from utils.exception import SQLException, CustomException

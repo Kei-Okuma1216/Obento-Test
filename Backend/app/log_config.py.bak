@@ -1,7 +1,8 @@
-# ./log_config
-
-# ログディレクトリの作成
+# log_config
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
+# ログディレクトリの作成
 log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 
@@ -11,12 +12,10 @@ current_time = get_today_datetime()
 log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
 # ログ設定
-import logging
 logger = logging.getLogger("uvicorn")
 # Uvicorn のデフォルトロガーが二重出力しないようにする
 logger.propagate = False
 #logger.setLevel(logging.INFO)
-
 
 def set_logger_levels(logger, levels):
     """
@@ -45,8 +44,6 @@ set_logger_levels(logger, ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
 # ログにエラー発生時のrequestを記録するように改良の必要あり
 # 今のままではデバッグに役に立たない
 
-from logging.handlers import TimedRotatingFileHandler
-
 # ハンドラー（1日ごとに新しいログファイルを作成）
 file_handler = TimedRotatingFileHandler(
     log_filename, when="midnight", interval=1, encoding="utf-8", backupCount=7
@@ -65,7 +62,7 @@ file_handler.setFormatter(formatter)
 console_handler.setFormatter(formatter)  # コンソールのログも同じフォーマット
 
 # ロガーにハンドラーを追加
-# logger.addHandler(file_handler) # ここは適宜有効にする
+logger.addHandler(file_handler) # ここは適宜有効にする
 logger.addHandler(console_handler)  # 追加
 
 
