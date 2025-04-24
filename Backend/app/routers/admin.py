@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from models.user import update_user, select_all_users
 
 from utils.exception import CustomException, NotAuthorizedException
-from utils.helper import redirect_login
+from utils.helper import redirect_error, redirect_login
 from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
@@ -44,14 +44,14 @@ def admin_view(request: Request):
                 "base_url": endpoint})
 
     except NotAuthorizedException as e:
-        return redirect_login(request, "アクセス権限がありません。", e)
+        return redirect_error(request, "アクセス権限がありません。", e)
     except Exception as e:
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "/admin_view()",
-            f"予期せぬエラーが発生しました: {str(e)}")
+        logger.error(f"予期せぬエラーが発生しました: {str(e)}")
+        # raise CustomException(
+        #     status.HTTP_500_INTERNAL_SERVER_ERROR,
+        #     "/admin_view()",
+        #     f"予期せぬエラーが発生しました: {str(e)}")
 
-from core.security import hash_password, verify_password
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
 async def update_existing_passwords():

@@ -40,8 +40,22 @@ test_exception_router = APIRouter()
 @test_exception_router.get("/test_exception", tags=["admin"])
 async def test_exception(request: Request):
     logger.error("test_exception() testエラーが発生しました!")
-    redirect_error(request, "test_exception()", "これはテストエラーです")
-    # raise CustomException(400, "これはテストエラーです")
+
+    # メッセージ付きで error.html を表示
+    return redirect_error(request, "test_exception()", Exception("これはテストエラーです"))
+
+
+# @test_exception_router.get("/error")
+# async def error_page(request: Request):
+#     return templates.TemplateResponse("error.html", {"request": request})
+
+@test_exception_router.get("/test_exception", tags=["admin"])
+async def test_exception(request: Request):
+
+    logger.error("test_exception() testエラーが発生しました!")
+    return redirect_error(request, "これはテストエラーです", Exception("これはテストエラーです"))
+
+
 
 # かつてmain.pyにあった
 

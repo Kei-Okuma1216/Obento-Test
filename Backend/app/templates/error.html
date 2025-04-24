@@ -38,16 +38,17 @@
     {% include 'components/header.html' %}
 
     <!-- エラーメッセージ表示用コンテナ -->
-    <div class="container mt-4 content-wrapper">
-      <div class="container mt-4">
-        <div class="alert alert-danger" role="alert">
-          <!-- h1 に text-dark クラスを追加 -->
-          <h1 class="text-dark">エラー発生</h1>
-          <p>ステータスコード: {{ status_code }}</p>
-          <p>エラーメッセージ: {{ message }}</p>
+    {% if request.query_params.get("error") %}
+      <div class="container mt-4 content-wrapper">
+        <div class="container mt-4">
+          <div class="alert alert-danger" role="alert">
+            <h1 class="text-dark">エラー発生</h1>
+            <p>ステータスコード: {{ status_code }}</p>
+            <p>エラーメッセージ: {{ request.query_params.get("error") }}</p>
+          </div>
         </div>
       </div>
-    </div>
+    {% endif %}
 
     <!-- フッター -->
     {% include 'components/footer.html' %}

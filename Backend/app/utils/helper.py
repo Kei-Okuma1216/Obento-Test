@@ -9,6 +9,7 @@
     5. redirect_login_error(request: Request, error: str, e: Exception = None):
     6. redirect_error(request: Request, message: str, e: Exception):
 '''
+from urllib.parse import urlencode
 from fastapi import HTTPException, Request, Response, status
 
 from .utils import log_decorator, set_all_cookies
@@ -123,14 +124,16 @@ def redirect_login_error(request: Request, error: str, e: Exception = None):
     )
 
 
+from fastapi.requests import Request
+from fastapi.responses import RedirectResponse
+from urllib.parse import urlencode
+from fastapi import HTTPException
 
 @log_decorator
-def redirect_error(request: Request, message: str, e: Exception=None):
-    '''error.htmlに戻る
-    messageにエラー内容を表示する'''
+def redirect_error(request: Request, message: str, e: Exception = None):
+    '''error.html にリダイレクトし、クエリにエラー内容を表示'''
     try:
-        # e.detailの有無チェック
-        # ValueErrorの場合、e.detailはdict型で、messageはstr型
+        # 例外詳細をログ出力
         detail_message = getattr(e, "detail", None)
 
         if detail_message:
@@ -138,10 +141,12 @@ def redirect_error(request: Request, message: str, e: Exception=None):
         else:
             logger.error(f"{message} - detail: {str(e)}")
 
-        return templates.TemplateResponse(
-            "error.html", {"request": request, "error": message})
+        # クエリパラメータにエラーを載せてリダイレクト
+        params = urlencode({"error": message})
+        return RedirectResponse(f"/error?{params}", status_code=303)
 
-    except HTTPException as e:
+    except HTTPException:
         raise
     except Exception as e:
         logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
+
