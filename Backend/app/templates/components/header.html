@@ -1,15 +1,25 @@
 <header>
   <!-- ナビゲーションバー -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-matcha">
+  <nav class="navbar navbar-expand-lg navbar-dark bg-matcha">
     <div class="container">
       <a class="navbar-brand" href="/login">お弁当注文</a>
+
+      <!-- ハンバーガーメニュー -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#headerNavbar" aria-controls="headerNavbar" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
+
+      <!-- メニュー部分 -->
       <div class="collapse navbar-collapse" id="headerNavbar">
+
         <ul class="navbar-nav ms-auto">
+          <!-- ログアウトボタン -->
           <li class="nav-item">
             <a class="nav-link" href="/clear">ログアウト</a>
+          </li>
+          <!-- 閉じるボタン -->
+          <li class="nav-item">
+            <a class="nav-link" href="#" onclick="closeWindow()">閉じる</a>
           </li>
         </ul>
       </div>
@@ -20,6 +30,15 @@
 <style>
   /* bg-matcha クラスを定義：抹茶みたいな緑 */
   .bg-matcha {
-    background-color: #a8d08d !important;
+    /* background-color: #a8d08d !important; */
+    background-color: #7FB77E !important; /* より濃い抹茶色 */
   }
 </style>
+<script>
+  function closeWindow() {
+    // セキュリティの都合上、JavaScriptでは「自分で開いたウィンドウ」しか閉じられません
+    window.open('', '_self'); // 自分自身を対象に
+    window.close(); // 閉じる処理（失敗する場合もあり）
+  }
+</script>
+
