@@ -11,7 +11,7 @@ from fastapi import HTTPException, Request, Response, status
 
 from .utils import log_decorator, set_all_cookies
 from .exception import CustomException, NotAuthorizedException
-from log_config import logger
+from log_unified import logger
 
 @log_decorator
 async def get_main_url(permission: int) -> str:

@@ -18,7 +18,7 @@ from schemas.user_schemas import UserResponse
 from services.order_view import order_table_view
 
 from database.local_postgresql_database import endpoint
-from log_config import logger
+from log_unified import logger
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()

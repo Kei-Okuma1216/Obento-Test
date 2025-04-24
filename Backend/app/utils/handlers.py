@@ -1,9 +1,8 @@
 from fastapi import Request, APIRouter
-from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from .exception import CustomException, NotAuthorizedException, SQLException  # 必要に応じて修正
-from log_config import logger
+from .exception import CustomException, NotAuthorizedException   # 必要に応じて修正
+from log_unified import logger
 
 templates = Jinja2Templates(directory="templates")
 

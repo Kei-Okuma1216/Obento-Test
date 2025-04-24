@@ -53,7 +53,7 @@ class User(Base):
 
 
 # ログ用の設定
-from log_config import logger
+from log_unified import logger
 import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
