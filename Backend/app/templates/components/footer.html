@@ -1,4 +1,4 @@
-<footer class="fixed-footer bg-dark text-light py-4" style="bottom: -10px;">
+<footer class="fixed-footer bg-dark text-light py-4">
   <div class="container text-center">
     <p>&copy; 2025 会社名. All Rights Reserved.</p>
     <ul class="list-inline">
@@ -7,4 +7,59 @@
       <li class="list-inline-item"><a href="#" class="text-light">お問い合わせ</a></li>
     </ul>
   </div>
+
+  <style>
+    /* 固定フッターのスタイル */
+    .fixed-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #343a40; /* Bootstrapのダークテーマ */
+      color: white;
+      z-index: 1030;
+    }
+    /* 固定フッターの初期状態は少し下に隠す */
+    .fixed-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: -10px; /* ※必要に応じて調整 */
+      transition: bottom 0.3s ease;
+      z-index: 1030;
+    }
+
+    /* .fixed-footer a {
+      color: white;
+    } */
+    /* ホバー時にフッターを完全に表示 */
+    .fixed-footer:hover {
+      bottom: 0;
+    }
+    .fixed-footer a:hover {
+      text-decoration: underline;
+    }
+    /* スマホサイズでは非表示にする */
+    @media (max-width: 576px) {
+      .fixed-footer {
+        display: none !important;
+      }
+    }
+
+    /* PCサイズでは固定表示 */
+    @media (min-width: 577px) {
+      .fixed-footer {
+          position: static !important; /* 固定表示を解除 */
+          bottom: auto !important;
+          transition: none;
+        }
+      /* .fixed-footer {
+        display: block;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+      } */
+    }
+  </style>
 </footer>

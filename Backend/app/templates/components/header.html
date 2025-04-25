@@ -12,6 +12,9 @@
       <!-- メニュー部分 -->
       <div class="collapse navbar-collapse" id="headerNavbar">
 
+        <!-- <button style="color: rgb(115, 8, 222); background-color: rgb(225, 243, 34);">AAA</button> -->
+        <!-- <li class="test-nav-item">AAA</li> -->
+
         <ul class="navbar-nav ms-auto">
           <!-- ログアウトボタン -->
           <li class="nav-item">
@@ -28,12 +31,51 @@
 </header>
 
 <style>
-  /* bg-matcha クラスを定義：抹茶みたいな緑 */
+    .test-nav-item {
+    color: rgb(115, 8, 222);
+    background-color: rgb(225, 243, 34);
+    border-radius: 12px;
+  }
+
+  .navbar-collapse {
+      background-color: #7FB77E !important; /* 濃い抹茶色 */
+  }
+  /* bg-matcha クラス：ナビゲーション全体の背景 */
   .bg-matcha {
-    /* background-color: #a8d08d !important; */
-    background-color: #7FB77E !important; /* より濃い抹茶色 */
+    background-color: #7FB77E !important; /* 濃い抹茶色 */
+  }
+
+  /* ハンバーガーメニュー展開時の全体背景 */
+  .navbar-collapse.show {
+    background-color: #7FB77E;
+  }
+
+  /* li（nav-item）自体にも背景と角丸を適用して、余白が白く見えないようにする */
+  .navbar-collapse.show .nav-item {
+    background-color: #7FB77E !important;
+    border-radius: 8px;
+    margin: 4px 0; /* ボタン間の余白 */
+  }
+
+  /* aタグ（リンク）にも色と装飾を適用 */
+  .navbar-collapse.show .nav-link {
+    color: white !important;
+    background-color: #7FB77E !important;
+    border-radius: 8px;
+    padding: 6px 12px;
+    display: block; /* 全体クリックしやすく */
+    text-align: center;
+  }
+
+  /* ホバー時の視認性向上 */
+  .navbar-collapse.show .nav-link:hover {
+    background-color: #6fa76e !important;
+  }
+  .ul{
+    background-color: #7FB77E !important;
   }
 </style>
+
 <script>
   function closeWindow() {
     // セキュリティの都合上、JavaScriptでは「自分で開いたウィンドウ」しか閉じられません
