@@ -18,11 +18,8 @@
     12. delete_all_user():
     13. alter_orders_created_at_column_type():
 '''
-from fastapi import Body
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
-#default_shop_name = "shop01"
-from database.sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
-
+from database.local_postgresql_database import Base
 
 # database.Userクラス
 '''
@@ -37,7 +34,7 @@ class User(Base):
     name = Column(String, nullable=True)
     token = Column(String, nullable=True)
     exp = Column(String, nullable=True)
-    company_id = Column(Integer, ForeignKey("Companies.company_id"), nullable=True)
+    company_id = Column(Integer, ForeignKey("Companies.company_id"))
     shop_name = Column(String, nullable=True)
     menu_id = Column(Integer, nullable=True)
     permission = Column(Integer, default=1)
@@ -61,9 +58,7 @@ from utils.utils import log_decorator
 
 
 from sqlalchemy.exc import DatabaseError
-# from .sqlalchemy_database import Base, AsyncSessionLocal, default_shop_name, get_db
 from database.local_postgresql_database import AsyncSessionLocal, default_shop_name, engine, get_db
-# from .sqlalchemy_database import engine
 
 # Userテーブル
 # 作成
@@ -263,6 +258,8 @@ async def insert_user(
 # デフォルト company_id を環境変数や設定ファイルで管理する
 DEFAULT_COMPANY_ID = 1
 
+from fastapi import HTTPException
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 # 新規ユーザー追加
 from sqlalchemy import func
 @log_decorator
@@ -294,17 +291,20 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
                 permission=1  # 新規ユーザーのデフォルト権限（必要に応じて変更してください）
             )
             session.add(new_user)
+            # print(".commit直前")
             await session.commit()
             logger.info("新規ユーザー登録成功")
 
-    except DatabaseError as e:
-        raise SQLException(
-            sql_statement="INSERT INTO users ...",  # 実際のSQL文は省略
-            method_name="insert_new_user()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+    except IntegrityError as e:
+        print(f"IntegrityError: {e}")
+        await session.rollback()
+        raise HTTPException(status_code=400, detail=f"データベースの整合性エラー: {str(e)}")
+    except SQLAlchemyError as e:
+        print(f"SQLAlchemyError: {e}")
+        await session.rollback()
+        raise HTTPException(status_code=500, detail=f"データベースエラー: {str(e)}")
     except Exception as e:
+        print(f"Exception: {e}")
         raise CustomException(
             status_code=400,
             method_name="insert_new_user()",
@@ -315,7 +315,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
 
 # お弁当屋追加
 # 備考：username == shop_name とする
-from sqlalchemy import func
+from fastapi import Body
 
 @log_decorator
 async def insert_shop(

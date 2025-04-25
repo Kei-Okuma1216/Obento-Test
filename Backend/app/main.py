@@ -25,7 +25,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
-from starlette import status
 
 from utils.helper import create_auth_response, get_main_url
 from utils.utils import *
@@ -68,10 +67,11 @@ login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
 import jwt
-from core.security import SECRET_KEY, ALGORITHM
+from core.security import decode_jwt_token
 from utils.helper import redirect_login_error, redirect_login_success
 from utils.utils import delete_all_cookies
 from models.admin import init_database
+
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
@@ -80,7 +80,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         print("このappはBackend versionです。")
 
         # 二重注文の禁止
@@ -119,10 +119,11 @@ async def root(request: Request, response: Response):
             logger.debug("token is not expired.")
 
         # token 解読
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode_jwt_token(token)
+
         username = payload['sub']
         permission = payload['permission']
-
         main_url = await get_main_url(permission)
 
         return await create_auth_response(
@@ -181,11 +182,9 @@ async def login_post(request: Request,
     except DatabaseError as e:
         raise
     except NotAuthorizedException as e:
-
         return redirect_login_success(request, error=access_denied_error_message)
     
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-
          return redirect_login_success(request,error=token_expired_error_message)
 
     except (CookieException, SQLException, HTTPException) as e:

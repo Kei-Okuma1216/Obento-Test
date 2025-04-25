@@ -2,15 +2,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-import psycopg2
-
 # データベースとのコネクションを確立します。
 from sqlalchemy.ext.asyncio import create_async_engine
 
-'''
-DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost/LunchOrder"
-engine = create_async_engine(DATABASE_URL, echo=True)
-'''
+
 DATABASE_URL = "sqlite+aiosqlite:///database/example.db"
 
 db_name_str = "example.db"

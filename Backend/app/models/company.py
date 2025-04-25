@@ -187,7 +187,8 @@ async def insert_company(company_name: str,
             exception=e
         ) from e
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        logger.error(f"insert_company() - insert_company() Error: {str(e)}")
+        # raise CustomException(500, "insert_company()", f"Error: {e}") from e
 
 
 

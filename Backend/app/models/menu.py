@@ -14,7 +14,6 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
 from sqlalchemy.exc import DatabaseError
 
-# from .sqlalchemy_database import Base, AsyncSessionLocal
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
 from utils.exception import CustomException, SQLException
