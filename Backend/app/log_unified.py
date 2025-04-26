@@ -12,6 +12,7 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     """
     os.makedirs(log_dir, exist_ok=True)
     current_time = get_today_datetime()
+    print(f"current_time: {current_time}")
     log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
 
     logger = logging.getLogger(name)
@@ -40,14 +41,14 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
 logger = create_logger("uvicorn", "logs")
 order_logger = create_logger("order_logger", "order_logs")# 例: 注文用ロガー
 
-def log_order(log_type: str, message: str):
-    """
-    注文用ログ出力インターフェース。
-    :param log_type: "ORDER", "CANCEL" など
-    :param message: メッセージ本文
-    """
-    log_message = f"{log_type.upper()}: {message}"
-    order_logger.info(log_message)
+# def log_order(log_type: str, message: str):
+#     """
+#     注文用ログ出力インターフェース。
+#     :param log_type: "ORDER", "CANCEL" など
+#     :param message: メッセージ本文
+#     """
+#     log_message = f"{log_type.upper()}: {message}"
+#     order_logger.info(log_message)
 
 # ログの使用例
 # uvicorn_logger.info("アプリケーション起動")

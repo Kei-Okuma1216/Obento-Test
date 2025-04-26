@@ -63,7 +63,7 @@ from utils.utils import get_today_datetime, log_decorator
 
 import logging
 logger = logging.getLogger(__name__)
-from log_unified import logger
+from log_unified import logger, order_logger
 
 from sqlalchemy.exc import DatabaseError
 
@@ -959,6 +959,7 @@ from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 from sqlalchemy import text
 import traceback
 
+from log_unified import order_logger
 
 @log_decorator
 async def insert_order(
@@ -1003,6 +1004,7 @@ async def insert_order(
             # やはりここがおかしい
             # logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
             # logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
+            order_logger.info("ORDER - 注文が完了しました")
 
             return order_id
 

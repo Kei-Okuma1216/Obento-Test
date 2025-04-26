@@ -62,7 +62,7 @@ tracemalloc.start()
 
 token_expired_error_message = "有効期限が切れています。再登録をしてください。"
 access_denied_error_message = "アクセス権限がありません。"
-forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。"
+forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
 login_error_message = "ログインに失敗しました。"
 
 # -----------------------------------------------------
