@@ -36,25 +36,13 @@ from core.settings import settings
 async def init_database():
     try:
         # テーブル削除
-        # await reset_all_autoincrement_on_sqlite()
-        # await drop_all_table_on_sqlite()
-        # await drop_all_table()
         db_name = settings.database_name
 
         await drop_database(db_name)  # データベースを削除
-        print(f"create_databse前まで {db_name=}")
+        # print(f"create_databse前まで {db_name=}")
         # return
         await create_database(db_name)
         await create_all_tables_in_order()
-
-
-        # ALTER TABLE "Users"
-        # ADD CONSTRAINT fk_users_company
-        # FOREIGN KEY (company_id)
-        # REFERENCES "Companies"(company_id)
-        # ON DELETE SET NULL
-        # ON UPDATE CASCADE;
-
 
         # 会社情報の登録
         # 備考：Userの外部キーがcompaniesのため、先に登録する
@@ -72,24 +60,30 @@ async def init_database():
         await insert_shop(default_shop_name, "shop01", "お店shop01")
         # 4
         await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
-        await update_user("manager", "permission", 2)
+        await update_user("manager", "permission", 2) # ここで権限を変更する
         # 5
         await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
 
 
         await update_user("admin", "permission", 99)
+
+        # 最後に全員のパスワードを暗号化する
         await update_existing_passwords() 
 
 
 
         # メニュー情報の登録
         # await create_menu_table()
-        await insert_menu(shop_name=default_shop_name, name='お昼の定食', price=500, description='お昼のランチお弁当です', picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
+        await insert_menu(
+            shop_name=default_shop_name,
+            name='お昼の定食',
+            price=500,
+            description='お昼のランチお弁当です',
+            picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
 
 
         # 注文情報の登録
         # await create_orders_table()
-        # await alter_orders_created_at_column_type()
         
         # 1
         await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=5))
@@ -106,11 +100,12 @@ async def init_database():
         # 7
         await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime(days_ago=0))
 
-        logger.info("データベースファイル 'sample.db' が正常に作成されました。")
+        logger.info("データベースファイル 'example' が正常に作成されました。")
 
-    except (DatabaseError, SQLAlchemyError) as e:
-        print(f"init_database - {str(e)}")       
-        logger.error(f"init_database - {str(e)}")
+    except (DatabaseError, SQLAlchemyError, IntegrityError, OperationalError) as e:
+        raise
+        # print(f"init_database - {str(e)}")       
+        # logger.error(f"init_database - {str(e)}")
         # raise SQLException(
         #     sql_statement=str(stmt),
         #     method_name="init_database()",
@@ -119,14 +114,11 @@ async def init_database():
         # )
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
-        
-        #import traceback 
-        #traceback.print_exc()
+        import traceback 
+        traceback.print_exc()
         # raise CustomException(500, "init_database()", f"例外発生: {e}") from e
 
 '''------------------------------------------------------'''
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.sql import text
 from core.settings import settings  # .envなどから読み込む設定ファイル
 
 DATABASE_NAME = settings.database_name
@@ -179,10 +171,6 @@ async def drop_database(database_name: str = DATABASE_NAME):
 
 
 from sqlalchemy import text
-from models.order import Order
-from models.company import Company
-from models.menu import Menu
-from models.user import User
 from database.local_postgresql_database import Base
 
 @log_decorator
@@ -212,19 +200,16 @@ async def drop_all_table():
             exception=e
         ) from e
     except Exception as e:
-        raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
+        print(f"❌ An error occurred while dropping all tables: {e}")
+        # raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
 
 
 # ------------------------------------------------------------------------------
-from sqlalchemy.ext.asyncio import create_async_engine
 
 # postgreSQL用設定
 from core.settings import settings   # settings は .env から環境変数をロード
 DATABASE_NAME = settings.database_name  # example
 DATABASE_URL = settings.database_url
-
-from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.sql import text
 
 # 確認用関数
 # SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = :name AND pid <> pg_backend_pid();
@@ -255,19 +240,24 @@ async def create_database(database_name: str = DATABASE_NAME):
             try:
                 await conn.execute(text(f'CREATE DATABASE "{database_name}"'))
                 print(f"✅ Database '{database_name}' created successfully.")
+            except OperationalError as e:
+                conn.rollback()
+                print("データベース接続の問題:", e)
+            except DatabaseError as e:
+                print(f"❌ An error occurred while creating database '{database_name}': {e}")
+                # raise SQLException(
+                #     sql_statement=str(sqlstr),
+                #     method_name="delete_all_company()",
+                #     detail="SQL実行中にエラーが発生しました",
+                #     exception=e
+                # ) from e
             except Exception as e:
                 print(f"❌ An error occurred while creating database '{database_name}': {e}")
 
     await engine.dispose()
 
 
-@log_decorator
-async def create_all_tables():
-    Base.metadata.create_all(bind=engine, checkfirst=False)
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(Base.metadata.create_all)  # ← これがベスト！
-
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, DatabaseError
 from utils.exception import CustomException
 
 @log_decorator
@@ -291,11 +281,10 @@ async def create_all_tables_in_order():
 
     except SQLAlchemyError as e:
         # SQLAlchemyエラー
-        # print(f"❌ テーブル作成中にSQLAlchemyエラーが発生しました: {e}")
+        print(f"❌ テーブル作成中にSQLAlchemyエラーが発生しました: {e}")
         logger.error(f"SQLAlchemyエラー: create_all_tables_in_order() - {e}")
         # raise CustomException(500, "create_all_tables_in_order", f"SQLAlchemy error: {e}") from e
-
     except Exception as e:
         # その他の一般的なエラー
         print(f"❌ テーブル作成中に予期しないエラーが発生しました: {e}")
-        raise CustomException(500, "create_all_tables_in_order", f"Unexpected error: {e}") from e
+        # raise CustomException(500, "create_all_tables_in_order", f"Unexpected error: {e}") from e

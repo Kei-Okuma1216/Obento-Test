@@ -57,7 +57,7 @@ logger = logging.getLogger(__name__)
 from utils.utils import log_decorator
 
 
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError, OperationalError ,IntegrityError
 from database.local_postgresql_database import AsyncSessionLocal, default_shop_name, engine, get_db
 
 # Userテーブル
@@ -104,6 +104,9 @@ async def select_user(username: str) -> Optional[UserResponse]:
 
             return user_model
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise CustomException(500, "select_user()", f"Error: {e}") from e
     except Exception as e:
@@ -145,6 +148,9 @@ async def select_all_users() -> Optional[List[UserResponse]]:
 
             return user_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise CustomException(500, "select_all_users()", f"Error: {e}") from e
     except Exception as e:
@@ -245,6 +251,12 @@ async def insert_user(
             logger.debug(f"insert_user() - ユーザー挿入: company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id}")
             return True
 
+        except IntegrityError as e:
+            session.rollback()
+            print("データベースの制約違反:", e)
+        except OperationalError as e:
+            session.rollback()
+            print("データベース接続の問題:", e)
         except DatabaseError as e:
             raise SQLException(
                 sql_statement="UserのINSERT処理",
@@ -299,6 +311,9 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
         print(f"IntegrityError: {e}")
         await session.rollback()
         raise HTTPException(status_code=400, detail=f"データベースの整合性エラー: {str(e)}")
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except SQLAlchemyError as e:
         print(f"SQLAlchemyError: {e}")
         await session.rollback()
@@ -359,6 +374,12 @@ async def insert_shop(
             )
             logger.info("店舗ユーザー追加成功")
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement="INSERT INTO users ...",  # 詳細なSQL文は省略
@@ -383,6 +404,12 @@ async def update_user(username: str, key: str, value):
             await session.commit()
             logger.debug(f"update_user() - {stmt}")
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -390,7 +417,7 @@ async def update_user(username: str, key: str, value):
             detail="SQL実行中にエラーが発生しました",
             exception=e
         ) from e
-    except DatabaseError as e:
+    except Exception as e:
         raise CustomException(500, "update_user()", f"Error: {e}") from e
 
 # 削除(1件)
@@ -407,6 +434,9 @@ async def delete_user(username: str):
             logger.debug(f"delete_user() - {stmt}")
             return True
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -414,7 +444,7 @@ async def delete_user(username: str):
             detail="SQL実行中にエラーが発生しました",
             exception=e
         ) from e
-    except DatabaseError as e:
+    except Exception as e:
         raise CustomException(500, "delete_user()", f"Error: {e}") from e
 
 # 削除（全件）
@@ -430,6 +460,10 @@ async def delete_all_user():
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
             logger.info("User テーブルの削除が完了しました。")
+
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,
@@ -441,29 +475,29 @@ async def delete_all_user():
         raise CustomException(500, "delete_all_user()", f"Error: {e}") from e
 
 
-log_decorator
-async def alter_orders_created_at_column_type():
-    """
-    Ordersテーブルの created_at カラムを timestamp without time zone に変更する。
-    """
-    try:
-        async with engine.begin() as conn:
-            # PostgreSQL用 ALTER TABLE 文
-            sql = """
-            ALTER TABLE "Orders"
-            ALTER COLUMN "created_at" TYPE timestamp without time zone;
-            """
-            await conn.execute(text(sql))
-            logger.info("Orders.created_at カラムを timestamp without time zone に変更しました。")
+# log_decorator
+# async def alter_orders_created_at_column_type():
+#     """
+#     Ordersテーブルの created_at カラムを timestamp without time zone に変更する。
+#     """
+#     try:
+#         async with engine.begin() as conn:
+#             # PostgreSQL用 ALTER TABLE 文
+#             sql = """
+#             ALTER TABLE "Orders"
+#             ALTER COLUMN "created_at" TYPE timestamp without time zone;
+#             """
+#             await conn.execute(text(sql))
+#             logger.info("Orders.created_at カラムを timestamp without time zone に変更しました。")
 
-    except DatabaseError as e:
-        raise SQLException(
-            sql_statement="ALTER TABLE Orders ALTER COLUMN created_at",
-            method_name="alter_orders_created_at_column_type()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
-    except Exception as e:
-        raise CustomException(500, "alter_orders_created_at_column_type()", f"Error: {e}")
+#     except DatabaseError as e:
+#         raise SQLException(
+#             sql_statement="ALTER TABLE Orders ALTER COLUMN created_at",
+#             method_name="alter_orders_created_at_column_type()",
+#             detail=f"SQL実行中にエラーが発生しました: {e}",
+#             exception=e
+#         )
+#     except Exception as e:
+#         raise CustomException(500, "alter_orders_created_at_column_type()", f"Error: {e}")
 
 

@@ -68,7 +68,7 @@ login_error_message = "ログインに失敗しました。"
 # -----------------------------------------------------
 import jwt
 from core.security import decode_jwt_token
-from utils.helper import redirect_login_error, redirect_login_success
+from utils.helper import redirect_login_failure, redirect_login_success
 from utils.utils import delete_all_cookies
 from models.admin import init_database
 
@@ -134,16 +134,16 @@ async def root(request: Request, response: Response):
             request, error=token_expired_error_message)
  
     except (CookieException, jwt.InvalidTokenError) as e:
-         redirect_login_error(request, token_expired_error_message, e)
+         redirect_login_failure(request, token_expired_error_message, e)
     except Exception as e:
 
         content_type = request.headers.get('Content-Type')
         print(f"Content-Type: {content_type}")
         if content_type == "application/json":
             json_data = await request.json()
-            return redirect_login_error(request, json_data, e)
+            return redirect_login_failure(request, json_data, e)
         else:
-            return redirect_login_error(request, str(e), e)
+            return redirect_login_failure(request, str(e), e)
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -154,7 +154,7 @@ async def login_get(request: Request):
         return redirect_login_success(request)
 
     except Exception as e:
-        return redirect_login_error(
+        return redirect_login_failure(
             request, login_error_message, e)
 
 
@@ -182,16 +182,19 @@ async def login_post(request: Request,
     except DatabaseError as e:
         raise
     except NotAuthorizedException as e:
-        return redirect_login_success(request, error=access_denied_error_message)
+        return redirect_login_failure(request, error=access_denied_error_message)
     
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-         return redirect_login_success(request,error=token_expired_error_message)
+         return redirect_login_failure(request,error=token_expired_error_message)
 
     except (CookieException, SQLException, HTTPException) as e:
-        return redirect_login_error(request, login_error_message)
+        return redirect_login_failure(request, login_error_message)
 
     except Exception as e:
         logger.error(f"予期せぬエラーが発生しました: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error Occured.")
         # raise CustomException(
         #     status.HTTP_500_INTERNAL_SERVER_ERROR,
         #     "/login_post()",

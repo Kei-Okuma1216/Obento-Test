@@ -6,7 +6,7 @@
     username: str, permission: int, redirect_url: str) -> Response:
     3. redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
     4. redirect_login_success(request: Request, message: str = "ようこそ"):
-    5. redirect_login_error(request: Request, error: str, e: Exception = None):
+    5. redirect_login_failure(request: Request, error: str, e: Exception = None):
     6. redirect_error(request: Request, message: str, e: Exception):
 '''
 from urllib.parse import urlencode
@@ -30,10 +30,11 @@ async def get_main_url(permission: int) -> str:
         return redirect_url
 
     except Exception as e:
-        raise CustomException(
-            status_code=400,
-            method_name="get_main_url()",
-            message=str(e))
+        print(f"Error: {e}")
+        # raise CustomException(
+        #     status_code=400,
+        #     method_name="get_main_url()",
+        #     message=str(e))
 
 
 from fastapi.responses import RedirectResponse
@@ -64,7 +65,8 @@ async def create_auth_response(
     except NotAuthorizedException as e:
         raise
     except Exception as e:
-        raise CustomException(method_name="create_auth_response()",message=str(e))
+        print(f"Error: {e}")
+        # raise CustomException(method_name="create_auth_response()",message=str(e))
 
 
 from fastapi.templating import Jinja2Templates
@@ -91,8 +93,9 @@ def redirect_login(
     except HTTPException as e:
         raise
     except Exception as e:
+        print(f"Error: {e}")
         # token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-        logger.error(f"redirect_login() - 予期せぬエラー: {str(e)}")
+        # logger.error(f"redirect_login() - 予期せぬエラー: {str(e)}")
         # raise CustomException(
         #     status.HTTP_404_NOT_FOUND,
         #     method_name="redirect_login()",
@@ -101,7 +104,6 @@ def redirect_login(
 
 # ログイン成功時のリダイレクト
 # 正常系
-# return redirect_login_success(request, message="再ログインしてください")
 @log_decorator
 def redirect_login_success(request: Request, message: str = "ようこそ"):
     logger.info(f"Redirect Login - {message}")
@@ -111,9 +113,8 @@ def redirect_login_success(request: Request, message: str = "ようこそ"):
 
 # エラー時のリダイレクト
 # 異常系
-# return redirect_login_error(request, error="有効期限が切れています", e=e)
 @log_decorator
-def redirect_login_error(request: Request, error: str, e: Exception = None):
+def redirect_login_failure(request: Request, error: str, e: Exception = None):
     logger.error(f"Redirect Login - {error}")
     if e:
         detail_message = getattr(e, "detail", str(e))
@@ -130,12 +131,12 @@ from urllib.parse import urlencode
 from fastapi import HTTPException
 
 @log_decorator
-def redirect_error(request: Request, message: str, e: Exception = None):
+def redirect_error(message: str, e: Exception = None):
     '''error.html にリダイレクトし、クエリにエラー内容を表示'''
     try:
         # 例外詳細をログ出力
         detail_message = getattr(e, "detail", None)
-
+        
         if detail_message:
             logger.error(f"{message} - detail: {detail_message.get('message', str(e))}")
         else:

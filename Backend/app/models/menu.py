@@ -96,6 +96,9 @@ async def select_menu(
             menu = result.scalars().first()
             return menu
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -131,6 +134,9 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
                 return None
             return menus
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -144,6 +150,7 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
 
 '''------------------------------------------------------'''
 from sqlalchemy import func  # COUNT用
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 @log_decorator
 async def insert_menu(
@@ -188,6 +195,12 @@ async def insert_menu(
             logger.info(f"Menu '{name}' for shop '{shop_name}' inserted successfully.")
             return True
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement="insert_menu()",
@@ -231,6 +244,12 @@ async def update_menu(
 
             return updated_count
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=f"UPDATE Menu SET {key} = {value} WHERE menu_id = {menu_id} AND shop_name = {shop_name}",
@@ -268,6 +287,9 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
 
             return deleted_count
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=f"DELETE FROM menu WHERE shop_name = {shop_name} AND menu_id = {menu_id}",
@@ -292,6 +314,9 @@ async def delete_all_menu():
             await session.run_sync(drop_table)
             logger.info("Menu テーブルの削除が完了しました。")
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,

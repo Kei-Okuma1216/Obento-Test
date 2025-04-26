@@ -135,6 +135,9 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
             order_model = OrderModel(**row_dict)
             return order_model
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise CustomException(500, "select_single_order()", f"SQL実行中にエラーが発生しました: {e}")
     except Exception as e:
@@ -187,6 +190,9 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
 
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -195,7 +201,8 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_all_orders()", f"Error: {e}")
+                print(f"Error: {e}")
+        # raise CustomException(500, "select_all_orders()", f"Error: {e}")
 '''-----------------------------------------------------------'''
 from utils.utils import get_created_at_period
 
@@ -245,6 +252,9 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 
             return order_list
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -253,7 +263,8 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_user_all()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_user_all()", f"Error: {e}")
 
 
 
@@ -316,6 +327,9 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -324,7 +338,8 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_user_at_date()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_user_at_date()", f"Error: {e}")
 
 
 # 選択（一般ユーザー:日付遡及）
@@ -391,6 +406,9 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -399,7 +417,8 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_user_ago()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_user_ago()", f"Error: {e}")
 '''-----------------------------------------------------------'''
 from models.company import Company
 from models.menu import Menu
@@ -450,6 +469,9 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
             logger.debug(f"- {order_models=}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -458,7 +480,8 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_company_all()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_company_all()", f"Error: {e}")
 
 
 
@@ -518,6 +541,9 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
             logger.debug(f"select_orders_by_company_at_date() - order_models: {order_models}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -526,7 +552,8 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_company_at_date()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_company_at_date()", f"Error: {e}")
 
 
 @log_decorator
@@ -583,6 +610,9 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             logger.debug(f"select_orders_by_company_ago() - order_models: {order_models}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -591,7 +621,8 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_company_ago()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_company_ago()", f"Error: {e}")
 
 '''-----------------------------------------------------------'''
 from datetime import datetime
@@ -601,9 +632,7 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.exc import DatabaseError
 
-#from models import Order, Company, Menu
 from schemas.order_schemas import OrderModel
-#from utils.exceptions import SQLException, CustomException
 
 logger = logging.getLogger(__name__)
 
@@ -666,6 +695,9 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
             logger.debug(f"select_orders_by_shop_all() - order_models: {order_models}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -674,7 +706,8 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_shop_all()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_shop_all()", f"Error: {e}")
 
 
 
@@ -729,6 +762,9 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
             logger.debug(f"select_orders_by_shop_company() - order_models: {order_models}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -737,7 +773,8 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_shop_company()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_shop_company()", f"Error: {e}")
 
 
 
@@ -799,6 +836,9 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
             logger.debug(f"select_orders_by_shop_at_date() - order_models: {order_models}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -807,7 +847,8 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_shop_at_date()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_shop_at_date()", f"Error: {e}")
 
 
 
@@ -897,6 +938,9 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             logger.debug(f"{order_models=}")
             return order_models
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -905,15 +949,17 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "select_orders_by_shop_ago()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "select_orders_by_shop_ago()", f"Error: {e}")
 
 
 '''-------------------------------------------------------------'''
 # 追加
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 from sqlalchemy import text
 import traceback
-        
+
+
 @log_decorator
 async def insert_order(
     company_id: int,
@@ -954,21 +1000,29 @@ async def insert_order(
 
             order_id = new_order.order_id
 
-            logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
+            # やはりここがおかしい
+            # logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
            
             logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
 
             return order_id
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
-            sql_statement="insert_order() で Orders テーブルへのINSERT中に発生",
+            sql_statement="OrdersテーブルへのINSERT中に発生",
             method_name="insert_order()",
             detail=f"SQL実行中にエラーが発生しました: {e}",
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "insert_order()", f"Error: {e}\n{traceback.format_exc()}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "insert_order()", f"Error: {e}\n{traceback.format_exc()}")
 
 
 '''-------------------------------------------------------------'''
@@ -999,6 +1053,12 @@ async def update_order(order_id: int, canceled: bool):
                 logger.info(f"注文更新成功: order_id {order_id}")
             logger.debug(f"update_order() - SQL: {stmt}")
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -1007,7 +1067,8 @@ async def update_order(order_id: int, canceled: bool):
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "update_order()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "update_order()", f"Error: {e}")
 '''-------------------------------------------------------------'''
 # 削除（指定ID）
 from sqlalchemy import delete, text
@@ -1031,6 +1092,9 @@ async def delete_order(order_id: int) -> bool:
             logger.info(f"Order with order_id {order_id} deleted successfully.")
             return True
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -1039,7 +1103,8 @@ async def delete_order(order_id: int) -> bool:
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "delete_order()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "delete_order()", f"Error: {e}")
 
 
 # 削除（全件）
@@ -1052,6 +1117,10 @@ async def delete_all_orders():
 
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
+
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=sqlstr,
@@ -1060,4 +1129,5 @@ async def delete_all_orders():
             exception=e
         )
     except Exception as e:
-        raise CustomException(500, "delete_all_orders()", f"Error: {e}")
+        print(f"Error: {e}")
+        # raise CustomException(500, "delete_all_orders()", f"Error: {e}")

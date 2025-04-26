@@ -42,15 +42,11 @@ logger = logging.getLogger(__name__)
 
 
 # 作成
-# from .sqlalchemy_database import engine
-
-
 @log_decorator
 async def create_company_table():
     """
     Companyテーブルの作成（存在しなければ）
-    ※通常、テーブル作成はマイグレーションツール（Alembic等）で行いますが、
-      ここでは例としてSQLAlchemyのメタデータからテーブル作成する方法を示します。
+    ※通常はBaseから全テーブル同時につくるが、個別にテーブルが必要な場合この関数を使います。
     """
     try:
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
@@ -67,13 +63,14 @@ async def create_company_table():
     except Exception as e:
         raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
+
 from schemas.company_schemas import CompanyModel
 from sqlalchemy import select
 
 # 取得(1件)
 from typing import Optional
 
-
+from sqlalchemy.exc import IntegrityError, OperationalError
 @log_decorator
 async def select_company(company_id: int) -> Optional[CompanyModel]:
     """
@@ -95,6 +92,9 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
             pydantic_company = CompanyModel.model_validate(orm_company)
             return pydantic_company
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -103,6 +103,8 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
             exception=e
         ) from e
     except Exception as e:
+        session.rollback()
+        print("予期しないエラー:", e)
         raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
 
@@ -127,6 +129,9 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
             else:
                 return None
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -179,6 +184,12 @@ async def insert_company(company_name: str,
             )
             return True
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement="INSERT INTO Company",
@@ -209,6 +220,12 @@ async def update_company(company_id: int, key: str, value: str):
             logger.debug(f"update_company() - {stmt}")
             return True
 
+    except IntegrityError as e:
+        session.rollback()
+        print("データベースの制約違反:", e)
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -237,6 +254,9 @@ async def delete_company(company_id: int):
             logger.debug(f"delete_company() - {stmt}")
             return True
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(stmt),
@@ -260,6 +280,9 @@ async def delete_all_company():
             await session.run_sync(drop_table)
             logger.info("Compamy テーブルの削除が完了しました。")
 
+    except OperationalError as e:
+        session.rollback()
+        print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
             sql_statement=str(sqlstr),
@@ -268,5 +291,6 @@ async def delete_all_company():
             exception=e
         ) from e
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        print("予期しないエラー:", e)
+        # raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
