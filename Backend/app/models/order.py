@@ -1003,8 +1003,8 @@ async def insert_order(
 
             # やはりここがおかしい
             # logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
-            # logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
-            order_logger.info("ORDER - 注文が完了しました")
+            order_logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
+            # order_logger.info("ORDER - 注文が完了しました")
 
             return order_id
 
@@ -1023,7 +1023,6 @@ async def insert_order(
         )
     except Exception as e:
         print(f"Error: {e}")
-        # raise CustomException(500, "insert_order()", f"Error: {e}\n{traceback.format_exc()}")
 
 
 '''-------------------------------------------------------------'''
