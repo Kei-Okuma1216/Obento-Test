@@ -294,10 +294,13 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
                 logger.debug(f"ユーザー {username} は既に存在します。挿入をスキップします。")
                 return
 
+            # パスワードのハッシュ化
+            hashed_password = await get_hashed_password(password)
+
             # 新規ユーザーの作成（デフォルト値付き）
             new_user = User(
                 username=username,
-                password=password,
+                password=hashed_password,
                 name=name,
                 token="",
                 exp="",

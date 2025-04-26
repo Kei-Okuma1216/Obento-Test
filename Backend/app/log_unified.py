@@ -38,9 +38,7 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
 # 例: uvicorn用ロガー
 # uvicorn_logger = create_logger("uvicorn", "logs")
 logger = create_logger("uvicorn", "logs")
-
-# 例: 注文用ロガー
-order_logger = create_logger("order_logger", "order_logs")
+order_logger = create_logger("order_logger", "order_logs")# 例: 注文用ロガー
 
 def log_order(log_type: str, message: str):
     """

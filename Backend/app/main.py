@@ -1,5 +1,5 @@
-# app/main.py
-# 2.1 SQLAlchemy移行開始
+# Backend/app/main.py
+# 2.2 insert_new_user()不具合
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
     2. login_get(request: Request):
@@ -31,7 +31,7 @@ from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
 # from log_config import logger
-from log_unified import logger
+from log_unified import logger, order_logger
 
 from routers.router import sample_router
 from routers.admin import admin_router
