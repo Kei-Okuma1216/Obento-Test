@@ -185,21 +185,17 @@ async def login_post(request: Request,
         return redirect_login_failure(request, error=access_denied_error_message)
     
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-         return redirect_login_failure(request,error=token_expired_error_message)
+         return redirect_login_success(request,error=token_expired_error_message)
 
-    except (CookieException, SQLException, HTTPException) as e:
-        return redirect_login_failure(request, login_error_message)
+    except HTTPException as e:
+        return redirect_login_failure(request, e.detail)
+
+    except (CookieException, SQLException) as e:
+        return redirect_login_failure(request, e.detail, e)
 
     except Exception as e:
         logger.error(f"予期せぬエラーが発生しました: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=e)
-            # detail="Error Occured.")
-        # raise CustomException(
-        #     status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     "/login_post()",
-        #     f"予期せぬエラーが発生しました: {str(e)}")
+
 
 
 # cookieを削除してログアウト
