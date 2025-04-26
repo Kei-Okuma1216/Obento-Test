@@ -26,12 +26,12 @@ def register_exception_handlers(app):
         )
 
 # @app.exception_handler(NotAuthorizedException)
-async def not_authorized_exception_handler(request: Request, exc: NotAuthorizedException):
-    logger.error(f"NotAuthorizedException: {exc.detail['message']}")
-    return render_error_template(
-        request, "Unauthorized.html", exc.status_code,
-        exc.detail["message"], error="この操作を実行する権限がありません。"
-    )
+# async def not_authorized_exception_handler(request: Request, exc: NotAuthorizedException):
+#     logger.error(f"NotAuthorizedException: {exc.detail['message']}")
+#     return render_error_template(
+#         request, "Unauthorized.html", exc.status_code,
+#         exc.detail["message"], error="この操作を実行する権限がありません。"
+#     )
 
 
 # ✅ ルーターの定義（テスト用API）

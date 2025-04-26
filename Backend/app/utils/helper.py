@@ -125,8 +125,7 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
     )
 
 
-from fastapi.requests import Request
-from fastapi.responses import RedirectResponse
+# from fastapi.requests import Request
 from urllib.parse import urlencode
 from fastapi import HTTPException
 

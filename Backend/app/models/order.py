@@ -1002,8 +1002,7 @@ async def insert_order(
 
             # やはりここがおかしい
             # logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
-           
-            logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
+            # logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
 
             return order_id
 

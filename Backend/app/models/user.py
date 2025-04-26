@@ -108,9 +108,13 @@ async def select_user(username: str) -> Optional[UserResponse]:
         session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
-        raise CustomException(500, "select_user()", f"Error: {e}") from e
+        session.rollback()
+        print(f"select_user() - DatabaseError: {e}")
+        # raise CustomException(500, "select_user()", f"Error: {e}") from e
     except Exception as e:
-        raise CustomException(500, "select_user()", f"Error: {e}") from e
+        session.rollback()
+        print(f"select_user() - Exception: {e}")
+        # raise CustomException(500, "select_user()", f"Error: {e}") from e
 
 
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください
@@ -308,23 +312,24 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             logger.info("新規ユーザー登録成功")
 
     except IntegrityError as e:
-        print(f"IntegrityError: {e}")
+        print(f"insert_new_user() - IntegrityError: {e}")
         await session.rollback()
         raise HTTPException(status_code=400, detail=f"データベースの整合性エラー: {str(e)}")
     except OperationalError as e:
-        session.rollback()
-        print("データベース接続の問題:", e)
+        await session.rollback()
+        print("insert_new_user() - データベース接続の問題:", e)
     except SQLAlchemyError as e:
-        print(f"SQLAlchemyError: {e}")
+        print(f"insert_new_user() - SQLAlchemyError: {e}")
+        await session.rollback()
+    except Exception as e:
+        print(f"insert_new_user() - Exception: {e}")
         await session.rollback()
         raise HTTPException(status_code=500, detail=f"データベースエラー: {str(e)}")
-    except Exception as e:
-        print(f"Exception: {e}")
-        raise CustomException(
-            status_code=400,
-            method_name="insert_new_user()",
-            message=f"Error: {e}"
-        ) from e
+        # raise CustomException(
+        #     status_code=400,
+        #     method_name="insert_new_user()",
+        #     message=f"Error: {e}"
+        # ) from e
 
 
 

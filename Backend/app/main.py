@@ -80,7 +80,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
         print("このappはBackend versionです。")
 
         # 二重注文の禁止
@@ -194,7 +194,8 @@ async def login_post(request: Request,
         logger.error(f"予期せぬエラーが発生しました: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error Occured.")
+            detail=e)
+            # detail="Error Occured.")
         # raise CustomException(
         #     status.HTTP_500_INTERNAL_SERVER_ERROR,
         #     "/login_post()",
