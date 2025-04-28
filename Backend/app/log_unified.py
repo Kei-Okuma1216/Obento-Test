@@ -11,11 +11,12 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     :param log_dir: 出力先ディレクトリ名
     :return: ロガーオブジェクト
     """
-    print(f"create_logger: {name}")
+    print(f"作成ログ: {name}")
     os.makedirs(log_dir, exist_ok=True)
     current_time = get_today_datetime()
-    print(f"current_time: {current_time}")
+    # print(f"current_time: {current_time}")
     log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
+    print(f"ログファイル名: {log_filename}")
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

@@ -35,6 +35,7 @@ from core.settings import settings
 
 @log_decorator
 async def init_database():
+    # 一度実行後は、コメントアウトしてください。
     try:
         # テーブル削除
         db_name = settings.database_name

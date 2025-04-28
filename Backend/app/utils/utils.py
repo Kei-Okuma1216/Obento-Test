@@ -102,7 +102,7 @@ class Period(NamedTuple):
     start: datetime
     end: datetime
 
-@log_decorator
+# @log_decorator
 async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datetime]:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
@@ -127,7 +127,7 @@ async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datet
         # raise CustomException(500, "get_created_at_period()", f"Error: {e}")
 
 
-@log_decorator
+# @log_decorator
 def get_today_datetime(days_ago: int = 0) -> datetime:
     """
     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
@@ -147,7 +147,7 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
         0
     )
 
-    print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
+    # print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
     return naive_datetime
 
 
