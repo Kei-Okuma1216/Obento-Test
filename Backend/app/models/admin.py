@@ -13,6 +13,7 @@
 '''
 
 # ログ用の設定
+import asyncio
 import logging
 from venv import logger
 logging.basicConfig(level=logging.INFO)
@@ -261,30 +262,39 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, Da
 from utils.exception import CustomException
 
 @log_decorator
-async def create_all_tables_in_order():
-    try:
-        from models.company import Company
-        from models.user import User
-        from models.menu import Menu
-        from models.order import Order
+async def create_all_tables_in_order(retry_count: int = 3, retry_delay: int = 2):
+    """
+    全テーブルを作成する。
+    - 失敗時はリトライする（最大retry_count回）
+    - リトライ間隔はretry_delay秒
+    """
+    attempt = 0
+    while attempt < retry_count:
+        try:
+            logger.info(f"🛠️ create_all_tables_in_order() - {attempt + 1}回目の試行")
+            print(f"🛠️ テーブル作成開始 ({attempt + 1}回目)")
 
-        # async with engine.begin() as conn:
-            # テーブル作成順：依存関係のない順番に注意
-            # await conn.run_sync(Company.__table__.create, checkfirst=True)
-            # await conn.run_sync(User.__table__.create, checkfirst=True)
-            # await conn.run_sync(Menu.__table__.create, checkfirst=True)
-            # await conn.run_sync(Order.__table__.create, checkfirst=True)
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
 
-        print("✅ すべてのテーブル作成に成功しました。")
+            logger.info("✅ すべてのテーブル作成に成功しました。")
+            print("✅ すべてのテーブル作成に成功しました。")
+            return  # 成功したら抜ける
 
-    except SQLAlchemyError as e:
-        # SQLAlchemyエラー
-        print(f"❌ テーブル作成中にSQLAlchemyエラーが発生しました: {e}")
-        logger.error(f"SQLAlchemyエラー: create_all_tables_in_order() - {e}")
-        # raise CustomException(500, "create_all_tables_in_order", f"SQLAlchemy error: {e}") from e
-    except Exception as e:
-        # その他の一般的なエラー
-        print(f"❌ テーブル作成中に予期しないエラーが発生しました: {e}")
-        # raise CustomException(500, "create_all_tables_in_order", f"Unexpected error: {e}") from e
+        except (OperationalError, DatabaseError, SQLAlchemyError) as e:
+            attempt += 1
+            logger.error(f"❌ SQLAlchemyエラー (試行{attempt}回目): {e}")
+            print(f"❌ SQLAlchemyエラー発生 ({attempt}回目): {e}")
+
+            if attempt >= retry_count:
+                logger.error(f"🛑 テーブル作成に{retry_count}回失敗しました。")
+                print(f"🛑 テーブル作成に{retry_count}回失敗しました。")
+                raise CustomException(500, "create_all_tables_in_order()", f"DBテーブル作成失敗: {e}")
+
+            logger.info(f"⏳ {retry_delay}秒後に再試行します...")
+            await asyncio.sleep(retry_delay)
+
+        except Exception as e:
+            logger.error(f"❌ 予期せぬエラー発生: {e}")
+            print(f"❌ 予期せぬエラー発生: {e}")
+            raise CustomException(500, "create_all_tables_in_order()", f"Unexpected error: {e}")

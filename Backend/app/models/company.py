@@ -93,7 +93,7 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
             return pydantic_company
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -103,7 +103,7 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
             exception=e
         ) from e
     except Exception as e:
-        session.rollback()
+        await session.rollback()
         print("予期しないエラー:", e)
         raise CustomException(500, "create_company_table()", f"Error: {e}") from e
 
@@ -130,7 +130,7 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
                 return None
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -185,10 +185,10 @@ async def insert_company(company_name: str,
             return True
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -221,10 +221,10 @@ async def update_company(company_id: int, key: str, value: str):
             return True
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -255,7 +255,7 @@ async def delete_company(company_id: int):
             return True
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -281,7 +281,7 @@ async def delete_all_company():
             logger.info("Compamy テーブルの削除が完了しました。")
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(

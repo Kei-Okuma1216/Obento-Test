@@ -41,14 +41,14 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
 logger = create_logger("uvicorn", "logs")
 order_logger = create_logger("order_logger", "order_logs")# 例: 注文用ロガー
 
-# def log_order(log_type: str, message: str):
-#     """
-#     注文用ログ出力インターフェース。
-#     :param log_type: "ORDER", "CANCEL" など
-#     :param message: メッセージ本文
-#     """
-#     log_message = f"{log_type.upper()}: {message}"
-#     order_logger.info(log_message)
+def log_order(log_type: str, message: str):
+    """
+    注文用ログ出力インターフェース。
+    :param log_type: "ORDER", "CANCEL" など
+    :param message: メッセージ本文
+    """
+    log_message = f"{log_type.upper()}: {message}"
+    order_logger.info(log_message)
 
 # ログの使用例
 # uvicorn_logger.info("アプリケーション起動")

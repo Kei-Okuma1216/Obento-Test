@@ -97,7 +97,7 @@ async def select_menu(
             return menu
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -135,7 +135,7 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
             return menus
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -196,10 +196,10 @@ async def insert_menu(
             return True
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -245,10 +245,10 @@ async def update_menu(
             return updated_count
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -288,7 +288,7 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
             return deleted_count
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -315,7 +315,7 @@ async def delete_all_menu():
             logger.info("Menu テーブルの削除が完了しました。")
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(

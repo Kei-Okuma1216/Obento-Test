@@ -158,7 +158,8 @@ async def login_get(request: Request):
             request, login_error_message, e)
 
 
-from core.security import authenticate_user
+from core.security import authenticate_user, get_user
+
 
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
@@ -168,10 +169,11 @@ async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
 
     try:
-        username = form_data.username
-        password = form_data.password
+        input_username = form_data.username
+        input_password = form_data.password
 
-        user = await authenticate_user(username, password, '') 
+        user = await get_user(input_username, input_password, "")
+        user = await authenticate_user(user, input_password) 
 
         permission = user.get_permission()
         main_url = await get_main_url(permission)

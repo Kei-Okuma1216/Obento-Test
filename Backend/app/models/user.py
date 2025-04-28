@@ -105,14 +105,14 @@ async def select_user(username: str) -> Optional[UserResponse]:
             return user_model
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
-        session.rollback()
+        await session.rollback()
         print(f"select_user() - DatabaseError: {e}")
         # raise CustomException(500, "select_user()", f"Error: {e}") from e
     except Exception as e:
-        session.rollback()
+        await session.rollback()
         print(f"select_user() - Exception: {e}")
         # raise CustomException(500, "select_user()", f"Error: {e}") from e
 
@@ -153,7 +153,7 @@ async def select_all_users() -> Optional[List[UserResponse]]:
             return user_models
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise CustomException(500, "select_all_users()", f"Error: {e}") from e
@@ -256,10 +256,10 @@ async def insert_user(
             return True
 
         except IntegrityError as e:
-            session.rollback()
+            await session.rollback()
             print("データベースの制約違反:", e)
         except OperationalError as e:
-            session.rollback()
+            await session.rollback()
             print("データベース接続の問題:", e)
         except DatabaseError as e:
             raise SQLException(
@@ -383,10 +383,10 @@ async def insert_shop(
             logger.info("店舗ユーザー追加成功")
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -413,10 +413,10 @@ async def update_user(username: str, key: str, value):
             logger.debug(f"update_user() - {stmt}")
 
     except IntegrityError as e:
-        session.rollback()
+        await session.rollback()
         print("データベースの制約違反:", e)
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -443,7 +443,7 @@ async def delete_user(username: str):
             return True
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
@@ -470,7 +470,7 @@ async def delete_all_user():
             logger.info("User テーブルの削除が完了しました。")
 
     except OperationalError as e:
-        session.rollback()
+        await session.rollback()
         print("データベース接続の問題:", e)
     except DatabaseError as e:
         raise SQLException(
