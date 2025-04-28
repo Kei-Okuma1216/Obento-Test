@@ -36,6 +36,12 @@
         border-radius: 8px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
       }
+      /* ページ全体の表示制御（縦・横による非表示）はページ側（login.html）で決めるべき */
+      @media (orientation: landscape) and (max-height: 500px) {
+        footer {
+          display: none !important;
+        }
+      }
     </style>
   </head>
   <body>

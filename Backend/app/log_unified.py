@@ -1,3 +1,4 @@
+# app/log_unified.py
 import os
 import logging
 from logging.handlers import TimedRotatingFileHandler
@@ -10,6 +11,7 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     :param log_dir: 出力先ディレクトリ名
     :return: ロガーオブジェクト
     """
+    print(f"create_logger: {name}")
     os.makedirs(log_dir, exist_ok=True)
     current_time = get_today_datetime()
     print(f"current_time: {current_time}")
