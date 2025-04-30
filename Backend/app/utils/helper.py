@@ -9,7 +9,6 @@
     5. redirect_login_failure(request: Request, error: str, e: Exception = None):
     6. redirect_error(request: Request, message: str, e: Exception):
 '''
-from urllib.parse import urlencode
 from fastapi import HTTPException, Request, Response, status
 
 from .utils import log_decorator, set_all_cookies
@@ -131,7 +130,10 @@ from fastapi import HTTPException
 
 @log_decorator
 async def redirect_error(request: Request, message: str, e: Exception = None):
-    '''error.html にリダイレクトし、クエリにエラー内容を表示'''
+    '''error.html にリダイレクトし、クエリにエラー内容を表示
+        例：
+        return await redirect_error(request, "アクセス権限がありません。", e)
+    '''
     try:
         # 例外詳細をログ出力
         detail_message = getattr(e, "detail", None)
@@ -141,10 +143,6 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
         else:
             logger.error(f"{message} - detail: {str(e)}")
 
-        # # クエリパラメータにエラーを載せてリダイレクト
-        # params = urlencode({"error": message})
-        # return RedirectResponse(f"/error?{params}", status_code=303)
-        # HTMLテンプレートを直接レンダリングして返却
         return templates.TemplateResponse(
             "error.html",
             {
