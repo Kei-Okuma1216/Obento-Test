@@ -64,8 +64,8 @@ async def create_auth_response(
     except NotAuthorizedException as e:
         raise
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(method_name="create_auth_response()",message=str(e))
+        print(f"create_auth_response() - Error: {e}")
+        logger.error("create_auth_response() - Error: {e}")
 
 
 from fastapi.templating import Jinja2Templates
@@ -92,14 +92,8 @@ def redirect_login(
     except HTTPException as e:
         raise
     except Exception as e:
-        print(f"Error: {e}")
-        # token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-        # logger.error(f"redirect_login() - 予期せぬエラー: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_404_NOT_FOUND,
-        #     method_name="redirect_login()",
-        #     message=token_expired_error_message if e.detail else f"Error: {e.detail}"
-        # )
+        print(f"redirect_login() - Error: {e}")
+        logger.error("redirect_login() - Error: {e}")
 
 # ログイン成功時のリダイレクト
 # 正常系
@@ -124,8 +118,7 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
     )
 
 
-# from fastapi.requests import Request
-# from urllib.parse import urlencode
+
 from fastapi import HTTPException
 
 @log_decorator
@@ -156,5 +149,6 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"redirect_error() - 予期せぬエラー: {str(e)}")
         logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
 

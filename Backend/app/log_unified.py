@@ -7,9 +7,9 @@ from utils.utils import get_today_datetime
 # 方法　２つのロガーをつくる
 # from log_unified import uvicorn_logger, order_logger
 # 使用例
-# 通常ログ入力
-# uvicorn_logger.info("アプリケーション起動")
-# 注文ログ入力
+# 通常ログ入力(引数1つ)
+# logger.info("アプリケーション起動")
+# 注文ログ入力(引数2つ)
 # log_order("ORDER", "注文が完了しました")
 def create_logger(name: str, log_dir: str) -> logging.Logger:
     """

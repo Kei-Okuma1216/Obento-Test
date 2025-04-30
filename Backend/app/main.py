@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 2.2 insert_new_user()不具合
+# 2.3 システムテスト完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
     2. login_get(request: Request):
@@ -30,8 +30,7 @@ from utils.helper import create_auth_response, get_main_url
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
-# from log_config import logger
-from log_unified import logger, order_logger
+from log_unified import logger
 
 from routers.router import sample_router
 from routers.admin import admin_router
@@ -119,7 +118,6 @@ async def root(request: Request, response: Response):
             logger.debug("token is not expired.")
 
         # token 解読
-        # payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         payload = decode_jwt_token(token)
 
         username = payload['sub']
@@ -270,6 +268,7 @@ async def list_logs():
 
     return "<h1>Log Files</h1>" + "".join(file_links)
 
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 @app.get("/logs/{filename}", tags=["admin"])
 async def read_log(filename: str):
@@ -279,6 +278,10 @@ async def read_log(filename: str):
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Log file not found")
 
+    # 空ファイルチェック（0バイト）
+    if os.path.getsize(filepath) == 0:
+        return PlainTextResponse("ログファイルは空です。", status_code=204)  # または HTML 表示にする場合はHTMLResponseを使ってもOK
+    
     with open(filepath, "r", encoding="utf-8") as f:
         content = f"<h1>{filename}</h1><pre>{f.read()}</pre>"
 

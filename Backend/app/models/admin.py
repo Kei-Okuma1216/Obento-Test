@@ -108,6 +108,8 @@ async def init_database():
         raise
     except Exception as e: 
         print(f"init_database Error: {str(e)}")
+        logger.error(f"init_database Error: {str(e)}")
+
         import traceback 
         traceback.print_exc()
 
@@ -195,7 +197,7 @@ async def drop_all_table():
     except Exception as e:
         print(f"❌ An error occurred while dropping all tables: {e}")
         # raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
-
+        logger.error(f"drop_all_table Error: {str(e)}")
 
 # ------------------------------------------------------------------------------
 
@@ -236,22 +238,18 @@ async def create_database(database_name: str = DATABASE_NAME):
             except OperationalError as e:
                 conn.rollback()
                 print("データベース接続の問題:", e)
+                logger.error(f"create_database Error: {str(e)}")
             except DatabaseError as e:
                 print(f"❌ An error occurred while creating database '{database_name}': {e}")
-                # raise SQLException(
-                #     sql_statement=str(sqlstr),
-                #     method_name="delete_all_company()",
-                #     detail="SQL実行中にエラーが発生しました",
-                #     exception=e
-                # ) from e
+                logger.error(f"create_database Error: {str(e)}")
             except Exception as e:
                 print(f"❌ An error occurred while creating database '{database_name}': {e}")
+                logger.error(f"create_database Error: {str(e)}")
 
     await engine.dispose()
 
 
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError, DatabaseError
-from utils.exception import CustomException
 
 # @log_decorator
 # async def create_all_tables_in_order(retry_count: int = 3, retry_delay: int = 2):

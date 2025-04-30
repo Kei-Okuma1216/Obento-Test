@@ -46,7 +46,8 @@ async def admin_view(request: Request):
     except NotAuthorizedException as e:
         return await redirect_error(request, "アクセス権限がありません。", e)
     except Exception as e:
-        logger.error(f"予期せぬエラーが発生しました: {str(e)}")
+        print(f"admin_view() - Error: {e}")
+        logger.error(f"admin_view() - 予期せぬエラーが発生しました: {str(e)}")
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])

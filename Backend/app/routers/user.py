@@ -1,5 +1,5 @@
-# user.py
-# users/me
+# routers/user.py
+# ../users/me
 '''
     1. regist_complete(request: Request, response: Response): 
     2. get_user_shop_menu(request: Request, response: Response):
