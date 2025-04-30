@@ -990,7 +990,7 @@ async def insert_order(
 
             order_id = new_order.order_id
 
-            logger.info("ORDER", "注文が完了しました")
+            logger.info(f"注文が完了しました - order_id:{order_id} ")
             log_order(
                 "ORDER",
                 f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
