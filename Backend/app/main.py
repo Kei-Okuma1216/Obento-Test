@@ -40,6 +40,17 @@ from routers.user import user_router
 
 app = FastAPI()
 
+# CORS対策
+from fastapi.middleware.cors import CORSMiddleware
+# 開発環境用：すべてのドメインを許可　routerの前の位置に記載すること
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # すべてのオリジンを許可
+    allow_credentials=True,
+    allow_methods=["*"],  # 全HTTPメソッドを許可（GET, POST, etc.）
+    allow_headers=["*"],  # すべてのヘッダーを許可
+)
+
 app.include_router(sample_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
