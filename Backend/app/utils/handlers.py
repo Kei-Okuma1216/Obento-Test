@@ -1,9 +1,6 @@
 from fastapi import Request, APIRouter
 from fastapi.templating import Jinja2Templates
-
-from utils.helper import redirect_error
-
-from .exception import CustomException, NotAuthorizedException   # 必要に応じて修正
+from .exception import CustomException   # 必要に応じて修正
 from log_unified import logger
 
 templates = Jinja2Templates(directory="templates")
@@ -25,35 +22,21 @@ def register_exception_handlers(app):
             request, "error.html", exc.status_code, exc.detail["message"]
         )
 
-# @app.exception_handler(NotAuthorizedException)
-# async def not_authorized_exception_handler(request: Request, exc: NotAuthorizedException):
-#     logger.error(f"NotAuthorizedException: {exc.detail['message']}")
-#     return render_error_template(
-#         request, "Unauthorized.html", exc.status_code,
-#         exc.detail["message"], error="この操作を実行する権限がありません。"
-#     )
-
+from utils.helper import redirect_error
 
 # ✅ ルーターの定義（テスト用API）
 test_exception_router = APIRouter()
 
 @test_exception_router.get("/test_exception", tags=["admin"])
 async def test_exception(request: Request):
-    logger.error("test_exception() testエラーが発生しました!")
+    logger.error("test_exception() testエラーが発生!")
+
+    # 例：リクエスト情報を元にExceptionを生成
+    message = f"{request.method} {request.url.path} に対して処理中にエラーが発生しました"
+    e = Exception(message)
 
     # メッセージ付きで error.html を表示
-    return redirect_error(request, "test_exception()", Exception("これはテストエラーです"))
-
-
-# @test_exception_router.get("/error")
-# async def error_page(request: Request):
-#     return templates.TemplateResponse("error.html", {"request": request})
-
-@test_exception_router.get("/test_exception", tags=["admin"])
-async def test_exception(request: Request):
-
-    logger.error("test_exception() testエラーが発生しました!")
-    return redirect_error(request, "これはテストエラーです", Exception("これはテストエラーです"))
+    return await redirect_error(request=request, message="testエラーが発生!", e=e)
 
 
 

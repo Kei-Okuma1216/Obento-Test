@@ -883,17 +883,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 .where(Order.shop_name == shop_name)
             )
 
-            # # 検証用
-            # print(f"[DEBUG] Querying for orders where created_at BETWEEN {start_dt} AND {end_dt}")
-            # recent = await session.execute(
-            #     select(Order.order_id, Order.created_at)
-            #     .where(Order.shop_name == shop_name)
-            #     .order_by(Order.created_at.desc())
-            #     .limit(10)
-            # )
-            # for row in recent.fetchall():
-            #     print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
-
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             # print(f"start_dt: {start_dt}, end_dt: {end_dt}")
@@ -959,7 +948,7 @@ from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 from sqlalchemy import text
 import traceback
 
-from log_unified import order_logger, log_order
+from log_unified import log_order
 
 @log_decorator
 async def insert_order(
@@ -1001,16 +990,11 @@ async def insert_order(
 
             order_id = new_order.order_id
 
-            # やはりここがおかしい
-            # logger.debug(f"insert_order() - 新規注文の値: {company_id=}, {username=}, {shop_name=}, {menu_id=}, {amount=}, {created_at=}")
-            # order_logger.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
-            # log_order.info("ORDER", f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}")
-
+            logger.info("ORDER", "注文が完了しました")
             log_order(
                 "ORDER",
                 f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
             )
-            # order_logger.info("ORDER", "注文が完了しました")
 
             return order_id
 
@@ -1110,7 +1094,6 @@ async def delete_order(order_id: int) -> bool:
         )
     except Exception as e:
         print(f"Error: {e}")
-        # raise CustomException(500, "delete_order()", f"Error: {e}")
 
 
 # 削除（全件）
@@ -1136,4 +1119,3 @@ async def delete_all_orders():
         )
     except Exception as e:
         print(f"Error: {e}")
-        # raise CustomException(500, "delete_all_orders()", f"Error: {e}")

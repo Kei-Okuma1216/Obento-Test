@@ -4,6 +4,13 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from utils.utils import get_today_datetime
 
+# 方法　２つのロガーをつくる
+# from log_unified import uvicorn_logger, order_logger
+# 使用例
+# 通常ログ入力
+# uvicorn_logger.info("アプリケーション起動")
+# 注文ログ入力
+# log_order("ORDER", "注文が完了しました")
 def create_logger(name: str, log_dir: str) -> logging.Logger:
     """
     汎用ロガー生成関数。
@@ -53,12 +60,6 @@ def log_order(log_type: str, message: str):
     log_message = f"{log_type.upper()}: {message}"
     order_logger.info(log_message)
 
-# ログの使用例
-# uvicorn_logger.info("アプリケーション起動")
-# log_order("ORDER", "注文が完了しました")
 
-# 方法１　２つのロガーをつくる
-# from log_unified import uvicorn_logger, order_logger
-# 方法２　１つのロガーを選択する
-# logger = create_logger("default_logger", "logs")
-# from log_unified import logger
+
+

@@ -13,7 +13,7 @@ from urllib.parse import urlencode
 from fastapi import HTTPException, Request, Response, status
 
 from .utils import log_decorator, set_all_cookies
-from .exception import CustomException, NotAuthorizedException
+from .exception import NotAuthorizedException
 from log_unified import logger
 
 @log_decorator
@@ -126,11 +126,11 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
 
 
 # from fastapi.requests import Request
-from urllib.parse import urlencode
+# from urllib.parse import urlencode
 from fastapi import HTTPException
 
 @log_decorator
-def redirect_error(message: str, e: Exception = None):
+async def redirect_error(request: Request, message: str, e: Exception = None):
     '''error.html にリダイレクトし、クエリにエラー内容を表示'''
     try:
         # 例外詳細をログ出力
@@ -141,9 +141,19 @@ def redirect_error(message: str, e: Exception = None):
         else:
             logger.error(f"{message} - detail: {str(e)}")
 
-        # クエリパラメータにエラーを載せてリダイレクト
-        params = urlencode({"error": message})
-        return RedirectResponse(f"/error?{params}", status_code=303)
+        # # クエリパラメータにエラーを載せてリダイレクト
+        # params = urlencode({"error": message})
+        # return RedirectResponse(f"/error?{params}", status_code=303)
+        # HTMLテンプレートを直接レンダリングして返却
+        return templates.TemplateResponse(
+            "error.html",
+            {
+                "request": request,
+                "status_code": 500,
+                "error": message  # 直接使っても良いが、HTML内では query_params.get 参照形式
+            },
+            status_code=500
+        )
 
     except HTTPException:
         raise

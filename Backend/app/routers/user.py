@@ -73,7 +73,7 @@ async def regist_complete(request: Request, response: Response):
 
 
     except (SQLException, HTTPException, CookieException) as e:
-        return redirect_error(request, "注文確定に失敗しました", e)
+        return await redirect_error(request, "注文確定に失敗しました", e)
     except Exception as e:
         raise CustomException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,

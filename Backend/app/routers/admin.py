@@ -11,13 +11,13 @@
 '''
 import bcrypt
 import os
-from fastapi import Request, APIRouter, status
+from fastapi import Request, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from models.user import update_user, select_all_users
 
-from utils.exception import CustomException, NotAuthorizedException
-from utils.helper import redirect_error, redirect_login
+from utils.exception import NotAuthorizedException
+from utils.helper import redirect_error
 from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
@@ -33,9 +33,9 @@ from venv import logger
 # 注意：エンドポイントにprefix:adminはつけない
 @admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
 @log_decorator
-def admin_view(request: Request):    
+async def admin_view(request: Request):    
     try:
-        if not(check_permission(request, ["99"])):
+        if not(await check_permission(request, [99])):
             raise NotAuthorizedException("管理者権限がありません。")
 
         return templates.TemplateResponse(
@@ -44,13 +44,9 @@ def admin_view(request: Request):
                 "base_url": endpoint})
 
     except NotAuthorizedException as e:
-        return redirect_error(request, "アクセス権限がありません。", e)
+        return await redirect_error(request, "アクセス権限がありません。", e)
     except Exception as e:
         logger.error(f"予期せぬエラーが発生しました: {str(e)}")
-        # raise CustomException(
-        #     status.HTTP_500_INTERNAL_SERVER_ERROR,
-        #     "/admin_view()",
-        #     f"予期せぬエラーが発生しました: {str(e)}")
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
