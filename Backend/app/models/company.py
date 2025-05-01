@@ -34,7 +34,6 @@ class Company(Base):
 # ORDER BY company_id DESC
 
 from utils.utils import log_decorator
-from utils.exception import SQLException, CustomException
 
 
 import logging
@@ -54,14 +53,11 @@ async def create_company_table():
             await conn.run_sync(Company.__table__.create, checkfirst=True)
         logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="CREATE TABLE Company",
-            method_name="create_company_table()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        engine.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        engine.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 from schemas.company_schemas import CompanyModel
@@ -92,20 +88,18 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
             pydantic_company = CompanyModel.model_validate(orm_company)
             return pydantic_company
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
         await session.rollback()
-        print("予期しないエラー:", e)
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        logger.error(f"Unexpected error: {e}")
 
 
 # 取得（全件）
@@ -129,18 +123,19 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
             else:
                 return None
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_all_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "select_all_company()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 from utils.utils import get_today_datetime, get_today_str
 from sqlalchemy import func
@@ -184,22 +179,19 @@ async def insert_company(company_name: str,
             )
             return True
 
+
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="INSERT INTO Company",
-            method_name="insert_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        logger.error(f"insert_company() - insert_company() Error: {str(e)}")
-        # raise CustomException(500, "insert_company()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 
@@ -222,19 +214,16 @@ async def update_company(company_id: int, key: str, value: str):
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="update_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 # 削除(1件)
@@ -254,18 +243,19 @@ async def delete_company(company_id: int):
             logger.debug(f"delete_company() - {stmt}")
             return True
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="delete_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "create_company_table()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 # 削除（全件）
 from sqlalchemy import text
@@ -280,17 +270,15 @@ async def delete_all_company():
             await session.run_sync(drop_table)
             logger.info("Compamy テーブルの削除が完了しました。")
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(sqlstr),
-            method_name="delete_all_company()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print("予期しないエラー:", e)
-        # raise CustomException(500, "create_company_table()", f"Error: {e}") from e
-
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")

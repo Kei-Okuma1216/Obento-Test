@@ -16,7 +16,6 @@ from sqlalchemy.exc import DatabaseError
 
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
-from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator
 
 '''------------------------------------------------------'''
@@ -55,15 +54,18 @@ async def create_menu_table():
             await conn.run_sync(Menu.__table__.create, checkfirst=True)
             logger.debug("create_menu_table() - Menuテーブルの作成に成功しました。")
 
+    except IntegrityError as e:
+        await engine.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await engine.rollback()
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="CREATE TABLE Menu",
-            method_name="create_menu_table()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await engine.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "create_menu_table()", f"Error: {e}") from e
+        await engine.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 '''------------------------------------------------------'''
 from typing import Optional
@@ -96,18 +98,18 @@ async def select_menu(
             menu = result.scalars().first()
             return menu
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_menu()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "select_menu()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 
@@ -134,18 +136,18 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
                 return None
             return menus
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_all_menus()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "select_all_menus()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 '''------------------------------------------------------'''
@@ -197,19 +199,16 @@ async def insert_menu(
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="insert_menu()",
-            method_name="insert_menu()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "insert_menu()", f"Error: {e}")  from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 '''------------------------------------------------------'''
 from sqlalchemy import update
@@ -227,7 +226,7 @@ async def update_menu(
             # 動的カラム名を安全に扱うために getattr を使用
             column_attr = getattr(Menu, key, None)
             if column_attr is None:
-                raise CustomException(400, "update_menu()", f"不正なカラム名です: {key}")
+                logger.error(f"update_menu() - 不正なカラム名です: {key}")
 
             stmt = (
                 update(Menu)
@@ -246,19 +245,16 @@ async def update_menu(
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=f"UPDATE Menu SET {key} = {value} WHERE menu_id = {menu_id} AND shop_name = {shop_name}",
-            method_name="update_menu()",
-            detail=f"SQLAlchemy 実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "update_menu()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 '''------------------------------------------------------'''
@@ -287,18 +283,18 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
 
             return deleted_count
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=f"DELETE FROM menu WHERE shop_name = {shop_name} AND menu_id = {menu_id}",
-            method_name="delete_menu()",
-            detail=f"SQLAlchemy 実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "delete_menu()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 from sqlalchemy import text
@@ -314,16 +310,16 @@ async def delete_all_menu():
             await session.run_sync(drop_table)
             logger.info("Menu テーブルの削除が完了しました。")
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="delete_all_menu()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "delete_all_menu()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 

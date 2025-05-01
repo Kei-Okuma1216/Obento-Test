@@ -75,8 +75,10 @@ async def create_orders_table():
         logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
 
     except DatabaseError as e:
+        engine.rollback()
         logger.error(f"SQL実行中にエラーが発生しました: {e}")
     except Exception as e:
+        engine.rollback()
         logger.error(f"Unexpected error: {e}")
 
 '''-----------------------------------------------------------'''

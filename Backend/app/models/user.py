@@ -70,6 +70,7 @@ async def create_user_table():
             await conn.run_sync(User.__table__.create, checkfirst=True)
             logger.debug("User テーブルの作成（または既存）が完了しました。")
     except DatabaseError as e:
+        engine.rollback()
         logger.error(f"create_user_table() でエラーが発生しました: {e}")
         raise
 
@@ -79,7 +80,6 @@ from typing import Optional, List
 from schemas.user_schemas import UserResponse
 # 選択
 from models.user import AsyncSessionLocal  # 適切なパスに合わせてください
-from utils.exception import CustomException
 
 @log_decorator
 async def select_user(username: str) -> Optional[UserResponse]:
@@ -100,21 +100,22 @@ async def select_user(username: str) -> Optional[UserResponse]:
 
             # その辞書をもとに pydantic モデル UserResponse を生成
             user_model = UserResponse(**user_dict)
-            print(f"user_model: {user_model}")
+            logger.debug(f"user_model: {user_model}")
 
             return user_model
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
         await session.rollback()
-        print(f"select_user() - DatabaseError: {e}")
-        # raise CustomException(500, "select_user()", f"Error: {e}") from e
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
         await session.rollback()
-        print(f"select_user() - Exception: {e}")
-        # raise CustomException(500, "select_user()", f"Error: {e}") from e
+        logger.error(f"Unexpected error: {e}")
 
 
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください
@@ -152,13 +153,18 @@ async def select_all_users() -> Optional[List[UserResponse]]:
 
             return user_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise CustomException(500, "select_all_users()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "select_all_users()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 import bcrypt
@@ -200,7 +206,6 @@ async def update_existing_passwords():
             print(f"password: {password}")
 
             if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
-            #if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
                 """パスワードをハッシュ化する"""
                 salt = bcrypt.gensalt()
                 plain_password = user.get_password()
@@ -257,25 +262,21 @@ async def insert_user(
 
         except IntegrityError as e:
             await session.rollback()
-            print("データベースの制約違反:", e)
+            logger.error(f"IntegrityError: {e}")
         except OperationalError as e:
             await session.rollback()
-            print("データベース接続の問題:", e)
+            logger.error(f"OperationalError: {e}")
         except DatabaseError as e:
-            raise SQLException(
-                sql_statement="UserのINSERT処理",
-                method_name="insert_user()",
-                detail="SQL実行中にエラーが発生しました",
-                exception=e
-            ) from e
+            await session.rollback()
+            logger.error(f"SQL実行中にエラーが発生しました:{e}")
         except Exception as e:
-            raise CustomException("UserのINSERT処理", f"insert_user()", f"Error: {e}") from e
+            await session.rollback()
+            logger.error(f"Unexpected error: {e}")
 
 # デフォルト company_id を環境変数や設定ファイルで管理する
 DEFAULT_COMPANY_ID = 1
 
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import IntegrityError
 # 新規ユーザー追加
 from sqlalchemy import func
 @log_decorator
@@ -315,24 +316,17 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             logger.info("新規ユーザー登録成功")
 
     except IntegrityError as e:
-        print(f"insert_new_user() - IntegrityError: {e}")
         await session.rollback()
-        raise HTTPException(status_code=400, detail=f"データベースの整合性エラー: {str(e)}")
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("insert_new_user() - データベース接続の問題:", e)
-    except SQLAlchemyError as e:
-        print(f"insert_new_user() - SQLAlchemyError: {e}")
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
         await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"insert_new_user() - Exception: {e}")
         await session.rollback()
-        raise HTTPException(status_code=500, detail=f"データベースエラー: {str(e)}")
-        # raise CustomException(
-        #     status_code=400,
-        #     method_name="insert_new_user()",
-        #     message=f"Error: {e}"
-        # ) from e
+        logger.error(f"Unexpected error: {e}")
 
 
 
@@ -384,20 +378,16 @@ async def insert_shop(
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="INSERT INTO users ...",  # 詳細なSQL文は省略
-            method_name="insert_shop()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "insert_shop()", f"Error: {e}") from e
-
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 from sqlalchemy import update
@@ -414,19 +404,17 @@ async def update_user(username: str, key: str, value):
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="update_users()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "update_user()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 # 削除(1件)
 from sqlalchemy import delete
@@ -442,18 +430,19 @@ async def delete_user(username: str):
             logger.debug(f"delete_user() - {stmt}")
             return True
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="delete_user()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "delete_user()", f"Error: {e}") from e
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 # 削除（全件）
 from sqlalchemy import text
@@ -469,43 +458,15 @@ async def delete_all_user():
             await session.run_sync(drop_table)
             logger.info("User テーブルの削除が完了しました。")
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="delete_all_user()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "delete_all_user()", f"Error: {e}") from e
-
-
-# log_decorator
-# async def alter_orders_created_at_column_type():
-#     """
-#     Ordersテーブルの created_at カラムを timestamp without time zone に変更する。
-#     """
-#     try:
-#         async with engine.begin() as conn:
-#             # PostgreSQL用 ALTER TABLE 文
-#             sql = """
-#             ALTER TABLE "Orders"
-#             ALTER COLUMN "created_at" TYPE timestamp without time zone;
-#             """
-#             await conn.execute(text(sql))
-#             logger.info("Orders.created_at カラムを timestamp without time zone に変更しました。")
-
-#     except DatabaseError as e:
-#         raise SQLException(
-#             sql_statement="ALTER TABLE Orders ALTER COLUMN created_at",
-#             method_name="alter_orders_created_at_column_type()",
-#             detail=f"SQL実行中にエラーが発生しました: {e}",
-#             exception=e
-#         )
-#     except Exception as e:
-#         raise CustomException(500, "alter_orders_created_at_column_type()", f"Error: {e}")
-
-
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
