@@ -74,7 +74,7 @@ token_expired_error_message = "有効期限が切れています。再登録を�
 access_denied_error_message = "アクセス権限がありません。"
 forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
 login_error_message = "ログインに失敗しました。"
-
+cookie_error_message = "Cookieの取得に失敗しました。"
 # -----------------------------------------------------
 import jwt
 from core.security import decode_jwt_token
@@ -138,14 +138,25 @@ async def root(request: Request, response: Response):
         return await create_auth_response(
             username, permission, main_url)
 
-    except (TokenExpiredException, jwt.ExpiredSignatureError) as e:
-        return redirect_login_success(
-            request, error=token_expired_error_message)
- 
-    except (CookieException, jwt.InvalidTokenError) as e:
-         redirect_login_failure(request, token_expired_error_message, e)
-    except Exception as e:
 
+    except jwt.ExpiredSignatureError as e:
+        message = f"トークンの有効期限が切れています: {e}"
+        return redirect_login_failure(request, message)
+    except jwt.MissingRequiredClaimError:
+        message = f"トークンに必要なクレームが不足しています: {e}"
+        return redirect_login_success(request, message)
+    except jwt.DecodeError as e:
+        message = f"トークンのデコードエラー: {e}"
+        return redirect_login_failure(request, message)
+    except jwt.InvalidTokenError as e:
+        message = f"無効なトークン: {e}"
+        return redirect_login_failure(request, message)
+    except Exception as e:
+        message = f"予期しないエラー: {e}"
+        return redirect_login_failure(request, message)
+    except CookieException as e:
+         redirect_login_failure(request, cookie_error_message, e)
+    except Exception as e:
         content_type = request.headers.get('Content-Type')
         print(f"Content-Type: {content_type}")
         if content_type == "application/json":
@@ -153,6 +164,7 @@ async def root(request: Request, response: Response):
             return redirect_login_failure(request, json_data, e)
         else:
             return redirect_login_failure(request, str(e), e)
+
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -191,7 +203,7 @@ async def login_post(request: Request,
             user.get_username(), permission, main_url)
 
     except DatabaseError as e:
-        raise
+        return redirect_login_failure(request, error="データベース異常")
     except NotAuthorizedException as e:
         return redirect_login_failure(request, error=access_denied_error_message)
     
