@@ -46,24 +46,18 @@ class Order(Base):
     menu_id = Column(Integer)
     amount = Column(Integer)
     created_at = Column(DateTime) # このままでOK
-    # created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
     updated_at = Column(DateTime) # このままでOK
-    # created_at = Column(PG_TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
-    # updated_at = Column(PG_TIMESTAMP(timezone=True), onupdate=func.now())
     canceled = Column(Integer, default=0)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
-
-from utils.exception import CustomException, SQLException
 from utils.utils import get_today_datetime, log_decorator
-
 
 import logging
 logger = logging.getLogger(__name__)
-from log_unified import logger, order_logger
+from log_unified import logger
 
 from sqlalchemy.exc import DatabaseError
 
@@ -81,14 +75,9 @@ async def create_orders_table():
         logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
 
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="CREATE TABLE Orders",
-            method_name="create_orders_table()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        logger.error(f"SQL実行中にエラーが発生しました: {e}")
     except Exception as e:
-        raise CustomException(500, "create_orders_table()", f"Error: {e}")
+        logger.error(f"Unexpected error: {e}")
 
 '''-----------------------------------------------------------'''
 from datetime import date, datetime, timedelta
@@ -135,13 +124,19 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
             order_model = OrderModel(**row_dict)
             return order_model
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise CustomException(500, "select_single_order()", f"SQL実行中にエラーが発生しました: {e}")
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        raise CustomException(500, "select_single_order()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 # 選択（全件）
@@ -190,19 +185,19 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
 
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_all_orders()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-                print(f"Error: {e}")
-        # raise CustomException(500, "select_all_orders()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 '''-----------------------------------------------------------'''
 from utils.utils import get_created_at_period
 
@@ -252,19 +247,19 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 
             return order_list
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_user_all()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_user_all()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 
@@ -327,19 +322,19 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_user_at_date()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_user_at_date()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 # 選択（一般ユーザー:日付遡及）
@@ -406,19 +401,19 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_user_ago()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_user_ago()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 '''-----------------------------------------------------------'''
 from models.company import Company
 from models.menu import Menu
@@ -469,19 +464,19 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
             logger.debug(f"- {order_models=}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_company_all()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_company_all()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 
@@ -541,19 +536,19 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
             logger.debug(f"select_orders_by_company_at_date() - order_models: {order_models}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_company_at_date()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_company_at_date()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 @log_decorator
@@ -610,19 +605,19 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             logger.debug(f"select_orders_by_company_ago() - order_models: {order_models}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_company_ago()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_company_ago()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 '''-----------------------------------------------------------'''
 from datetime import datetime
@@ -695,19 +690,19 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
             logger.debug(f"select_orders_by_shop_all() - order_models: {order_models}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_shop_all()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_shop_all()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 
@@ -762,19 +757,19 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
             logger.debug(f"select_orders_by_shop_company() - order_models: {order_models}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_shop_company()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_shop_company()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 
@@ -836,19 +831,18 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
             logger.debug(f"select_orders_by_shop_at_date() - order_models: {order_models}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_shop_at_date()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_shop_at_date()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 
@@ -885,7 +879,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            # print(f"start_dt: {start_dt}, end_dt: {end_dt}")
 
             # 期間条件を追加
             print(f"days_ago: {days_ago}")
@@ -899,9 +892,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                     Order.created_at >= start_dt,
                     Order.created_at <= end_dt  # ここは `<=` にするのが素直で安全
                 )
-            # stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            # print(f"{start_dt=}, {end_dt=}")
-            # logger.info(f"{stmt=}")
             print(f"str(stmt):--->{str(stmt)}")
 
             result = await session.execute(stmt)
@@ -927,26 +917,25 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             logger.debug(f"{order_models=}")
             return order_models
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="select_orders_by_shop_ago()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "select_orders_by_shop_ago()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 '''-------------------------------------------------------------'''
 # 追加
 from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 from sqlalchemy import text
-import traceback
 
 from log_unified import log_order
 
@@ -993,26 +982,23 @@ async def insert_order(
             logger.info(f"注文が完了しました - order_id:{order_id} ")
             log_order(
                 "ORDER",
-                f"注文完了 - order_id:{order_id:>4} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
+                f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
             )
 
             return order_id
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement="OrdersテーブルへのINSERT中に発生",
-            method_name="insert_order()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 
 '''-------------------------------------------------------------'''
@@ -1045,20 +1031,17 @@ async def update_order(order_id: int, canceled: bool):
 
     except IntegrityError as e:
         await session.rollback()
-        print("データベースの制約違反:", e)
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="update_order()",
-            detail=f"SQL実行中にエラーが発生しました: {e}",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
-        # raise CustomException(500, "update_order()", f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 '''-------------------------------------------------------------'''
 # 削除（指定ID）
 from sqlalchemy import delete, text
@@ -1082,18 +1065,19 @@ async def delete_order(order_id: int) -> bool:
             logger.info(f"Order with order_id {order_id} deleted successfully.")
             return True
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=str(stmt),
-            method_name="delete_order()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
 
 
 # 削除（全件）
@@ -1107,15 +1091,16 @@ async def delete_all_orders():
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
 
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
     except OperationalError as e:
         await session.rollback()
-        print("データベース接続の問題:", e)
+        logger.error(f"OperationalError: {e}")
     except DatabaseError as e:
-        raise SQLException(
-            sql_statement=sqlstr,
-            method_name="delete_all_orders()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        )
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
-        print(f"Error: {e}")
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+

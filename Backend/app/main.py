@@ -90,12 +90,12 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
-        print("このappはBackend versionです。")
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        # print("このappはBackend versionです。")
 
         # 二重注文の禁止
         result , last_order = await check_permission_and_stop_order(request, response)
-        print(f"last_order: {last_order}")
+        logger.info(f"last_order: {last_order}")
         if result:
             return templates.TemplateResponse(
                 "duplicate_order.html",
@@ -125,11 +125,9 @@ async def root(request: Request, response: Response):
             logger.debug("token is expired.")
             return redirect_login_success(request, error=token_expired_error_message)
         else:
-            # expires 有効
-            logger.debug("token is not expired.")
+            logger.debug("token is not expired.") # expires 有効
 
-        # token 解読
-        payload = decode_jwt_token(token)
+        payload = decode_jwt_token(token) # token 解読
 
         username = payload['sub']
         permission = payload['permission']
@@ -140,20 +138,15 @@ async def root(request: Request, response: Response):
 
 
     except jwt.ExpiredSignatureError as e:
-        message = f"トークンの有効期限が切れています: {e}"
-        return redirect_login_failure(request, message)
+        return redirect_login_failure(request, f"トークンの有効期限が切れています: {e}")
     except jwt.MissingRequiredClaimError:
-        message = f"トークンに必要なクレームが不足しています: {e}"
-        return redirect_login_success(request, message)
+        return redirect_login_success(request, f"トークンに必要なクレームが不足しています: {e}")
     except jwt.DecodeError as e:
-        message = f"トークンのデコードエラー: {e}"
-        return redirect_login_failure(request, message)
+        return redirect_login_failure(request, f"トークンのデコードエラー: {e}")
     except jwt.InvalidTokenError as e:
-        message = f"無効なトークン: {e}"
-        return redirect_login_failure(request, message)
+        return redirect_login_failure(request, f"無効なトークン: {e}")
     except Exception as e:
-        message = f"予期しないエラー: {e}"
-        return redirect_login_failure(request, message)
+        return redirect_login_failure(request, f"予期しないエラー: {e}")
     except CookieException as e:
          redirect_login_failure(request, cookie_error_message, e)
     except Exception as e:
@@ -236,7 +229,7 @@ from services.order_view import batch_update_orders
 
 @app.post("/update_cancel_status")
 async def update_cancel_status(update: OrderUpdateList):
-    print(f"受信内容: {update.updates}")
+    logger.info(f"受信内容: {update.updates}")
 
     return await batch_update_orders([item.model_dump() for item in update.updates])
 

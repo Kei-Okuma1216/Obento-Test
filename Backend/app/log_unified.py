@@ -4,11 +4,13 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from utils.utils import get_today_datetime
 
+
 class FixedWidthFormatter(logging.Formatter):
     def format(self, record):
         # levelname を左寄せで5文字幅に揃える
         record.levelname = f"{record.levelname:<5}"
         return super().format(record)
+
 # 方法　２つのロガーをつくる
 # from log_unified import uvicorn_logger, order_logger
 # 使用例
@@ -23,7 +25,7 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     :param log_dir: 出力先ディレクトリ名
     :return: ロガーオブジェクト
     """
-    print(f"作成ログ: {name}")
+    # print(f"作成ログ: {name}")
     os.makedirs(log_dir, exist_ok=True)
     current_time = get_today_datetime()
     # print(f"current_time: {current_time}")
@@ -60,7 +62,7 @@ order_logger = create_logger("order_logger", "order_logs")# 例: 注文用ロガ
 # 注文ログ出力インターフェース
 # log_order(
 #     "ORDER",
-#     f"注文完了 - order_id:{order_id:>4} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
+#     f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
 # )
 def log_order(log_type: str, message: str):
     """
@@ -70,6 +72,7 @@ def log_order(log_type: str, message: str):
     """
     log_message = f"{log_type.upper()}: {message}"
     order_logger.info(log_message)
+    print(log_message)  # コンソールにも出力
 
 
 
