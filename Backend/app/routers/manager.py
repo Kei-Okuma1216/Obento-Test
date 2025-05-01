@@ -97,22 +97,6 @@ async def fax_order_sheet_view(request: Request):
 
     return templates.TemplateResponse(target_url, {"request": request, **context})
 
-    # fax_context = {
-    #      "shop_name": request.query_params.get("shop_name"),
-    #      "menu_name": request.query_params.get("menu_name"),
-    #      "price": request.query_params.get("price"),
-    #      "order_count": request.query_params.get("order_count"),
-    #      "total_amount": request.query_params.get("total_amount"),
-    #      "facility_name": request.query_params.get("facility_name"),
-    #      "POC": request.query_params.get("POC"),
-    #      "delivery_year": request.query_params.get("delivery_year"),
-    #      "delivery_month": request.query_params.get("delivery_month"),
-    #      "delivery_day": request.query_params.get("delivery_day"),
-    #      "delivery_weekday": request.query_params.get("delivery_weekday")
-    # }
-    # return HTMLResponse("<html><body><h1>Hello World</h1></body></html>")
-    # return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **fax_context})
-
 async def get_fax_sheet_context(request: Request):
     
     fax_context = {

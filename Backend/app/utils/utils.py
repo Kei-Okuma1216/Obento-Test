@@ -380,12 +380,7 @@ async def check_permission_and_stop_order(request: Request, response: Response):
         print(f"get_token_expires() - Error: {e}")
     except Exception as e:
         print(f"get_token_expires() - Error: {e}")
-        
-        # raise CookieException(
-        #     method_name="check_permission_and_stop_order()",
-        #     detail="last_order_dateが正常に取得できませんでした。",
-        #     exception=e
-        # )
+
         
 
 @log_decorator
