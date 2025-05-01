@@ -993,7 +993,7 @@ async def insert_order(
             logger.info(f"注文が完了しました - order_id:{order_id} ")
             log_order(
                 "ORDER",
-                f"注文完了 - order_id:{order_id} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
+                f"注文完了 - order_id:{order_id:>4} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
             )
 
             return order_id

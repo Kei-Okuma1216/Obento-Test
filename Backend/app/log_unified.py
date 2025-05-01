@@ -4,6 +4,11 @@ import logging
 from logging.handlers import TimedRotatingFileHandler
 from utils.utils import get_today_datetime
 
+class FixedWidthFormatter(logging.Formatter):
+    def format(self, record):
+        # levelname を左寄せで5文字幅に揃える
+        record.levelname = f"{record.levelname:<5}"
+        return super().format(record)
 # 方法　２つのロガーをつくる
 # from log_unified import uvicorn_logger, order_logger
 # 使用例
@@ -23,13 +28,14 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     current_time = get_today_datetime()
     # print(f"current_time: {current_time}")
     log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
-    print(f"ログファイル名: {log_filename}")
+    # print(f"ログファイル名: {log_filename}")
 
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     logger.propagate = False
 
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+    # formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S")
+    formatter = FixedWidthFormatter("%(asctime)s - %(levelname)s - %(message)s", "%Y-%m-%d %H:%M:%S")
 
     file_handler = TimedRotatingFileHandler(
         log_filename, when="midnight", interval=1, encoding="utf-8", backupCount=7
@@ -51,6 +57,11 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
 logger = create_logger("uvicorn", "logs")
 order_logger = create_logger("order_logger", "order_logs")# 例: 注文用ロガー
 
+# 注文ログ出力インターフェース
+# log_order(
+#     "ORDER",
+#     f"注文完了 - order_id:{order_id:>4} - {company_id}:{username}, {shop_name}:{menu_id}, {amount}"
+# )
 def log_order(log_type: str, message: str):
     """
     注文用ログ出力インターフェース。
@@ -59,6 +70,8 @@ def log_order(log_type: str, message: str):
     """
     log_message = f"{log_type.upper()}: {message}"
     order_logger.info(log_message)
+
+
 
 
 
