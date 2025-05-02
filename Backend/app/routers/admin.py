@@ -1,4 +1,4 @@
-# admin.py
+# routers/admin.py
 # ../admin/meになる
 '''
     1. admin_view(request: Request): 

@@ -27,7 +27,6 @@ class OrderModel(BaseModel):
                 print(f"order_id: {self.created_at}, end_of_day: {end_of_day}")
                 return end_of_day
 
-# schemas/order.py
 from pydantic import BaseModel
 from typing import List
 

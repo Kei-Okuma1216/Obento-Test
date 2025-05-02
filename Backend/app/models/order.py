@@ -381,7 +381,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
 
             # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            print(f"{start_dt=}, {end_dt=}")
+            # print(f"{start_dt=}, {end_dt=}")
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             
             logger.debug(f"select_orders_by_user_ago() - {stmt=}")

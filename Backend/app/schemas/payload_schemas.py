@@ -5,7 +5,6 @@ from typing import Optional, Field
 from pydantic import BaseModel
 
 
-
 class PayloadModel(BaseModel):
     sub: str
     token: Optional[str] = None
