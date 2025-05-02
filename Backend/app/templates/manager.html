@@ -190,35 +190,40 @@
 
     // FAX送信ボタンをクリックしたときにモーダルを開く関数
     function openFaxOrderSheet() {
-      const base_url = "{{ base_url }}";
+    const base_url = "{{ base_url }}";
 
-      const faxContext = {
-        shop_name: "{{ shop_name }}",
-        menu_name: "{{ menu_name }}",
-        price: "{{ price }}",
-        order_count: document.getElementById('bento-count').value,
-        total_amount: document.getElementById('total-amount').value,
-        facility_name: document.getElementById('facility-name').value,
-        POC: document.getElementById('POC').value,
-        delivery_year: document.getElementById("delivery-year").textContent,
-        delivery_month: document.getElementById("delivery-month").textContent,
-        delivery_day: document.getElementById("delivery-day").value,
-        delivery_weekday: document.getElementById("delivery-weekday").value
-      };
+    const faxContext = {
+      shop_name: "{{ shop_name }}",
+      menu_name: "{{ menu_name }}",
+      price: "{{ price }}",
+      order_count: document.getElementById('bento-count').value,
+      total_amount: document.getElementById('total-amount').value,
+      facility_name: document.getElementById('facility-name').value,
+      POC: document.getElementById('POC').value,
+      delivery_year: document.getElementById("delivery-year").textContent,
+      delivery_month: document.getElementById("delivery-month").textContent,
+      delivery_day: document.getElementById("delivery-day").value,
+      delivery_weekday: document.getElementById("delivery-weekday").value
+    };
 
-      const params = new URLSearchParams(faxContext).toString();
-      const url = base_url + "/manager/me/fax_order_sheet?" + params;
+    const params = new URLSearchParams(faxContext).toString();
+    const url = base_url + "/manager/me/fax_order_sheet?" + params;
 
-      // モーダル内のiframeにURLをセット
-      //document.getElementById("faxPreviewFrame").src = url;
+    // デスクトップ画面サイズを取得
+    const screenWidth = window.screen.availWidth;
+    const screenHeight = window.screen.availHeight;
 
-      // Bootstrapのモーダルを表示
-      //const modal = new bootstrap.Modal(document.getElementById('faxModal'));
-      //modal.show();
+    // 画面サイズいっぱいのウィンドウを開く
+    const newWindow = window.open(url, "_blank",
+      `width=${screenWidth},height=${screenHeight},top=0,left=0`);
 
-      // 別ウィンドウでFAXプレビューを開く（印刷専用）
-      window.open(url, "_blank", "width=800,height=1000");
-    }
+    // 読み込み完了後に印刷ダイアログを表示
+    newWindow.onload = function () {
+      newWindow.focus();  // フォーカスも当てる
+      newWindow.print();
+    };
+  }
+
 
 
     // 1個あたりの価格

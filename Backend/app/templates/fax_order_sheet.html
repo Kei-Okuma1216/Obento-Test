@@ -139,10 +139,14 @@
 
       <div class="form-group underline-group">
         <label for="facility">施設名（ご担当）</label>
-        <span id="facility" class="static-date">{{ facility_name }}</span>
-        <span id="POC" class="static-date">{{ POC }}</span>
+        {% if facility_name|length >= 5 %}
+          <div class="static-date">{{ facility_name }}</div>
+          <div class="static-date">{{ POC }}</div>
+        {% else %}
+          <span id="facility" class="static-date">{{ facility_name }} {{ POC }}</span>
+        {% endif %}
       </div>
-
+      
       <div class="spacer"></div>
 
       <table>
