@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title></title>
+  <title>はーとあーす勝谷 日替わり弁当注文書</title>
   <style>
     .container {
       max-width: 170mm;
@@ -19,12 +19,10 @@
       margin-bottom: 5px;
       white-space: normal;
       word-break: keep-all;
-      text-align: center;
     }
     .fax-info {
       font-size: 1.8em;
       margin-bottom: 10px;
-      text-align: center;
     }
     .form-group {
       margin-bottom: 10px;
@@ -66,11 +64,6 @@
     #facility {
       width: 120px;
     }
-    .inline-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
     .plain-input {
       font-weight: bold;
       background-color: transparent;
@@ -91,6 +84,7 @@
       min-width: 80px;
       text-align: right;
     }
+
     @media print {
       html, body {
         overflow: visible !important;
@@ -145,7 +139,8 @@
 
       <div class="form-group underline-group">
         <label for="facility">施設名（ご担当）</label>
-        {% if facility_name|length >= 5 %}<div class="static-date">{{ facility_name }}</div><div class="static-date">{{ POC }}</div>{% else %}<span id="facility" class="static-date">{{ facility_name }} {{ POC }}</span>{% endif %}
+        <span id="facility" class="static-date">{{ facility_name }}</span>
+        <span id="POC" class="static-date">{{ POC }}</span>
       </div>
 
       <div class="spacer"></div>
@@ -154,10 +149,7 @@
         <tr>
           <td style="width:300px; white-space: nowrap;">{{menu_name}}（{{price}}円）</td>
           <td>
-            <div class="inline-group">
-              <span id="bento-count" class="plain-input">{{order_count}}</span>
-              <span>個</span>
-            </div>
+            <span id="bento-count" class="plain-input">{{order_count}}</span> 個
           </td>
         </tr>
         <tr>
@@ -171,7 +163,6 @@
   </div>
 
   <script>
-    document.title = '';
     document.addEventListener('DOMContentLoaded', function() {
       const today = new Date();
       const year = today.getFullYear();

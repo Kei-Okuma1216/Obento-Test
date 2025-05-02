@@ -23,7 +23,6 @@ shop_router = APIRouter()
 
 
 
-
 @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
 @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
@@ -40,7 +39,7 @@ async def shop_view(request: Request, response: Response):
             raise CookieException(method_name="get_all_cookies()")
 
         orders = await select_orders_by_shop_all(default_shop_name)
-
+        # print(f"shop_view() - orders: {orders}")
         if orders is None:
             logger.debug('shop_view - ordersなし')
             return HTMLResponse("<html><p>注文は0件です</p></html>")

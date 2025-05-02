@@ -89,7 +89,7 @@ async def get_manager_context(request: Request, orders):
 
 
 @manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
-# @log_decorator
+@log_decorator
 async def fax_order_sheet_view(request: Request):
 
     target_url = "fax_order_sheet.html"

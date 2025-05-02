@@ -30,10 +30,7 @@ async def get_main_url(permission: int) -> str:
 
     except Exception as e:
         print(f"Error: {e}")
-        # raise CustomException(
-        #     status_code=400,
-        #     method_name="get_main_url()",
-        #     message=str(e))
+
 
 
 from fastapi.responses import RedirectResponse

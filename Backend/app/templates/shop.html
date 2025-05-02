@@ -9,7 +9,6 @@
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <style>
-      
       /* コンテンツ部分に下余白を追加（フッターの高さ分を確保） */
       .content-wrapper {
         padding-bottom: 80px; /* ※フッターの高さに合わせて調整 */
@@ -228,8 +227,7 @@
         var days = document.getElementById("daysAgoInput").value.trim();
         this.href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
       });
-    </script>
-    <script>
+
       document.getElementById("my-order-log-button").addEventListener("click", function() {
         // 抽出対象のショップ名。必要に応じて他の値に変更可能
         var shopName = "shop01";
@@ -246,6 +244,22 @@
             alert("エラーが発生しました。");
           });
       });
+        function goBackInIframe() {
+          var iframe = document.querySelector('#orderlogModal iframe');
+          if (iframe && iframe.contentWindow) {
+            try {
+              const historyLength = iframe.contentWindow.history.length;
+              if (historyLength > 1) {
+                iframe.contentWindow.history.back();
+              } else {
+                iframe.contentWindow.location.reload();
+              }
+            } catch (e) {
+              console.error('iframe navigation error:', e);
+              iframe.contentWindow.location.reload();
+            }
+          }
+        }
       </script>
   </body>
 </html>

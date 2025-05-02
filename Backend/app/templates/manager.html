@@ -189,38 +189,7 @@
     });
 
     // FAX送信ボタンをクリックしたときにモーダルを開く関数
-    // function openFaxOrderSheet() {
-    //   const base_url = "{{ base_url }}";
-
-    //   const faxContext = {
-    //     shop_name: "{{ shop_name }}",
-    //     menu_name: "{{ menu_name }}",
-    //     price: "{{ price }}",
-    //     order_count: document.getElementById('bento-count').value,
-    //     total_amount: document.getElementById('total-amount').value,
-    //     facility_name: document.getElementById('facility-name').value,
-    //     POC: document.getElementById('POC').value,
-    //     delivery_year: document.getElementById("delivery-year").textContent,
-    //     delivery_month: document.getElementById("delivery-month").textContent,
-    //     delivery_day: document.getElementById("delivery-day").value,
-    //     delivery_weekday: document.getElementById("delivery-weekday").value
-    //   };
-
-    //   const params = new URLSearchParams(faxContext).toString();
-    //   const url = base_url + "/manager/me/fax_order_sheet?" + params;
-
-    //   // モーダル内のiframeにURLをセット
-    //   //document.getElementById("faxPreviewFrame").src = url;
-
-    //   // Bootstrapのモーダルを表示
-    //   //const modal = new bootstrap.Modal(document.getElementById('faxModal'));
-    //   //modal.show();
-
-    //   // 別ウィンドウでFAXプレビューを開く（印刷専用）
-    //   window.open(url, "_blank", "width=800,height=1000");
-    // }
     function openFaxOrderSheet() {
-    // const url = '/manager/me/fax_order_sheet?params=...';  // 動的に生成して必要なパラメータを追加
       const base_url = "{{ base_url }}";
 
       const faxContext = {
@@ -240,14 +209,16 @@
       const params = new URLSearchParams(faxContext).toString();
       const url = base_url + "/manager/me/fax_order_sheet?" + params;
 
-    const printWindow = window.open(url, '_blank');
+      // モーダル内のiframeにURLをセット
+      //document.getElementById("faxPreviewFrame").src = url;
 
-    // 読み込み完了を待って印刷実行
-    printWindow.onload = function () {
-      printWindow.focus(); // 印刷ターゲットへフォーカス
-      printWindow.print(); // OSの印刷ダイアログを起動
-    };
-  }
+      // Bootstrapのモーダルを表示
+      //const modal = new bootstrap.Modal(document.getElementById('faxModal'));
+      //modal.show();
+
+      // 別ウィンドウでFAXプレビューを開く（印刷専用）
+      window.open(url, "_blank", "width=800,height=1000");
+    }
 
 
     // 1個あたりの価格
