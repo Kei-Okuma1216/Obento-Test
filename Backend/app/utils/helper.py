@@ -29,7 +29,7 @@ async def get_main_url(permission: int) -> str:
         return redirect_url
 
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"get_main_url() - Error: {e}")
 
 
 
@@ -61,8 +61,7 @@ async def create_auth_response(
     except NotAuthorizedException as e:
         raise
     except Exception as e:
-        print(f"create_auth_response() - Error: {e}")
-        logger.error("create_auth_response() - Error: {e}")
+        logger.error(f"create_auth_response() - Error: {e}")
 
 
 from fastapi.templating import Jinja2Templates
@@ -89,7 +88,6 @@ def redirect_login(
     except HTTPException as e:
         raise
     except Exception as e:
-        print(f"redirect_login() - Error: {e}")
         logger.error("redirect_login() - Error: {e}")
 
 # ログイン成功時のリダイレクト
@@ -146,6 +144,5 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"redirect_error() - 予期せぬエラー: {str(e)}")
         logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
 

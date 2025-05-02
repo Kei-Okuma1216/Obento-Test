@@ -79,7 +79,6 @@ from sqlalchemy import select
 from typing import Optional, List
 from schemas.user_schemas import UserResponse
 # 選択
-from models.user import AsyncSessionLocal  # 適切なパスに合わせてください
 
 @log_decorator
 async def select_user(username: str) -> Optional[UserResponse]:
@@ -120,8 +119,6 @@ async def select_user(username: str) -> Optional[UserResponse]:
 
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください
 from sqlalchemy import inspect
-from models.user import AsyncSessionLocal  # 必要に応じてパスを調整してください
-#from models.user import User  # ORMのUserモデル。適宜パスを調整してください
 
 
 @log_decorator
@@ -181,45 +178,53 @@ async def get_hashed_password(password: str)-> str:
 
     return new_hashed_password
 
-from pprint import pprint
-"""既存ユーザーのパスワードをハッシュ化"""
-@log_decorator
-async def update_existing_passwords():
 
+from fastapi import Request
+from pprint import pprint
+"""新規登録したユーザーのパスワードをハッシュ化"""
+@log_decorator
+async def update_existing_passwords(request: Request):
+
+    from utils.helper import redirect_login_success, redirect_error # これを設置して循環参照が起こるため関数内に移動した
     users = await select_all_users()  # すべてのユーザーを取得する関数が必要
     pprint(users)
     # セッションオブジェクトを非同期コンテキストマネージャで取得
-    async with get_db() as session:
+    try:
+        async with get_db() as session:
 
-        for user in users:
-            username = user.get_username()
-            print(f"username: {username}")
+            for user in users:
+                username = user.get_username()
+                print(f"username: {username}")
 
-            # 非同期セッションの場合、クエリの実行もawaitが必要となる
-            result = await session.execute(select(User).filter_by(username=username))
-            db_user = result.scalars().first()
+                # 非同期セッションの場合、クエリの実行もawaitが必要となる
+                result = await session.execute(select(User).filter_by(username=username))
+                db_user = result.scalars().first()
 
-            if db_user is None:
-                continue  # 該当ユーザーが存在しない場合はスキップ
+                if db_user is None:
+                    continue  # 該当ユーザーが存在しない場合はスキップ
 
-            password = db_user.password  # 直接属性にアクセス可能
-            print(f"password: {password}")
+                password = db_user.password  # 直接属性にアクセス可能
+                print(f"password: {password}")
 
-            if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
-                """パスワードをハッシュ化する"""
-                salt = bcrypt.gensalt()
-                plain_password = user.get_password()
-                #password = user['password']
-                hashed_password = bcrypt.hashpw(plain_password.encode(), salt)
-                new_hashed_password = hashed_password.decode()
+                if not password.startswith("$2b$"):  # bcryptのハッシュでない場合
+                    """パスワードをハッシュ化する"""
+                    salt = bcrypt.gensalt()
+                    plain_password = user.get_password()
+                    #password = user['password']
+                    hashed_password = bcrypt.hashpw(plain_password.encode(), salt)
+                    new_hashed_password = hashed_password.decode()
 
-                await update_user(
-                    user.username, "password", new_hashed_password)
+                    await update_user(
+                        user.username, "password", new_hashed_password)
 
-                logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+            message = f"ユーザー {user.username} のパスワードをハッシュ化しました"
+            return redirect_login_success(request, message)
+
+    except Exception as e:
+        logger.error(f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}")
+        return redirect_error(request,"パスワードのハッシュ化に失敗しました。")
 
 
-from utils.exception import SQLException
 # 追加
 ''' 注意：データ新規作成後は、必ずデータベースのUserテーブルのパスワードを暗号化する
 '''

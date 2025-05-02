@@ -51,22 +51,29 @@ async def admin_view(request: Request):
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
-async def update_existing_passwords():
-    """既存ユーザーのパスワードをハッシュ化"""
-    users = await select_all_users()  # すべてのユーザーを取得する関数が必要
-    for user in users:
-        if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
+async def update_existing_passwords(request: Request):
+    """既存ユーザーの全パスワードをハッシュ化"""
+    from utils.helper import redirect_login_succeess
+    try:
+        users = await select_all_users()  # すべてのユーザーを取得する関数が必要
+        for user in users:
+            if not user.get_password().startswith("$2b$"):  # bcryptのハッシュでない場合
 
-            """パスワードをハッシュ化する"""
-            salt = bcrypt.gensalt()
-            password = user.get_password()
-            hashed_password = bcrypt.hashpw(password.encode(), salt)
-            new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+                """パスワードをハッシュ化する"""
+                salt = bcrypt.gensalt()
+                password = user.get_password()
+                hashed_password = bcrypt.hashpw(password.encode(), salt)
+                new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
 
-            await update_user(
-                user.username, "password", new_hashed_password)  # DB更新
-            logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+                await update_user(
+                    user.username, "password", new_hashed_password)  # DB更新
 
+        logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+        return redirect_login_succeess(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
+
+    except Exception as e:
+        logger.error(f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}")
+        return redirect_error(request,"パスワードのハッシュ化に失敗しました。")
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる
