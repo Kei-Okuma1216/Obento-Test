@@ -26,7 +26,7 @@ from fastapi.templating import Jinja2Templates
 
 templates = Jinja2Templates(directory="templates")
 
-from utils.helper import create_auth_response, get_main_url
+from utils.helper import create_auth_response, get_main_url, redirect_error
 from utils.utils import *
 from utils.exception import *
 from sqlalchemy.exc import DatabaseError
@@ -70,11 +70,14 @@ from database.local_postgresql_database import endpoint
 import tracemalloc
 tracemalloc.start()
 
-token_expired_error_message = "有効期限が切れています。再登録をしてください。"
-access_denied_error_message = "アクセス権限がありません。"
-forbid_second_order_message = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
-login_error_message = "ログインに失敗しました。"
-cookie_error_message = "Cookieの取得に失敗しました。"
+error_token_expired = "有効期限が切れています。再登録をしてください。"
+error_access_denied = "アクセス権限がありません。"
+error_forbidden_second_order = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
+error_login_failure = "ログインに失敗しました。"
+error_illegal_cookie = "Cookieの取得に失敗しました。"
+error_unexpected_error_message = "予期しないエラーが発生しました。"
+error_database_access = "データベース接続に失敗しました。時間をおいて再試行してください。"
+
 # -----------------------------------------------------
 import jwt
 from core.security import decode_jwt_token
@@ -90,7 +93,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
         # 二重注文の禁止
@@ -101,7 +104,7 @@ async def root(request: Request, response: Response):
                 "duplicate_order.html",
                 {
                     "request": request,
-                    "forbid_second_order_message": forbid_second_order_message,
+                    "forbid_second_order_message": error_forbidden_second_order,
                     "last_order": last_order,
                     "endpoint": endpoint
                 }
@@ -123,7 +126,7 @@ async def root(request: Request, response: Response):
         if compare_expire_date(expires):
             # expires 無効
             logger.debug("token is expired.")
-            return redirect_login_success(request, error=token_expired_error_message)
+            return redirect_login_success(request, error=error_token_expired)
         else:
             logger.debug("token is not expired.") # expires 有効
 
@@ -136,19 +139,20 @@ async def root(request: Request, response: Response):
         return await create_auth_response(
             username, permission, main_url)
 
-
+    except ConnectionError as e:
+        return redirect_error(request, error_database_access, e)
     except jwt.ExpiredSignatureError as e:
-        return redirect_login_failure(request, f"トークンの有効期限が切れています: {e}")
+        return redirect_login_failure(request, f"トークンの有効期限が切れています", e)
     except jwt.MissingRequiredClaimError:
-        return redirect_login_success(request, f"トークンに必要なクレームが不足しています: {e}")
+        return redirect_login_failure(request, f"トークンに必要なクレームが不足しています", e)
     except jwt.DecodeError as e:
-        return redirect_login_failure(request, f"トークンのデコードエラー: {e}")
+        return redirect_login_failure(request, f"トークンのデコードエラー", e)
     except jwt.InvalidTokenError as e:
-        return redirect_login_failure(request, f"無効なトークン: {e}")
-    except Exception as e:
-        return redirect_login_failure(request, f"予期しないエラー: {e}")
+        return redirect_login_failure(request, f"無効なトークン", e)
     except CookieException as e:
-         redirect_login_failure(request, cookie_error_message, e)
+         redirect_login_failure(request, error_illegal_cookie, e)
+    except HTTPException as e:
+        return redirect_login_failure(request, e.detail)
     except Exception as e:
         content_type = request.headers.get('Content-Type')
         print(f"Content-Type: {content_type}")
@@ -156,7 +160,7 @@ async def root(request: Request, response: Response):
             json_data = await request.json()
             return redirect_login_failure(request, json_data, e)
         else:
-            return redirect_login_failure(request, str(e), e)
+            return redirect_login_failure(request, f"予期しないエラー", e)
 
 
 # ログイン画面を表示するエンドポイント
@@ -167,9 +171,13 @@ async def login_get(request: Request):
         pass
         return redirect_login_success(request)
 
+    except ConnectionError as e:
+        return redirect_error(request, error_database_access, e)
+    except DatabaseError as e:
+        return redirect_login_failure(request, error="データベース異常")
     except Exception as e:
         return redirect_login_failure(
-            request, login_error_message, e)
+            request, error_login_failure, e)
 
 
 from core.security import authenticate_user, get_user
@@ -195,22 +203,20 @@ async def login_post(request: Request,
         return await create_auth_response(
             user.get_username(), permission, main_url)
 
+    except ConnectionError as e:
+        return redirect_error(request, error_database_access, e)
     except DatabaseError as e:
         return redirect_login_failure(request, error="データベース異常")
-    except NotAuthorizedException as e:
-        return redirect_login_failure(request, error=access_denied_error_message)
-    
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-         return redirect_login_success(request,error=token_expired_error_message)
-
-    except HTTPException as e:
-        return redirect_login_failure(request, e.detail)
-
+         return redirect_login_success(request,error=error_token_expired)
     except (CookieException, SQLException) as e:
         return redirect_login_failure(request, e.detail, e)
-
+    except NotAuthorizedException as e:
+        return redirect_login_failure(request, error=error_access_denied)    
+    except HTTPException as e:
+        return redirect_login_failure(request, e.detail)
     except Exception as e:
-        logger.error(f"予期せぬエラーが発生しました: {str(e)}")
+        return redirect_error(request, error_unexpected_error_message, e)
 
 
 

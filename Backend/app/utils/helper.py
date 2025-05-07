@@ -165,6 +165,7 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
         raise
 
 def redirect_unauthorized(request: Request, message: str, code: int = 403):
+    logger.error(f"Unauthorized - {message}")
     return templates.TemplateResponse("Unauthorized.html", {
         "request": request,
         "status_code": code,

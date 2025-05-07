@@ -45,13 +45,16 @@ async def admin_view(request: Request):
         )
 
     except Exception as e:
-        logger.error(f"admin_view() - 予期せぬエラーが発生しました: {str(e)}")
-        context = {
-            "request": request,
-            "status_code": 500,
-            "message": "予期せぬエラーが発生しました。"
-        }
-        return templates.TemplateResponse("Unauthorized.html", context)
+        message = f"admin_view() - 予期せぬエラーが発生しました: {str(e)}"
+        return redirect_error(request, message, e)
+        # logger.error(f"admin_view() - 予期せぬエラーが発生しました: {str(e)}")
+        # context = {
+        #     "request": request,
+        #     "status_code": 500,
+        #     "message": "予期せぬエラーが発生しました。"
+        # }
+        # return templates.TemplateResponse("error.html", context)
+    
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
