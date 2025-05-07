@@ -53,7 +53,7 @@ async def admin_view(request: Request):
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
 async def update_existing_passwords(request: Request):
     """既存ユーザーの全パスワードをハッシュ化"""
-    from utils.helper import redirect_login_succeess
+    from utils.helper import redirect_login_success
     try:
         users = await select_all_users()  # すべてのユーザーを取得する関数が必要
         for user in users:
@@ -69,7 +69,7 @@ async def update_existing_passwords(request: Request):
                     user.username, "password", new_hashed_password)  # DB更新
 
         logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
-        return redirect_login_succeess(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
+        return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
     except Exception as e:
         logger.error(f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}")
