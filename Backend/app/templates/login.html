@@ -125,5 +125,26 @@
     window.addEventListener('load', setVhUnit);
     window.addEventListener('resize', setVhUnit);
   </script>
+
+
+<!-- フッター表示制御スクリプト -->
+<script>
+  function toggleFooterVisibility() {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+
+    const windowHeight = window.innerHeight;
+    const threshold = 600;
+
+    if (windowHeight < threshold) {
+      footer.style.display = "none";
+    } else {
+      footer.style.display = "";
+    }
+  }
+
+  window.addEventListener("load", toggleFooterVisibility);
+  window.addEventListener("resize", toggleFooterVisibility);
+</script>
 </body>
 </html>

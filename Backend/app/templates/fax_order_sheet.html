@@ -181,5 +181,16 @@
       document.getElementById("order-weekday").textContent = "(" + weekday + ")";
     });
   </script>
+  <script>
+    window.addEventListener('afterprint', function () {
+      window.close();
+    });
+  
+    window.addEventListener('load', function () {
+      window.print();
+    });
+  </script>
+  
+  
 </body>
 </html>
