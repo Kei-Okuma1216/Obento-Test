@@ -70,7 +70,7 @@ async def init_database():
         await update_user("admin", "permission", 99)
 
         # 最後に全員のパスワードを暗号化する
-        await update_existing_passwords() 
+        await update_existing_passwords(request=None) 
 
 
 
@@ -107,7 +107,7 @@ async def init_database():
     except (DatabaseError, SQLAlchemyError, IntegrityError, OperationalError) as e:
         raise
     except Exception as e: 
-        print(f"init_database Error: {str(e)}")
+        # print(f"init_database Error: {str(e)}")
         logger.error(f"init_database Error: {str(e)}")
 
         import traceback 

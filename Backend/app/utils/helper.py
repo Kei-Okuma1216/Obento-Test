@@ -3,7 +3,7 @@
 '''
     1. get_main_url(permission: int) -> str:
     2. create_auth_response(
-    username: str, permission: int, redirect_url: str) -> Response:
+        username: str, permission: int, redirect_url: str) -> Response:
     3. redirect_login(request: Request, message: str=None, error: str=None, e: Exception=None):
     4. redirect_login_success(request: Request, message: str = "ようこそ"):
     5. redirect_login_failure(request: Request, error: str, e: Exception = None):
