@@ -16,8 +16,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from models.user import update_user, select_all_users
 
-from utils.exception import NotAuthorizedException
-from utils.helper import redirect_error
+from utils.helper import redirect_error, redirect_unauthorized
 from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
@@ -35,19 +34,24 @@ from venv import logger
 @log_decorator
 async def admin_view(request: Request):    
     try:
-        if not(await check_permission(request, [99])):
-            raise NotAuthorizedException("管理者権限がありません。")
+        if not (await check_permission(request, [99])):
+            return redirect_unauthorized(request, "管理者権限がありません。")
 
         return templates.TemplateResponse(
             "admin.html", {
                 "request": request,
-                "base_url": endpoint})
+                "base_url": endpoint
+            }
+        )
 
-    except NotAuthorizedException as e:
-        return await redirect_error(request, "アクセス権限がありません。", e)
     except Exception as e:
-        print(f"admin_view() - Error: {e}")
         logger.error(f"admin_view() - 予期せぬエラーが発生しました: {str(e)}")
+        context = {
+            "request": request,
+            "status_code": 500,
+            "message": "予期せぬエラーが発生しました。"
+        }
+        return templates.TemplateResponse("Unauthorized.html", context)
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
@@ -68,12 +72,12 @@ async def update_existing_passwords(request: Request):
                 await update_user(
                     user.username, "password", new_hashed_password)  # DB更新
 
-        logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
+        # logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
         return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
     except Exception as e:
-        logger.error(f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}")
-        return redirect_error(request,"パスワードのハッシュ化に失敗しました。")
+        message = f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}"
+        return redirect_error(request, message, e)
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる

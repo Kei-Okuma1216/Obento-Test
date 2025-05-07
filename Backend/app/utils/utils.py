@@ -123,7 +123,7 @@ async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datet
         return Period(start_dt, end_dt)
 
     except Exception as e:    
-        print(f"get_created_at_period()", f"Error: {e}")
+        logger.error(f"get_created_at_period() - Error: {e}")
         # raise CustomException(500, "get_created_at_period()", f"Error: {e}")
 
 
@@ -182,7 +182,7 @@ def set_all_cookies(response: Response, user: Dict):
     except KeyError as e:
         logger.error(f"Missing key: {e}")
     except Exception as e:
-        print(f"set_all_cookies()", f"Error: {e}")
+        logger.error(f"set_all_cookies() - Error: {e}")
         # raise CookieException(
         #     method_name="set_all_cookies()",
         #     message=str(e))
@@ -218,13 +218,14 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
         return data
 
     except KeyError as e:
-        print(f"get_all_cookies() - Missing key: {e}")
+        logger.error(f"get_all_cookies() - Missing key: {e}")
     except ValueError:
-        print(f"get_all_cookies() - Error: {e}")
+        logger.error(f"get_all_cookies() - Error: {e}")
         # raise CookieException(
         #     method_name="get_all_cookies",
         #     detail="値が不正です")
     except Exception as e:
+        logger.error(f"get_all_cookies() - 予期せぬ例外が発生しました: {e}")
         raise
 
 @log_decorator
@@ -239,9 +240,9 @@ def delete_all_cookies(response: Response):
         logger.debug("delete_all_cookies()", "all cookies deleted")
 
     except KeyError as e:
-        print(f"Missing key: {e}")
+        logger.error(f"Missing key: {e}")
     except Exception as e:
-        print(f"delete_all_cookies() - Error: {e}")
+        logger.error(f"delete_all_cookies() - Error: {e}")
         # raise CookieException(
         #     method_name ="delete_all_cookies()",
         #     detail="クッキー削除中にエラーが発生しました。",
@@ -281,7 +282,7 @@ def compare_expire_date(expires: str) -> bool:
         return False
 
     except Exception as e:
-        print(f"compare_expire_date() - Error: {e}")
+        logger.error(f"compare_expire_date() - Error: {e}")
 
 
 # 二重注文の禁止
@@ -332,7 +333,7 @@ def get_token_expires(request: Request) -> str:
         return expires
 
     except Exception as e:
-        print(f"get_token_expires() - Error: {e}")
+        logger.error(f"get_token_expires() - Error: {e}")
         # raise CookieException(
         #     method_name="get_token_expires()",
         #     detail="expiresが正常に取得できませんでした。",
@@ -375,11 +376,11 @@ async def check_permission_and_stop_order(request: Request, response: Response):
             return False, None
 
     except KeyError as e:
-        print(f"get_token_expires() - Error: {e}")
+        logger.error(f"get_token_expires() - KeyError: {e}")
     except ValueError:
-        print(f"get_token_expires() - Error: {e}")
+        logger.error(f"get_token_expires() - ValueError: {e}")
     except Exception as e:
-        print(f"get_token_expires() - Error: {e}")
+        logger.error(f"get_token_expires() - 予期せぬエラーが発生しました: {e}")
 
         
 

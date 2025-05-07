@@ -8,6 +8,7 @@
     4. redirect_login_success(request: Request, message: str = "ようこそ"):
     5. redirect_login_failure(request: Request, error: str, e: Exception = None):
     6. redirect_error(request: Request, message: str, e: Exception):
+    7. redirect_unauthorized(request: Request, message: str, code: int = 403):
 '''
 from fastapi import HTTPException, Request, Response, status
 
@@ -30,7 +31,7 @@ async def get_main_url(permission: int) -> str:
 
     except Exception as e:
         logger.error(f"get_main_url() - Error: {e}")
-
+        raise
 
 
 from fastapi.responses import RedirectResponse
@@ -59,10 +60,11 @@ async def create_auth_response(
         return response
 
     except NotAuthorizedException as e:
+        logger.error(f"create_auth_response() - NotAuthorizedException: {e}")
         raise
     except Exception as e:
         logger.error(f"create_auth_response() - Error: {e}")
-
+        raise
 
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
@@ -86,15 +88,16 @@ def redirect_login(
                 "message": message,
                 "error": error})
     except HTTPException as e:
+        logger.error(f"redirect_login() - HTTPException: {e}")
         raise
     except Exception as e:
-        logger.error("redirect_login() - Error: {e}")
+        logger.error(f"redirect_login() - 予期せぬエラーが発生しました: {e}")
 
 # ログイン成功時のリダイレクト
 # 正常系
 @log_decorator
 def redirect_login_success(request: Request, message: str = "ようこそ"):
-    logger.info(f"Redirect Login - {message}")
+    logger.info(f"Redirect Login Success - {message}")
     return templates.TemplateResponse(
         "login.html", {"request": request, "message": message, "error": None}
     )
@@ -103,7 +106,7 @@ def redirect_login_success(request: Request, message: str = "ようこそ"):
 # 異常系
 @log_decorator
 def redirect_login_failure(request: Request, error: str, e: Exception = None):
-    logger.error(f"Redirect Login - {error}")
+    logger.error(f"Redirect Login Failure - {error}")
     if e:
         detail_message = getattr(e, "detail", str(e))
         logger.error(f"Error detail: {detail_message}")
@@ -115,6 +118,9 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
 
 
 from fastapi import HTTPException
+from fastapi import Request, HTTPException
+
+from starlette.templating import Jinja2Templates
 
 @log_decorator
 async def redirect_error(request: Request, message: str, e: Exception = None):
@@ -123,11 +129,21 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
         return await redirect_error(request, "アクセス権限がありません。", e)
     '''
     try:
-        # 例外詳細をログ出力
-        detail_message = getattr(e, "detail", None)
-        
+        # デフォルトのステータスコード
+        status_code = 500
+
+        if e:
+            if isinstance(e, HTTPException):
+                status_code = e.status_code
+                detail_message = e.detail
+            else:
+                detail_message = getattr(e, "detail", None)
+        else:
+            detail_message = None
+
+        # ログ出力
         if detail_message:
-            logger.error(f"{message} - detail: {detail_message.get('message', str(e))}")
+            logger.error(f"{message} - detail: {detail_message}")
         else:
             logger.error(f"{message} - detail: {str(e)}")
 
@@ -135,14 +151,22 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
             "error.html",
             {
                 "request": request,
-                "status_code": 500,
-                "error": message  # 直接使っても良いが、HTML内では query_params.get 参照形式
+                "status_code": status_code,
+                "error": message
             },
-            status_code=500
+            status_code=status_code
         )
 
     except HTTPException:
+        logger.error(f"redirect_error() - HTTPException: {str(e)}")
         raise
     except Exception as e:
         logger.error(f"redirect_error() - 予期せぬエラー: {str(e)}")
+        raise
 
+def redirect_unauthorized(request: Request, message: str, code: int = 403):
+    return templates.TemplateResponse("Unauthorized.html", {
+        "request": request,
+        "status_code": code,
+        "message": message
+    })

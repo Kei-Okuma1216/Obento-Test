@@ -221,8 +221,8 @@ async def update_existing_passwords(request: Request):
             return redirect_login_success(request, message)
 
     except Exception as e:
-        logger.error(f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}")
-        return redirect_error(request,"パスワードのハッシュ化に失敗しました。")
+        message = f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}"
+        return redirect_error(request, message, e)
 
 
 # 追加

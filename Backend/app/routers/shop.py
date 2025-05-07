@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from venv import logger
 
+from utils.helper import redirect_unauthorized
 from utils.utils import get_all_cookies, check_permission, log_decorator
 from utils.exception import SQLException, CookieException, CustomException
 from services.order_view import order_table_view, get_order_json
@@ -31,8 +32,7 @@ async def shop_view(request: Request, response: Response):
     try:
         permits = [10, 99]
         if await check_permission(request, permits) == False:
-            return templates.TemplateResponse(
-            "Unauthorized.html", {"request": request})
+            return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
 
         cookies = get_all_cookies(request)
         if not cookies:
@@ -50,6 +50,7 @@ async def shop_view(request: Request, response: Response):
 
 
     except (CookieException, SQLException) as e:
+        
         raise
     except Exception as e:
         raise CustomException(

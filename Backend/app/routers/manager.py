@@ -7,6 +7,7 @@
 from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 
+from utils.helper import redirect_unauthorized
 from utils.exception import CookieException, CustomException
 from utils.utils import check_permission, get_all_cookies, log_decorator
 
@@ -32,8 +33,7 @@ async def manager_view(request: Request, response: Response):
     try:
         permits = [2, 99]
         if await check_permission(request, permits) == False:
-            return templates.TemplateResponse(
-            "Unauthorized.html", {"request": request})
+            return redirect_unauthorized(request, "契約企業ユーザー権限がありません。")
 
         cookies = get_all_cookies(request)
         if not cookies:
