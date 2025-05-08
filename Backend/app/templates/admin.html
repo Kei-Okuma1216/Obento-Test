@@ -165,8 +165,10 @@
     <script>
       function goBackInIframe() {
         var iframe = document.querySelector('iframe');
-        if (iframe && iframe.contentWindow) {
+        if (iframe && iframe.contentWindow && iframe.contentWindow.history.length > 1) {
           iframe.contentWindow.history.back();
+        } else {
+          alert("これ以上戻る操作はできません。");
         }
       }
     </script>

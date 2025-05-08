@@ -247,22 +247,15 @@
             alert("エラーが発生しました。");
           });
       });
-        function goBackInIframe() {
-          var iframe = document.querySelector('#orderlogModal iframe');
-          if (iframe && iframe.contentWindow) {
-            try {
-              const historyLength = iframe.contentWindow.history.length;
-              if (historyLength > 1) {
-                iframe.contentWindow.history.back();
-              } else {
-                iframe.contentWindow.location.reload();
-              }
-            } catch (e) {
-              console.error('iframe navigation error:', e);
-              iframe.contentWindow.location.reload();
-            }
-          }
+
+      function goBackInIframe() {
+        var iframe = document.querySelector('iframe');
+        if (iframe && iframe.contentWindow && iframe.contentWindow.history.length > 1) {
+          iframe.contentWindow.history.back();
+        } else {
+          alert("これ以上戻る操作はできません。");
         }
+      }
       </script>
   </body>
 </html>

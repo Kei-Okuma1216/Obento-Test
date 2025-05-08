@@ -5,12 +5,12 @@
     2. get_shop_context(request: Request, orders):
     3. order_json(request: Request, days_ago: str = Query("0")):
 '''
-from fastapi import Query, Request, Response, APIRouter, status
+from fastapi import HTTPException, Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from venv import logger
 
-from utils.helper import redirect_unauthorized
+from utils.helper import redirect_login_failure, redirect_unauthorized
 from utils.utils import get_all_cookies, check_permission, log_decorator
 from utils.exception import SQLException, CookieException, CustomException
 from services.order_view import order_table_view, get_order_json
@@ -49,9 +49,10 @@ async def shop_view(request: Request, response: Response):
         return await order_table_view(response, orders, "shop.html", shop_context)
 
 
-    except (CookieException, SQLException) as e:
-        
-        raise
+    except CookieException as e:
+         redirect_login_failure(request, cookie_error_message, e)
+    except HTTPException as e:
+        return redirect_login_failure(request, e.detail)
     except Exception as e:
         raise CustomException(
             status.HTTP_400_BAD_REQUEST,
