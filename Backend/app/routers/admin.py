@@ -79,7 +79,7 @@ async def update_existing_passwords(request: Request):
         return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
     except Exception as e:
-        message = f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}"
+        message = f"update_existing_passwords() - 予期せぬエラーが発生しました"
         return redirect_error(request, message, e)
 
 '''

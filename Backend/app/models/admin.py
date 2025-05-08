@@ -105,9 +105,8 @@ async def init_database():
         logger.info("データベースファイル 'example' が正常に作成されました。")
 
     except (DatabaseError, SQLAlchemyError, IntegrityError, OperationalError) as e:
-        raise
+        logger.error(f"init_database Error: {str(e)}")
     except Exception as e: 
-        # print(f"init_database Error: {str(e)}")
         logger.error(f"init_database Error: {str(e)}")
 
         import traceback 
@@ -153,12 +152,12 @@ async def drop_database(database_name: str = DATABASE_NAME):
 
                 # DROP DATABASE を実行
                 await conn.execute(text(f'DROP DATABASE IF EXISTS "{database_name}"'))
-                print(f"✅ Database '{database_name}' dropped successfully.")
+                logger.info(f"✅ Database '{database_name}' dropped successfully.")
             else:
-                print(f"⚠️ Database '{database_name}' does not exist. Skipping drop.")
+                logger.info(f"⚠️ Database '{database_name}' does not exist. Skipping drop.")
 
         except Exception as e:
-            print(f"❌ An error occurred while dropping database '{database_name}': {e}")
+            logger.error(f"❌ An error occurred while dropping database '{database_name}': {e}")
 
     await engine.dispose()
 
@@ -217,8 +216,12 @@ async def create_database(database_name: str = DATABASE_NAME):
     from sqlalchemy.sql import text
 
     # 管理DB（"postgres"）に接続
-    ADMIN_DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/postgres"
-    engine = create_async_engine(ADMIN_DATABASE_URL, echo=False)
+    from core.settings import settings
+    admin_db_url = settings.admin_database_url   
+    engine = create_async_engine(admin_db_url, echo=False)
+
+    # ADMIN_DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/postgres"
+    # engine = create_async_engine(ADMIN_DATABASE_URL, echo=False)
 
     async with engine.connect() as conn:
         await conn.execution_options(isolation_level="AUTOCOMMIT")
@@ -234,7 +237,7 @@ async def create_database(database_name: str = DATABASE_NAME):
         else:
             try:
                 await conn.execute(text(f'CREATE DATABASE "{database_name}"'))
-                print(f"✅ Database '{database_name}' created successfully.")
+                logger.info(f"✅ Database '{database_name}' created successfully.")
             except OperationalError as e:
                 conn.rollback()
                 print("データベース接続の問題:", e)

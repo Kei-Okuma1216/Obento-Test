@@ -221,7 +221,7 @@ async def update_existing_passwords(request: Request):
             return redirect_login_success(request, message)
 
     except Exception as e:
-        message = f"update_existing_passwords() - 予期せぬエラーが発生しました: {str(e)}"
+        message = f"update_existing_passwords() - 予期せぬエラーが発生しました"
         return redirect_error(request, message, e)
 
 
@@ -318,7 +318,7 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             session.add(new_user)
             # print(".commit直前")
             await session.commit()
-            logger.info("新規ユーザー登録成功")
+            logger.info("新規ユーザー登録完了")
 
     except IntegrityError as e:
         await session.rollback()

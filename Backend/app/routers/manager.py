@@ -2,7 +2,9 @@
 # ../manager/meになる
 '''
     1. manager_view(request: Request, response: Response):
-    2. fax_order_sheet_view(request: Request):
+    2. def get_manager_context(request: Request, orders):
+    3. fax_order_sheet_view(request: Request):
+    4. get_fax_sheet_context(request: Request):
 '''
 from fastapi import Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
@@ -86,7 +88,6 @@ async def get_manager_context(request: Request, orders):
     manager_context.update(fax_context)
 
     return manager_context
-
 
 @manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
 @log_decorator
