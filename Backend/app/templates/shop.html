@@ -164,7 +164,7 @@
               <!-- このダイアログを表示したときに戻るボタンを無効か非表示にしたい -->
               <!-- しかしリクエストがあまりにも難しすぎるせいか、ChatGPTに質問してもボタン無効しか返事はなかった -->
               <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe>
-              <!-- <iframe src="/admin/order_logs" id="orderLogFrame" onload="clearIframeHistory()" ...></iframe> -->
+              <!-- <iframe src="/admin/order_logs" id="orderLogFrame" onload="clearIframeHistory()" width="100%" height="500" frameborder="0"></iframe>連続入力になるから使わない -->
             </div>
           </div>
         </div>
@@ -252,15 +252,27 @@
       // 戻るボタンの処理
       function goBackInIframe() {
         const iframe = document.querySelector('iframe');
-        if (iframe && iframe.contentWindow) {
-          const iframeHistory = iframe.contentWindow.history;
-          if (iframeHistory.length > 1) {
-            iframeHistory.back();
-          } else {
-            alert("これ以上戻る操作はできません。");
+        if (iframe && iframe.contentWindow && iframe.contentWindow.history.length > 1) {
+          try {
+            iframe.contentWindow.history.back();
+          } catch (e) {
+            console.warn("iframe history.back() failed:", e);
           }
+        } else {
+          alert("これ以上戻る操作はできません。");
         }
       }
+      // function goBackInIframe() {
+      //   const iframe = document.querySelector('iframe');
+      //   if (iframe && iframe.contentWindow) {
+      //     const iframeHistory = iframe.contentWindow.history;
+      //     if (iframeHistory.length > 1) {
+      //       iframeHistory.back();
+      //     } else {
+      //       alert("これ以上戻る操作はできません。");
+      //     }
+      //   }
+      // }
       // ログイン画面に戻るのを防ぐ
       window.addEventListener("popstate", function (event) {
         if (location.pathname.includes("/login")) {
@@ -268,13 +280,13 @@
           history.forward(); // 無理に防ぐ方法
         }
       });
-      // ページ読み込み時に履歴をクリアする
-      function clearIframeHistory() {
-        const iframe = document.getElementById('orderLogFrame');
-        if (iframe && iframe.contentWindow) {
-          iframe.contentWindow.location.replace("/admin/order_logs");  // pushStateでなくreplace
-        }
-      }
+      // // ページ読み込み時に履歴をクリアする
+      // function clearIframeHistory() {
+      //   const iframe = document.getElementById('orderLogFrame');
+      //   if (iframe && iframe.contentWindow) {
+      //     iframe.contentWindow.location.replace("/admin/order_logs");  // pushStateでなくreplace
+      //   }
+      // }
 
       // function goBackInIframe() {
       //   var iframe = document.querySelector('iframe');

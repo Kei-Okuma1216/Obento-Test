@@ -139,14 +139,37 @@ def list_order_logs():
     links = [f"<li><a href='/admin/order_logs/{file}'>{file}</a></li>" for file in log_files]
     return f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
 
+# # 注文ログファイルの内容を表示するエンドポイント
+# @admin_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["admin","shops"])
+# def view_order_log(filename: str):
+#     log_path = os.path.join("order_logs", filename)
+#     if os.path.exists(log_path):
+#         with open(log_path, "r", encoding="utf-8") as f:
+#             content = f.read().replace('\n', '<br>')
+#         return f"<h1>{filename}</h1><pre>{content}</pre>"
+#     else:
+#         return "注文ログファイルが存在しません。"
+
+from fastapi import HTTPException
 # 注文ログファイルの内容を表示するエンドポイント
-@admin_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["admin","shops"])
+@admin_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["admin", "shops"])
 def view_order_log(filename: str):
     log_path = os.path.join("order_logs", filename)
-    if os.path.exists(log_path):
-        with open(log_path, "r", encoding="utf-8") as f:
-            content = f.read().replace('\n', '<br>')
-        return f"<h1>{filename}</h1><pre>{content}</pre>"
-    else:
-        return "注文ログファイルが存在しません。"
+    
+    try:
+        if os.path.exists(log_path):
+            with open(log_path, "r", encoding="utf-8") as f:
+                content = f.read().replace('\n', '<br>')
+            return f"<h1>{filename}</h1><pre>{content}</pre>"
+        else:
+            logger.warning(f"注文ログファイルが見つかりません: {filename}")
+            return HTMLResponse("注文ログファイルが存在しません。", status_code=404)
+
+    except ConnectionResetError:
+        logger.warning(f"クライアントが接続を切断しました（ログ読み込み中: {filename}）")
+        return HTMLResponse("接続が中断されました。", status_code=499)
+
+    except Exception as e:
+        logger.error(f"注文ログの読み込みエラー（{filename}）: {e}")
+        raise HTTPException(status_code=500, detail="ログファイルの読み込み中にエラーが発生しました")
 
