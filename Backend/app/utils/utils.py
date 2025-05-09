@@ -331,9 +331,6 @@ def set_all_cookies(response: Response, user: Dict):
 #         #     message=str(e))
 
 from http.cookies import SimpleCookie
-from typing import Optional, Dict
-from fastapi import Request, HTTPException, status
-from log_unified import logger
 
 def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     try:
@@ -437,10 +434,6 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
 #         logger.error(f"get_all_cookies() - 予期せぬ例外が発生しました: {e}")
 #         raise
 
-from fastapi import HTTPException, status, Response
-from log_unified import logger
-
-
 @log_decorator
 def delete_all_cookies(response: Response):
     try:
@@ -536,13 +529,6 @@ def prevent_order_twice(response: Response, last_order_date: datetime):
         max_age=future_time, httponly=True)
     logger.debug("# 期限を本日の23:59:59にした")
 
-
-
-from fastapi import Request, HTTPException, status
-from http.cookies import SimpleCookie
-from log_unified import logger
-
-
 @log_decorator
 def get_token_expires(request: Request) -> str:
     try:
@@ -586,10 +572,6 @@ def get_token_expires(request: Request) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="expires取得中にサーバーエラーが発生しました"
         )
-
-
-from fastapi import Request, Response, HTTPException, status
-from log_unified import logger
 
 @log_decorator
 async def check_permission_and_stop_order(request: Request, response: Response):
@@ -701,8 +683,7 @@ async def check_permission_and_stop_order(request: Request, response: Response):
 #         return True
 
 #     return False
-from fastapi import Request, HTTPException, status
-from log_unified import logger
+
 
 
 @log_decorator

@@ -18,11 +18,12 @@
     10. list_logs():
     11. read_log(filename: str):
 '''
-from fastapi import Depends, FastAPI, Response, HTTPException, Request
+from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import TemplateNotFound
 
 templates = Jinja2Templates(directory="templates")
 
@@ -70,16 +71,8 @@ from database.local_postgresql_database import endpoint
 import tracemalloc
 tracemalloc.start()
 
-# error_token_expired = "有効期限が切れています。再登録をしてください。"
-# error_access_denied = "アクセス権限がありません。"
-# error_forbidden_second_order = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
-# error_login_failure = "ログインに失敗しました。"
-# error_illegal_cookie = "Cookieの取得に失敗しました。"
-# error_unexpected_error_message = "予期しないエラーが発生しました。"
-# error_database_access = "データベース接続に失敗しました。時間をおいて再試行してください。"
 
 from core.constants import (
-    ERROR_ILLEGAL_COOKIE,
     ERROR_TOKEN_EXPIRED,
     ERROR_ACCESS_DENIED,
     ERROR_FORBIDDEN_SECOND_ORDER,
@@ -93,6 +86,7 @@ from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
 from utils.utils import delete_all_cookies
 from models.admin import init_database
+from requests.exceptions import ConnectionError
 
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
@@ -148,28 +142,41 @@ async def root(request: Request, response: Response):
         return await create_auth_response(
             username, permission, main_url)
 
-    except ConnectionError as e:
-        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
-    except jwt.ExpiredSignatureError as e:
-        return redirect_login_failure(request, f"トークンの有効期限が切れています", e)
+
+    # トークン検証に失敗した場合の例外
+    except jwt.ExpiredSignatureError:
+        return redirect_login_failure(request, "トークンの有効期限が切れています")
     except jwt.MissingRequiredClaimError:
-        return redirect_login_failure(request, f"トークンに必要なクレームが不足しています", e)
-    except jwt.DecodeError as e:
-        return redirect_login_failure(request, f"トークンのデコードエラー", e)
-    except jwt.InvalidTokenError as e:
-        return redirect_login_failure(request, f"無効なトークン", e)
-    except CookieException as e:
-         redirect_login_failure(request, ERROR_ILLEGAL_COOKIE, e)
+        return redirect_login_failure(request, "トークンに必要なクレームが不足しています")
+    except jwt.DecodeError:
+        return redirect_login_failure(request, "トークンの形式が不正です")
+    except jwt.InvalidTokenError:
+        return redirect_login_failure(request, "無効なトークンです")
+
+    # 特に、トークン検証前後に「外部認証サーバ」「外部API」「DBアクセス」 などが関わる場合、
+    # 接続系のエラー（ConnectionError）も考慮すべきです。
+    except requests.exceptions.ConnectionError as ce:
+        logger.exception("外部認証サーバへの接続に失敗しました")
+        return redirect_error(request, "認証サーバに接続できませんでした", ce)
+
+    except ConnectionError as ce:
+        logger.exception("ネットワーク接続エラーが発生しました")
+        return redirect_error(request, "ネットワーク接続に失敗しました", ce)
+
+    # check_permission_and_stop_orderから投げている
     except HTTPException as e:
-        return redirect_login_failure(request, e.detail)
-    except Exception as e:
-        content_type = request.headers.get('Content-Type')
-        print(f"Content-Type: {content_type}")
-        if content_type == "application/json":
-            json_data = await request.json()
-            return redirect_login_failure(request, json_data, e)
+        logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
+        if e.status_code == status.HTTP_400_BAD_REQUEST:
+            return redirect_login_failure(request, e.detail)
+        elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+            return redirect_error(request, "内部サーバーエラーが発生しました", e)
         else:
-            return redirect_login_failure(request, f"予期しないエラー", e)
+            return redirect_error(request, "不明なHTTPエラーが発生しました", e)
+
+    except Exception as e:
+        logger.exception("root() - 予期せぬエラーが発生しました")
+        return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
+
 
 
 # ログイン画面を表示するエンドポイント
@@ -177,16 +184,31 @@ async def root(request: Request, response: Response):
 @log_decorator
 async def login_get(request: Request):
     try:
-        pass
+        # ログイン成功画面にリダイレクト
         return redirect_login_success(request)
 
     except ConnectionError as e:
+        logger.exception("データベースまたは外部接続失敗")
         return redirect_error(request, ERROR_DATABASE_ACCESS, e)
-    except DatabaseError as e:
-        return redirect_login_failure(request, error="データベース異常")
+
+    except TemplateNotFound as e:
+        logger.exception("テンプレート login.html が見つかりません")
+        return redirect_error(request, "ログイン画面が利用できません。", e)
+
+    except (AttributeError, TypeError) as e:
+        logger.exception("リクエストオブジェクトが不正")
+        return redirect_login_failure(request, error="リクエストデータが不正です。")
+
+    # 将来的にユーザー情報取得やDBアクセスを追加した場合に備え、
+    # DatabaseError ハンドリングをここに追加することを検討
+    
+    except HTTPException as e:
+        logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
+        return redirect_login_failure(request, e.detail)
+
     except Exception as e:
-        return redirect_login_failure(
-            request, ERROR_LOGIN_FAILURE, e)
+        logger.exception("予期せぬエラーが発生しました")
+        return redirect_login_failure(request, ERROR_LOGIN_FAILURE, e)
 
 
 from core.security import authenticate_user, get_user
@@ -213,18 +235,26 @@ async def login_post(request: Request,
             user.get_username(), permission, main_url)
 
     except ConnectionError as e:
+        logger.exception("DBまたは外部接続失敗")
         return redirect_error(request, ERROR_DATABASE_ACCESS, e)
-    except DatabaseError as e:
+
+    except (DatabaseError, SQLException) as e:
+        logger.exception("データベース操作失敗")
         return redirect_login_failure(request, error="データベース異常")
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-         return redirect_login_success(request,error=ERROR_TOKEN_EXPIRED)
-    except (CookieException, SQLException) as e:
-        return redirect_login_failure(request, e.detail, e)
-    except NotAuthorizedException as e:
-        return redirect_login_failure(request, error=ERROR_ACCESS_DENIED)    
+
     except HTTPException as e:
-        return redirect_login_failure(request, e.detail)
+        logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
+        if e.status_code == status.HTTP_400_BAD_REQUEST:
+            return redirect_login_failure(request, e.detail)
+        elif e.status_code == status.HTTP_403_FORBIDDEN:
+            return redirect_login_failure(request, error=ERROR_ACCESS_DENIED)
+        elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+            return redirect_error(request, e.detail, e)
+        else:
+            return redirect_error(request, "不明なHTTPエラーが発生しました", e)
+
     except Exception as e:
+        logger.exception("予期せぬエラーが発生しました")
         return redirect_error(request, ERROR_UNEXPECTED_ERROR_MESSAGE, e)
 
 
