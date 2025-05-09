@@ -165,18 +165,44 @@ async def select_all_users() -> Optional[List[UserResponse]]:
 
 
 import bcrypt
+from fastapi import HTTPException, status
 
-# パスワードをハッシュ化
-#@log_decorator
-async def get_hashed_password(password: str)-> str:
-    """パスワードをハッシュ化する"""
-    # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
-    salt = bcrypt.gensalt()
-    hashed_password = bcrypt.hashpw(password.encode(), salt)
-    new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
-    print(f"new_hashed_password: {new_hashed_password}")
+async def get_hashed_password(password: str) -> str:
+    """パスワードをハッシュ化する（例外処理付き）"""
+    try:
+        salt = bcrypt.gensalt()
+        hashed_password = bcrypt.hashpw(password.encode(), salt)
+        new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
 
-    return new_hashed_password
+        logger.info("パスワードのハッシュ化に成功しました")
+        return new_hashed_password
+
+    except (ValueError, TypeError, UnicodeDecodeError) as e:
+        logger.exception(f"パスワードのハッシュ化中にエラー: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="パスワードのハッシュ化に失敗しました。"
+        )
+    except Exception as e:
+        logger.exception("予期せぬエラーが発生しました（ハッシュ化）")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="内部エラーが発生しました。"
+        )
+
+# import bcrypt
+
+# # パスワードをハッシュ化
+# #@log_decorator
+# async def get_hashed_password(password: str)-> str:
+#     """パスワードをハッシュ化する"""
+#     # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
+#     salt = bcrypt.gensalt()
+#     hashed_password = bcrypt.hashpw(password.encode(), salt)
+#     new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
+#     print(f"new_hashed_password: {new_hashed_password}")
+
+#     return new_hashed_password
 
 
 from fastapi import Request
@@ -267,21 +293,23 @@ async def insert_user(
 
         except IntegrityError as e:
             await session.rollback()
-            logger.error(f"IntegrityError: {e}")
+            logger.exception(f"IntegrityError: {e}")
         except OperationalError as e:
             await session.rollback()
-            logger.error(f"OperationalError: {e}")
+            logger.exception(f"OperationalError: {e}")
         except DatabaseError as e:
             await session.rollback()
-            logger.error(f"SQL実行中にエラーが発生しました:{e}")
+            logger.exception(f"SQL実行中にエラーが発生しました:{e}")
         except Exception as e:
             await session.rollback()
-            logger.error(f"Unexpected error: {e}")
+            logger.exception(f"Unexpected error: {e}")
 
 # デフォルト company_id を環境変数や設定ファイルで管理する
-DEFAULT_COMPANY_ID = 1
+# DEFAULT_COMPANY_ID = 1
+from core.constants import DEFAULT_COMPANY_ID
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
+from fastapi import HTTPException
 
-from sqlalchemy.exc import IntegrityError
 # 新規ユーザー追加
 from sqlalchemy import func
 @log_decorator
@@ -321,17 +349,34 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             logger.info("新規ユーザー登録完了")
 
     except IntegrityError as e:
-        await session.rollback()
-        logger.error(f"IntegrityError: {e}")
+        logger.exception(f"ユーザー追加失敗: 一意制約違反または重複ユーザー - {e}")
+        await session.rollback()  # セッションを復旧させる
+        raise HTTPException(
+            status_code=400,
+            detail="すでに同じユーザー名が存在します。"
+        )
     except OperationalError as e:
-        await session.rollback()
-        logger.error(f"OperationalError: {e}")
-    except DatabaseError as e:
-        await session.rollback()
-        logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.exception(f"DB操作中の接続エラー: {e}")
+        await session.rollback()  # セッションを復旧させる        
+        raise HTTPException(
+            status_code=500,
+            detail="データベース接続に失敗しました。"
+        )
+    except SQLAlchemyError as e:
+        logger.exception(f"その他のDBエラー: {e}")
+        await session.rollback()  # セッションを復旧させる
+        raise HTTPException(
+            status_code=500,
+            detail="ユーザーの作成中にエラーが発生しました。"
+        )
     except Exception as e:
-        await session.rollback()
-        logger.error(f"Unexpected error: {e}")
+        logger.exception(f"予期せぬエラー: {e}")
+        await session.rollback()  # セッションを復旧させる
+        raise HTTPException(
+            status_code=500,
+            detail="予期せぬエラーが発生しました。"
+        )
+
 
 
 

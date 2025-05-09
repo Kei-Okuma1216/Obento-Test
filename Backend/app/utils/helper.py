@@ -46,7 +46,7 @@ async def create_auth_response(
         ユーザー情報を元に新しいトークンを生成し、Cookie を設定したリダイレクトレスポンスを返す。
         """
         data = {"sub": username, "permission": permission}
-        access_token, expires = get_access_token(data)#get_new_token(data)
+        access_token, expires = get_access_token(data)
         new_data = {
             "sub": username,
             "permission": permission,
