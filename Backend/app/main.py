@@ -58,9 +58,9 @@ app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
 
 # 例外ハンドラーを登録
-from utils.handlers import register_exception_handlers, test_exception_router  # 追加！
-register_exception_handlers(app) # 例外ハンドラー登録
-app.include_router(test_exception_router) # テストルーター登録（任意）
+# from utils.handlers import register_exception_handlers, test_exception_router  # 追加！
+# register_exception_handlers(app) # 例外ハンドラー登録
+# app.include_router(test_exception_router) # テストルーター登録（任意）
 
 
 # エントリポイントの選択
@@ -70,14 +70,23 @@ from database.local_postgresql_database import endpoint
 import tracemalloc
 tracemalloc.start()
 
-error_token_expired = "有効期限が切れています。再登録をしてください。"
-error_access_denied = "アクセス権限がありません。"
-error_forbidden_second_order = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
-error_login_failure = "ログインに失敗しました。"
-error_illegal_cookie = "Cookieの取得に失敗しました。"
-error_unexpected_error_message = "予期しないエラーが発生しました。"
-error_database_access = "データベース接続に失敗しました。時間をおいて再試行してください。"
+# error_token_expired = "有効期限が切れています。再登録をしてください。"
+# error_access_denied = "アクセス権限がありません。"
+# error_forbidden_second_order = "きょう２度目の注文です。重複注文により注文できません。\nそのままブラウザを閉じてください。"
+# error_login_failure = "ログインに失敗しました。"
+# error_illegal_cookie = "Cookieの取得に失敗しました。"
+# error_unexpected_error_message = "予期しないエラーが発生しました。"
+# error_database_access = "データベース接続に失敗しました。時間をおいて再試行してください。"
 
+from core.constants import (
+    ERROR_ILLEGAL_COOKIE,
+    ERROR_TOKEN_EXPIRED,
+    ERROR_ACCESS_DENIED,
+    ERROR_FORBIDDEN_SECOND_ORDER,
+    ERROR_LOGIN_FAILURE,
+    ERROR_UNEXPECTED_ERROR_MESSAGE,
+    ERROR_DATABASE_ACCESS
+)
 # -----------------------------------------------------
 import jwt
 from core.security import decode_jwt_token
@@ -104,7 +113,7 @@ async def root(request: Request, response: Response):
                 "duplicate_order.html",
                 {
                     "request": request,
-                    "forbid_second_order_message": error_forbidden_second_order,
+                    "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
                     "last_order": last_order,
                     "endpoint": endpoint
                 }
@@ -126,7 +135,7 @@ async def root(request: Request, response: Response):
         if compare_expire_date(expires):
             # expires 無効
             logger.debug("token is expired.")
-            return redirect_login_success(request, error=error_token_expired)
+            return redirect_login_success(request, error=ERROR_TOKEN_EXPIRED)
         else:
             logger.debug("token is not expired.") # expires 有効
 
@@ -140,7 +149,7 @@ async def root(request: Request, response: Response):
             username, permission, main_url)
 
     except ConnectionError as e:
-        return redirect_error(request, error_database_access, e)
+        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
     except jwt.ExpiredSignatureError as e:
         return redirect_login_failure(request, f"トークンの有効期限が切れています", e)
     except jwt.MissingRequiredClaimError:
@@ -150,7 +159,7 @@ async def root(request: Request, response: Response):
     except jwt.InvalidTokenError as e:
         return redirect_login_failure(request, f"無効なトークン", e)
     except CookieException as e:
-         redirect_login_failure(request, error_illegal_cookie, e)
+         redirect_login_failure(request, ERROR_ILLEGAL_COOKIE, e)
     except HTTPException as e:
         return redirect_login_failure(request, e.detail)
     except Exception as e:
@@ -172,12 +181,12 @@ async def login_get(request: Request):
         return redirect_login_success(request)
 
     except ConnectionError as e:
-        return redirect_error(request, error_database_access, e)
+        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
     except DatabaseError as e:
         return redirect_login_failure(request, error="データベース異常")
     except Exception as e:
         return redirect_login_failure(
-            request, error_login_failure, e)
+            request, ERROR_LOGIN_FAILURE, e)
 
 
 from core.security import authenticate_user, get_user
@@ -204,19 +213,19 @@ async def login_post(request: Request,
             user.get_username(), permission, main_url)
 
     except ConnectionError as e:
-        return redirect_error(request, error_database_access, e)
+        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
     except DatabaseError as e:
         return redirect_login_failure(request, error="データベース異常")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, TokenExpiredException) as e:
-         return redirect_login_success(request,error=error_token_expired)
+         return redirect_login_success(request,error=ERROR_TOKEN_EXPIRED)
     except (CookieException, SQLException) as e:
         return redirect_login_failure(request, e.detail, e)
     except NotAuthorizedException as e:
-        return redirect_login_failure(request, error=error_access_denied)    
+        return redirect_login_failure(request, error=ERROR_ACCESS_DENIED)    
     except HTTPException as e:
         return redirect_login_failure(request, e.detail)
     except Exception as e:
-        return redirect_error(request, error_unexpected_error_message, e)
+        return redirect_error(request, ERROR_UNEXPECTED_ERROR_MESSAGE, e)
 
 
 

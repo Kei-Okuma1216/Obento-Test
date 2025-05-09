@@ -1,8 +1,34 @@
 # app/log_unified.py
-import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
-from utils.utils import get_today_datetime
+from datetime import datetime, timedelta
+import pytz
+
+logger = logging.getLogger("uvicorn")
+
+def get_today_datetime(days_ago: int = 0) -> datetime:
+    """
+    JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
+    """
+    if not isinstance(days_ago, int) or days_ago < 0:
+        logger.warning(f"get_today_datetime() - 無効な days_ago: {days_ago}")
+        raise ValueError("days_ago は 0 以上の整数で指定してください")
+
+    try:
+        tz = pytz.timezone("Asia/Tokyo")
+        current_time = datetime.now(tz) - timedelta(days=days_ago)
+        naive_datetime = datetime(
+            current_time.year,
+            current_time.month,
+            current_time.day,
+            0, 0, 0
+        )
+        logger.debug(f"get_today_datetime() - 生成日時: {naive_datetime}")
+        return naive_datetime
+
+    except Exception as e:
+        logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
+        raise RuntimeError("日付計算中に予期せぬエラーが発生しました") from e
+
 
 
 class FixedWidthFormatter(logging.Formatter):
@@ -10,6 +36,9 @@ class FixedWidthFormatter(logging.Formatter):
         # levelname を左寄せで5文字幅に揃える
         record.levelname = f"{record.levelname:<5}"
         return super().format(record)
+
+import os
+from logging.handlers import TimedRotatingFileHandler  # 必要なインポート
 
 # 方法　２つのロガーをつくる
 # from log_unified import uvicorn_logger, order_logger
