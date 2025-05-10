@@ -72,7 +72,6 @@ async def create_orders_table():
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
         async with engine.begin() as conn:
             await conn.run_sync(Order.__table__.create, checkfirst=True)
-        logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
 
     except DatabaseError as e:
         engine.rollback()
@@ -80,6 +79,9 @@ async def create_orders_table():
     except Exception as e:
         engine.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info("Ordersテーブルの作成に成功しました（既に存在する場合は作成されません）。")
+
 
 '''-----------------------------------------------------------'''
 from datetime import date, datetime, timedelta
@@ -916,9 +918,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
-            logger.debug(f"{order_models=}")
-            return order_models
-
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
@@ -931,6 +930,9 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.debug(f"{order_models=}")
+        return order_models
 
 
 
@@ -940,6 +942,7 @@ from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 from sqlalchemy import text
 
 from log_unified import log_order
+from utils.utils import get_naive_jst_now
 
 @log_decorator
 async def insert_order(
@@ -958,7 +961,7 @@ async def insert_order(
     try:
         async with AsyncSessionLocal() as session:
             if created_at is None:
-                created_at = get_today_datetime()
+                created_at = get_naive_jst_now()#get_today_datetime()
 
             # 念のため tzinfo を削除（ナイーブ化）
             if created_at.tzinfo is not None:
@@ -981,14 +984,6 @@ async def insert_order(
 
             order_id = new_order.order_id
 
-            logger.info(f"注文が完了しました - order_id:{order_id} ")
-            log_order(
-                "ORDER",
-                f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
-            )
-
-            return order_id
-
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
@@ -1001,6 +996,13 @@ async def insert_order(
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"注文が完了しました - order_id:{order_id} ")
+        log_order(
+            "ORDER",
+            f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
+        )
+        return order_id
 
 
 '''-------------------------------------------------------------'''
@@ -1025,12 +1027,6 @@ async def update_order(order_id: int, canceled: bool):
             result = await session.execute(stmt)
             await session.commit()
 
-            if result.rowcount == 0:
-                logger.warning(f"注文更新失敗: order_id {order_id} の注文が見つかりませんでした。")
-            else:
-                logger.info(f"注文更新成功: order_id {order_id}")
-            logger.debug(f"update_order() - SQL: {stmt}")
-
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
@@ -1043,6 +1039,12 @@ async def update_order(order_id: int, canceled: bool):
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        if result.rowcount == 0:
+            logger.warning(f"注文更新失敗: order_id {order_id} の注文が見つかりませんでした。")
+        else:
+            logger.info(f"注文更新成功: order_id {order_id}")
+        logger.debug(f"update_order() - SQL: {stmt}")
 
 '''-------------------------------------------------------------'''
 # 削除（指定ID）
@@ -1064,8 +1066,7 @@ async def delete_order(order_id: int) -> bool:
                 logger.warning(f"Order with order_id {order_id} not found.")
                 return False
 
-            logger.info(f"Order with order_id {order_id} deleted successfully.")
-            return True
+            # return True
 
     except IntegrityError as e:
         await session.rollback()
@@ -1079,7 +1080,9 @@ async def delete_order(order_id: int) -> bool:
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        logger.info(f"Order with order_id {order_id} deleted successfully.")
+        return True
 
 
 # 削除（全件）
@@ -1105,4 +1108,9 @@ async def delete_all_orders():
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        logger.info("All orders deleted successfully.")
+        log_order(
+            "ORDER",
+            f"全ての注文を削除しました。"
+        )

@@ -6,24 +6,25 @@
     3. def get_today_str(offset: int = 0, date_format: str = None):
         JSTの("%Y-%m-%d %H:%M:%S")を返す
     4. async def get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
-    
     5. def get_today_datetime(days_ago: int = 0)-> datetime:
+    6. def get_naive_jst_now() -> datetime:
 
-    6. def set_all_cookies(response: Response, user: Dict):
-    7. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
-    8. def delete_all_cookies(response: Response):
-    9. def compare_expire_date(expires: str) -> bool:
-    10. def prevent_order_twice(response: Response, last_order_date: datetime):
-    11. def get_end_of_today(tz : timezone = None) -> datetime:
-    12. def get_token_expires(request: Request) -> str:
+    7. def set_all_cookies(response: Response, user: Dict):
+    8. def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
+    9. def delete_all_cookies(response: Response):
+    10. def compare_expire_date(expires: str) -> bool:
+    11. def prevent_order_twice(response: Response, last_order_date: datetime):
+    12. def get_end_of_today(tz : timezone = None) -> datetime:
+    13. def get_token_expires(request: Request) -> str:
 
-    13. async def check_permission_and_stop_order(request: Request, response: Response):
-    14. async def check_permission(request: Request, permits: list):
+    14. async def check_permission_and_stop_order(request: Request, response: Response):
+    15. async def check_permission(request: Request, permits: list):
 
 '''
     
 from datetime import datetime, timezone, timedelta
 
+import functools
 from venv import logger
 
 from fastapi import Request, Response
@@ -43,25 +44,45 @@ def log_decorator(func):
     @wraps(func)
     async def async_wrapper(*args, **kwargs):
         print(f"- {func.__name__} 前")
-        logger.debug(f"- {func.__name__} 前")
         result = await func(*args, **kwargs)
         print(f"- {func.__name__} 後")
-        logger.debug(f"- {func.__name__} 後")
         return result
 
     @wraps(func)
     def sync_wrapper(*args, **kwargs):
         print(f"- {func.__name__} 前")
-        logger.debug(f"- {func.__name__} 前")
         result = func(*args, **kwargs)
         print(f"- {func.__name__} 後")
-        logger.debug(f"- {func.__name__} 後")
         return result
 
     if inspect.iscoroutinefunction(func):
         return async_wrapper
     else:
         return sync_wrapper
+
+# def log_decorator(func):
+#     @wraps(func)
+#     async def async_wrapper(*args, **kwargs):
+#         print(f"- {func.__name__} 前")
+#         logger.debug(f"- {func.__name__} 前")
+#         result = await func(*args, **kwargs)
+#         print(f"- {func.__name__} 後")
+#         logger.debug(f"- {func.__name__} 後")
+#         return result
+
+#     @wraps(func)
+#     def sync_wrapper(*args, **kwargs):
+#         print(f"- {func.__name__} 前")
+#         logger.debug(f"- {func.__name__} 前")
+#         result = func(*args, **kwargs)
+#         print(f"- {func.__name__} 後")
+#         logger.debug(f"- {func.__name__} 後")
+#         return result
+
+#     if inspect.iscoroutinefunction(func):
+#         return async_wrapper
+#     else:
+#         return sync_wrapper
 
 # @deprecated
 def deprecated(func):
@@ -210,7 +231,6 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="日付計算中に不正なパラメータが指定されました"
         )
-
     except Exception as e:
         logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
         raise HTTPException(

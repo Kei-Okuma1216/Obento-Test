@@ -287,9 +287,7 @@ async def insert_user(
             session.add(new_user)
             await session.commit()
 
-            logger.info("ユーザー追加成功")
-            logger.debug(f"insert_user() - ユーザー挿入: company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id}")
-            return True
+            # return True
 
         except IntegrityError as e:
             await session.rollback()
@@ -303,6 +301,11 @@ async def insert_user(
         except Exception as e:
             await session.rollback()
             logger.exception(f"Unexpected error: {e}")
+        else:
+            logger.debug(f"insert_user() - ユーザー挿入: company_id: {company_id}, shop_name: {shop_name}, menu_id: {menu_id}")
+            logger.info(f"ユーザー {username} の追加に成功しました。")
+
+            return True
 
 # デフォルト company_id を環境変数や設定ファイルで管理する
 # DEFAULT_COMPANY_ID = 1
@@ -346,7 +349,6 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             session.add(new_user)
             # print(".commit直前")
             await session.commit()
-            logger.info("新規ユーザー登録完了")
 
     except IntegrityError as e:
         logger.exception(f"ユーザー追加失敗: 一意制約違反または重複ユーザー - {e}")
@@ -376,7 +378,13 @@ async def insert_new_user(username: str, password: str, name: str = '') -> None:
             status_code=500,
             detail="予期せぬエラーが発生しました。"
         )
-
+    else:
+        logger.info(f"ユーザー {username} の追加に成功しました。")
+        logger.debug(
+            f"insert_new_user() - 挿入実行: username: {username}, name: {name}, "
+            f"company_id: {DEFAULT_COMPANY_ID}, shop_name: {default_shop_name}, menu_id: 1"
+        )
+        return True
 
 
 
@@ -420,11 +428,6 @@ async def insert_shop(
             )
             session.add(new_user)
             await session.commit()
-            logger.debug(
-                f"insert_shop() - 挿入実行: username: {username}, name: {shop_name}, "
-                f"shop_name: {username}, menu_id: 1, permission: 10"
-            )
-            logger.info("店舗ユーザー追加成功")
 
     except IntegrityError as e:
         await session.rollback()
@@ -438,6 +441,12 @@ async def insert_shop(
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.debug(
+            f"insert_shop() - 挿入実行: username: {username}, name: {shop_name}, "
+            f"shop_name: {username}, menu_id: 1, permission: 10"
+        )
+        logger.info("店舗ユーザー追加成功")
 
 
 from sqlalchemy import update
@@ -450,7 +459,6 @@ async def update_user(username: str, key: str, value):
             stmt = update(User).where(User.username == username).values({key: value})
             await session.execute(stmt)
             await session.commit()
-            logger.debug(f"update_user() - {stmt}")
 
     except IntegrityError as e:
         await session.rollback()
@@ -464,6 +472,9 @@ async def update_user(username: str, key: str, value):
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"ユーザー {username} の {key} を {value} に更新しました。")
+        logger.debug(f"update_user() - {stmt}")
 
 
 # 削除(1件)
@@ -476,9 +487,8 @@ async def delete_user(username: str):
             stmt = delete(User).where(User.username == username)
             await session.execute(stmt)
             await session.commit()
-            logger.info(f"ユーザー {username} の削除に成功しました。")
-            logger.debug(f"delete_user() - {stmt}")
-            return True
+
+            # return True
 
     except IntegrityError as e:
         await session.rollback()
@@ -492,6 +502,9 @@ async def delete_user(username: str):
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"ユーザー {username} の削除に成功しました。")
+        logger.debug(f"delete_user() - {stmt}")
 
 
 # 削除（全件）
@@ -506,7 +519,6 @@ async def delete_all_user():
     try:
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
-            logger.info("User テーブルの削除が完了しました。")
 
     except IntegrityError as e:
         await session.rollback()
@@ -520,3 +532,5 @@ async def delete_all_user():
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info("User テーブルの削除が完了しました。")

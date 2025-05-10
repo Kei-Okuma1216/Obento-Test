@@ -22,12 +22,12 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
             current_time.day,
             0, 0, 0
         )
-        logger.debug(f"get_today_datetime() - 生成日時: {naive_datetime}")
-        return naive_datetime
-
     except Exception as e:
         logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
         raise RuntimeError("日付計算中に予期せぬエラーが発生しました") from e
+    else:
+        logger.debug(f"get_today_datetime() - 生成日時: {naive_datetime}")
+        return naive_datetime
 
 
 

@@ -51,13 +51,14 @@ async def create_company_table():
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
         async with engine.begin() as conn:
             await conn.run_sync(Company.__table__.create, checkfirst=True)
-        logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
     except DatabaseError as e:
         engine.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
     except Exception as e:
         engine.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info("Companyテーブルの作成に成功（既に存在する場合は作成されません）")
 
 
 from schemas.company_schemas import CompanyModel
@@ -172,13 +173,7 @@ async def insert_company(company_name: str,
             session.add(new_company)
             await session.commit()
 
-            logger.info("契約企業追加成功")
-            logger.debug(
-                f"insert_company() - company_name: {company_name}, tel: {telephone}, shop_name: {default_shop_name}, "
-                f"created_at: {get_today_datetime()}, disabled: False"
-            )
-            return True
-
+            # return True
 
     except IntegrityError as e:
         await session.rollback()
@@ -192,7 +187,13 @@ async def insert_company(company_name: str,
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        logger.info("契約企業追加成功")
+        logger.debug(
+            f"insert_company() - company_name: {company_name}, tel: {telephone}, shop_name: {default_shop_name}, "
+            f"created_at: {get_today_datetime()}, disabled: False"
+        )
+        return True
 
 
 # 更新
@@ -209,9 +210,6 @@ async def update_company(company_id: int, key: str, value: str):
             await session.execute(stmt)
             await session.commit()
 
-            logger.debug(f"update_company() - {stmt}")
-            return True
-
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
@@ -224,6 +222,9 @@ async def update_company(company_id: int, key: str, value: str):
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.debug(f"update_company() - {stmt}")
+        return True
 
 
 # 削除(1件)
@@ -239,10 +240,6 @@ async def delete_company(company_id: int):
             await session.execute(stmt)
             await session.commit()
 
-            logger.info(f"Company {company_id} の削除に成功しました。")
-            logger.debug(f"delete_company() - {stmt}")
-            return True
-
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
@@ -255,7 +252,10 @@ async def delete_company(company_id: int):
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        logger.info(f"Company {company_id} の削除に成功しました。")
+        logger.debug(f"delete_company() - {stmt}")
+        return True
 
 # 削除（全件）
 from sqlalchemy import text
@@ -268,7 +268,6 @@ async def delete_all_company():
 
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
-            logger.info("Compamy テーブルの削除が完了しました。")
 
     except IntegrityError as e:
         await session.rollback()
@@ -282,3 +281,7 @@ async def delete_all_company():
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info("Companyテーブルの削除に成功しました。")
+        logger.debug(f"delete_all_company() - {sqlstr}")
+        return True

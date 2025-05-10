@@ -7,28 +7,27 @@
 '''
 from fastapi import HTTPException, Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from venv import logger
 
 from utils.helper import redirect_login_failure, redirect_unauthorized
 from utils.utils import get_all_cookies, check_permission, log_decorator
-from utils.exception import CookieException, CustomException
+
 from services.order_view import order_table_view, get_order_json
 from models.order import select_orders_by_shop_all
+
 from database.local_postgresql_database import endpoint, default_shop_name
+from core.constants import ERROR_ILLEGAL_COOKIE
 
-
+from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter()
 
-from core.constants import ERROR_ILLEGAL_COOKIE
 
 @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
 @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
 async def shop_view(request: Request, response: Response):
-    # お弁当屋の注文確認
     try:
         permits = [10, 99]
         if await check_permission(request, permits) == False:
@@ -36,33 +35,86 @@ async def shop_view(request: Request, response: Response):
 
         cookies = get_all_cookies(request)
         if not cookies:
-            raise CookieException(method_name="get_all_cookies()")
+            logger.warning("shop_view - Cookieが取得できません")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=ERROR_ILLEGAL_COOKIE#"Cookieが不正または取得できません"
+            )
 
         orders = await select_orders_by_shop_all(default_shop_name)
-        # print(f"shop_view() - orders: {orders}")
         if orders is None:
-            logger.debug('shop_view - ordersなし')
+            logger.debug('shop_view - 注文がありません')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         shop_context = await get_shop_context(request, orders)
 
+    except HTTPException as e:
+        logger.exception(f"HTTPException: {e.detail}")
+        return redirect_login_failure(request, e.detail)
+    except Exception as e:
+        logger.exception("shop_viewで予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="注文情報の取得中にサーバーエラーが発生しました"
+        )
+    else:
         return await order_table_view(response, orders, "shop.html", shop_context)
 
 
-    except CookieException as e:
-         redirect_login_failure(request, ERROR_ILLEGAL_COOKIE, e)
-    except HTTPException as e:
-        return redirect_login_failure(request, e.detail)
-    except Exception as e:
-        raise CustomException(
-            status.HTTP_400_BAD_REQUEST,
-            f"/shop_view()",
-            f"Error: {str(e)}")
+# @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
+# @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
+# @log_decorator
+# async def shop_view(request: Request, response: Response):
+#     # お弁当屋の注文確認
+#     try:
+#         permits = [10, 99]
+#         if await check_permission(request, permits) == False:
+#             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
+
+#         cookies = get_all_cookies(request)
+#         if not cookies:
+#             raise CookieException(method_name="get_all_cookies()")
+
+#         orders = await select_orders_by_shop_all(default_shop_name)
+#         # print(f"shop_view() - orders: {orders}")
+#         if orders is None:
+#             logger.debug('shop_view - ordersなし')
+#             return HTMLResponse("<html><p>注文は0件です</p></html>")
+
+#         shop_context = await get_shop_context(request, orders)
+
+#         return await order_table_view(response, orders, "shop.html", shop_context)
 
 
+#     except CookieException as e:
+#          return redirect_login_failure(request, ERROR_ILLEGAL_COOKIE, e)
+#     except HTTPException as e:
+#         return redirect_login_failure(request, e.detail)
+#     except Exception as e:
+#         raise CustomException(
+#             status.HTTP_400_BAD_REQUEST,
+#             f"/shop_view()",
+#             f"Error: {str(e)}")
+
+
+# async def get_shop_context(request: Request, orders):
+#         # 備考：ここはtarget_urlをcontextに入れる改善が必要
+#         # 更に、order_table_view()も引数を2個にできる(response, shop_context)
+#         shop_context = {
+#             'request': request,
+#             'base_url': endpoint,
+#         }
+#         order_context = {
+#             'orders': orders,
+#             'order_count': len(orders),
+#             "order_details": orders[0].model_dump() if orders else None
+#         }
+
+#         shop_context.update(order_context)
+
+#         return shop_context
 async def get_shop_context(request: Request, orders):
-        # 備考：ここはtarget_urlをcontextに入れる改善が必要
-        # 更に、order_table_view()も引数を2個にできる(response, shop_context)
+    try:
         shop_context = {
             'request': request,
             'base_url': endpoint,
@@ -75,19 +127,43 @@ async def get_shop_context(request: Request, orders):
 
         shop_context.update(order_context)
 
+    except (AttributeError, TypeError) as e:
+        logger.exception("get_shop_context - 注文データ形式不正")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="注文データが不正です"
+        )
+    except Exception as e:
+        logger.exception("get_shop_context - 予期せぬエラー")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="注文情報取得中にサーバーエラーが発生しました"
+        )
+    else:
         return shop_context
 
 
-@shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
+# @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
+# @log_decorator
+# async def order_json(request: Request, days_ago: str = Query("0")):
+#     # services/order_view.pyにある
+#     return await get_order_json(request, days_ago)
+@shop_router.get("/me/order_json", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
-    # services/order_view.pyにある
-    return await get_order_json(request, days_ago)
+    try:
+        return await get_order_json(request, days_ago)
 
-from fastapi.responses import JSONResponse
-import asyncio
+    except HTTPException as e:
+        logger.exception(f"order_json - HTTPException: {e.detail}")
+        return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)
 
-from fastapi import BackgroundTasks, Query, Depends
+    except Exception as e:
+        logger.exception("order_json - 予期せぬエラー")
+        return HTMLResponse("注文データ取得中に予期せぬエラーが発生しました", status_code=500)
+
+
+from fastapi import BackgroundTasks, Query
 from fastapi.responses import JSONResponse
 
 @shop_router.get("/filter_order_logs", tags=["shops"])

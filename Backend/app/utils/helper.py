@@ -34,8 +34,6 @@ async def get_main_url(permission: int) -> str:
             )
 
         redirect_url = permission_map[str(permission)]
-        logger.debug(f"redirect_url: {redirect_url}")
-        return redirect_url
 
     except HTTPException:
         raise
@@ -45,6 +43,10 @@ async def get_main_url(permission: int) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="URL取得中に内部エラーが発生しました"
         )
+    else:
+        logger.debug(f"redirect_url: {redirect_url}")
+        return redirect_url
+
 # @log_decorator
 # async def get_main_url(permission: int) -> str:
 #     try:
@@ -220,6 +222,25 @@ def redirect_login(
         if message:
             logger.info(f"Redirect Login - {message}")
 
+    except TemplateNotFound:
+        logger.exception("login.html テンプレートが見つかりません")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="テンプレートが見つかりません"
+        )
+    except (AttributeError, TypeError) as ex:
+        logger.exception("リクエストまたはデータの形式に問題があります")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ログイン画面描画のリクエストデータが不正です"
+        )
+    except Exception as ex:
+        logger.exception("redirect_login() - 予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ログイン画面の描画中にエラーが発生しました"
+        )
+    else:
         return templates.TemplateResponse(
             "login.html",
             {
@@ -227,27 +248,6 @@ def redirect_login(
                 "message": message,
                 "error": error
             }
-        )
-
-    except TemplateNotFound:
-        logger.exception("login.html テンプレートが見つかりません")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="テンプレートが見つかりません"
-        )
-
-    except (AttributeError, TypeError) as ex:
-        logger.exception("リクエストまたはデータの形式に問題があります")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="ログイン画面描画のリクエストデータが不正です"
-        )
-
-    except Exception as ex:
-        logger.exception("redirect_login() - 予期せぬエラーが発生しました")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="ログイン画面の描画中にエラーが発生しました"
         )
 
 
@@ -258,9 +258,6 @@ def redirect_login_success(request: Request, message: str = "ようこそ"):
     """ログイン成功時に login.html へリダイレクト（例外対応付き）"""
     try:
         logger.info(f"Redirect Login Success - {message}")
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "message": message, "error": None}
-        )
 
     except TemplateNotFound:
         logger.exception("login.html テンプレートが見つかりません")
@@ -268,19 +265,21 @@ def redirect_login_success(request: Request, message: str = "ようこそ"):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ログインページが利用できません"
         )
-
     except (AttributeError, TypeError) as ex:
         logger.exception("リクエストまたはメッセージの形式が不正です")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="リダイレクト中のリクエストデータが不正です"
         )
-
     except Exception as ex:
         logger.exception("redirect_login_success() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ログイン成功リダイレクト中にエラーが発生しました"
+        )
+    else:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "message": message, "error": None}
         )
 
 
@@ -295,29 +294,27 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
             detail_message = getattr(e, "detail", str(e))
             logger.error(f"Error detail: {detail_message}")
 
-        return templates.TemplateResponse(
-            "login.html", {"request": request, "message": None, "error": error}
-        )
-
     except TemplateNotFound:
         logger.exception("login.html テンプレートが見つかりません")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ログインページが利用できません"
         )
-
     except (AttributeError, TypeError) as ex:
         logger.exception("リクエストまたはエラーメッセージの形式が不正です")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="リダイレクト中のリクエストデータが不正です"
         )
-
     except Exception as ex:
         logger.exception("redirect_login_failure() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="ログイン失敗リダイレクト中にエラーが発生しました"
+        )
+    else:
+        return templates.TemplateResponse(
+            "login.html", {"request": request, "message": None, "error": error}
         )
 
 
@@ -341,6 +338,28 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
         # ログ出力
         logger.error(f"{message} - detail: {detail_message}")
 
+    except TemplateNotFound:
+        logger.exception("error.html テンプレートが見つかりません")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="エラーページが利用できません"
+        )
+    except (AttributeError, TypeError) as ex:
+        logger.exception("リクエストまたはデータの形式に問題があります")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="エラーページ表示中にリクエストデータが不正です"
+        )
+    except HTTPException:
+        # 既にHTTPExceptionならそのまま再スロー
+        raise
+    except Exception as ex:
+        logger.exception("redirect_error() - 予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="エラーページ表示中にサーバーエラーが発生しました"
+        )
+    else:
         return templates.TemplateResponse(
             "error.html",
             {
@@ -351,47 +370,11 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
             status_code=status_code
         )
 
-    except TemplateNotFound:
-        logger.exception("error.html テンプレートが見つかりません")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="エラーページが利用できません"
-        )
-
-    except (AttributeError, TypeError) as ex:
-        logger.exception("リクエストまたはデータの形式に問題があります")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="エラーページ表示中にリクエストデータが不正です"
-        )
-
-    except HTTPException:
-        # 既にHTTPExceptionならそのまま再スロー
-        raise
-
-    except Exception as ex:
-        logger.exception("redirect_error() - 予期せぬエラーが発生しました")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="エラーページ表示中にサーバーエラーが発生しました"
-        )
-
-
 @log_decorator
 def redirect_unauthorized(request: Request, message: str, code: int = 403):
     """Unauthorized.html にリダイレクト（例外対応付き）"""
     try:
         logger.error(f"Unauthorized - {message}")
-
-        return templates.TemplateResponse(
-            "Unauthorized.html",
-            {
-                "request": request,
-                "status_code": code,
-                "message": message
-            },
-            status_code=code
-        )
 
     except TemplateNotFound:
         logger.exception("Unauthorized.html テンプレートが見つかりません")
@@ -412,5 +395,15 @@ def redirect_unauthorized(request: Request, message: str, code: int = 403):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="認可エラーページ表示中にサーバーエラーが発生しました"
+        )
+    else:
+        return templates.TemplateResponse(
+            "Unauthorized.html",
+            {
+                "request": request,
+                "status_code": code,
+                "message": message
+            },
+            status_code=code
         )
 

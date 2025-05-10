@@ -52,7 +52,6 @@ async def create_menu_table():
         # AsyncEngineからbegin()を使用して接続を取得し、DDL操作を実行します。
         async with engine.begin() as conn:
             await conn.run_sync(Menu.__table__.create, checkfirst=True)
-            logger.debug("create_menu_table() - Menuテーブルの作成に成功しました。")
 
     except IntegrityError as e:
         await engine.rollback()
@@ -66,6 +65,8 @@ async def create_menu_table():
     except Exception as e:
         await engine.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.debug("create_menu_table() - Menuテーブルの作成に成功しました。")
 
 '''------------------------------------------------------'''
 from typing import Optional
@@ -194,8 +195,6 @@ async def insert_menu(
             )
             session.add(new_menu)
             await session.commit()
-            logger.info(f"Menu '{name}' for shop '{shop_name}' inserted successfully.")
-            return True
 
     except IntegrityError as e:
         await session.rollback()
@@ -209,6 +208,9 @@ async def insert_menu(
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"Menu '{name}' for shop '{shop_name}' inserted successfully.")
+        return True
 
 '''------------------------------------------------------'''
 from sqlalchemy import update
@@ -238,10 +240,6 @@ async def update_menu(
             await session.commit()
 
             updated_count = result.rowcount
-            logger.info(f"メニュー更新成功（更新件数: {updated_count}）")
-            logger.debug(f"update_menu() - SQL: {stmt}, key: {key}, value: {value}")
-
-            return updated_count
 
     except IntegrityError as e:
         await session.rollback()
@@ -255,7 +253,11 @@ async def update_menu(
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"メニュー更新成功（更新件数: {updated_count}）")
+        logger.debug(f"update_menu() - SQL: {stmt}, key: {key}, value: {value}")
 
+        return updated_count
 
 '''------------------------------------------------------'''
 from sqlalchemy import delete
@@ -278,10 +280,6 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
             await session.commit()
 
             deleted_count = result.rowcount
-            logger.info(f"メニュー削除成功（削除件数: {deleted_count}）")
-            logger.debug(f"delete_menu() - SQL: {stmt}")
-
-            return deleted_count
 
     except IntegrityError as e:
         await session.rollback()
@@ -295,7 +293,11 @@ async def delete_menu(shop_name: str, menu_id: int) -> int:
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info(f"メニュー削除成功（削除件数: {deleted_count}）")
+        logger.debug(f"delete_menu() - SQL: {stmt}")
 
+        return deleted_count
 
 from sqlalchemy import text
 # 全削除
@@ -308,7 +310,6 @@ async def delete_all_menu():
 
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
-            logger.info("Menu テーブルの削除が完了しました。")
 
     except IntegrityError as e:
         await session.rollback()
@@ -322,4 +323,6 @@ async def delete_all_menu():
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        logger.info("Menu テーブルの削除が完了しました。")
 

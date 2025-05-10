@@ -37,23 +37,16 @@ async def admin_view(request: Request):
         if not (await check_permission(request, [99])):
             return redirect_unauthorized(request, "管理者権限がありません。")
 
+    except Exception as e:
+        message = f"admin_view() - 予期せぬエラーが発生しました: {str(e)}"
+        return redirect_error(request, message, e)
+    else:
         return templates.TemplateResponse(
             "admin.html", {
                 "request": request,
                 "base_url": endpoint
             }
         )
-
-    except Exception as e:
-        message = f"admin_view() - 予期せぬエラーが発生しました: {str(e)}"
-        return redirect_error(request, message, e)
-        # logger.error(f"admin_view() - 予期せぬエラーが発生しました: {str(e)}")
-        # context = {
-        #     "request": request,
-        #     "status_code": 500,
-        #     "message": "予期せぬエラーが発生しました。"
-        # }
-        # return templates.TemplateResponse("error.html", context)
     
 
 @log_decorator
@@ -75,12 +68,11 @@ async def update_existing_passwords(request: Request):
                 await update_user(
                     user.username, "password", new_hashed_password)  # DB更新
 
-        # logger.info(f"ユーザー {user.username} のパスワードをハッシュ化しました")
-        return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
-
     except Exception as e:
         message = f"update_existing_passwords() - 予期せぬエラーが発生しました"
         return redirect_error(request, message, e)
+    else:
+        return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる
@@ -100,10 +92,13 @@ async def custom_exception_handler(
 
 # 例外テスト
 # 備考：例外ハンドラとこれをmain.py以外に移動すると、JSON表示のみになる。
-@admin_router.get("/test_exception")
-async def test_exception():
-    raise CustomException(400, "test_exception()", "これはテストエラーです")
 '''
+@admin_router.get("/test_exception")
+async def test_exception(request: Request):
+    # raise CustomException(400, "test_exception()", "これはテストエラーです")
+    logger.exception("管理者によるテスト例外")
+    return await redirect_error(request, "管理者によりテスト例外がraiseされました")
+
 # logsディレクトリ内のファイル一覧を取得
 @admin_router.get("/logs", response_class=HTMLResponse, tags=["admin"])
 def list_logs():

@@ -227,6 +227,10 @@ async def login_post(request: Request,
 
         user = await get_user(input_username, input_password, "")
         user = await authenticate_user(user, input_password) 
+        if user is None:
+            logger.warning(f"ユーザー認証に失敗しました: {input_username}")
+            # ここでパスワード間違いのメッセージを表示
+            return redirect_login_failure(request, error="パスワードが間違っています")
 
         permission = user.get_permission()
         main_url = await get_main_url(permission)
