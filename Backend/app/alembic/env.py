@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -7,6 +11,7 @@ from sqlalchemy import pool
 from database.local_postgresql_database import Base  # Baseをインポート
 from database.local_postgresql_database import engine  # DBエンジンもインポート
 
+from models.post import Post  # これを追加
 
 # target_metadataを設定
 target_metadata = Base.metadata

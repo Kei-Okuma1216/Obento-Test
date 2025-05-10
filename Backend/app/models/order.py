@@ -47,7 +47,7 @@ class Order(Base):
     amount = Column(Integer)
     created_at = Column(DateTime) # このままでOK
     updated_at = Column(DateTime) # このままでOK
-    canceled = Column(Integer, default=0)
+    checked = Column(Integer, default=0)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
@@ -107,7 +107,7 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -123,8 +123,8 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
 
             # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
             row_dict = dict(row._mapping)
-            # canceledは整数型の場合があるので、明示的にbool型に変換
-            row_dict["canceled"] = bool(row_dict["canceled"])
+            # checkedは整数型の場合があるので、明示的にbool型に変換
+            row_dict["checked"] = bool(row_dict["checked"])
             order_model = OrderModel(**row_dict)
             return order_model
 
@@ -162,7 +162,7 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -181,8 +181,8 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
             for row in rows:
                 # SQLAlchemyのRowオブジェクトは _mapping 属性で辞書のようにアクセス可能です
                 row_dict = dict(row._mapping)
-                # canceledは整数型になっている場合があるため、bool型に変換
-                row_dict["canceled"] = bool(row_dict["canceled"])
+                # checkedは整数型になっている場合があるため、bool型に変換
+                row_dict["checked"] = bool(row_dict["checked"])
                 # 取得した辞書データをもとに、pydanticモデルOrderModelを生成します
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
@@ -225,7 +225,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -244,8 +244,8 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
             for row in rows:
                 # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
                 row_dict = dict(row._mapping)
-                # canceledカラムは整数型の場合があるため、bool型に変換します
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checkedカラムは整数型の場合があるため、bool型に変換します
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_list.append(order_model)
                 
@@ -292,7 +292,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -319,8 +319,8 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
             order_models: List[OrderModel] = []
             for row in rows:
                 row_dict = dict(row._mapping)
-                # canceledカラムが整数等の場合、boolに変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checkedカラムが整数等の場合、boolに変換
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
                 
@@ -363,7 +363,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -398,8 +398,8 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
             for row in rows:
                 # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
                 row_dict = dict(row._mapping)
-                # canceled カラムが整数型の場合があるので、明示的に bool() に変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checked カラムが整数型の場合があるので、明示的に bool() に変換
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
             
@@ -440,7 +440,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -460,8 +460,8 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
             order_models: List[OrderModel] = []
             for row in rows:
                 row_dict = dict(row._mapping) # _mapping 属性で変換
-                # canceled カラムは整数型の場合があるので bool 型に変換します
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checked カラムは整数型の場合があるので bool 型に変換します
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
@@ -511,7 +511,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -532,8 +532,8 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
             for row in rows:
                 # Rowオブジェクトは _mapping 属性で辞書として変換可能です
                 row_dict = dict(row._mapping)
-                # canceled カラムは整数型の場合があるので、bool型に変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checked カラムは整数型の場合があるので、bool型に変換
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
             
@@ -575,7 +575,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -601,8 +601,8 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             for row in rows:
                 # Rowオブジェクトは _mapping 属性で辞書に変換可能
                 row_dict = dict(row._mapping)
-                # canceled が数値の場合があるので、明示的に bool に変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checked が数値の場合があるので、明示的に bool に変換
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
             
@@ -653,7 +653,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -685,7 +685,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                         row_dict["created_at"] = datetime.strptime(created_at_val, "%Y-%m-%d %H:%M:%S.%f%z")
 
                 # canceled を bool に明示変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                row_dict["checked"] = bool(row_dict.get("checked", False))
 
                 # OrderModel へ変換
                 order_model = OrderModel(**row_dict)
@@ -730,7 +730,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -753,7 +753,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                 # 必要に応じた型変換
                 row_dict["order_id"] = int(row_dict["order_id"])
                 row_dict["amount"] = int(row_dict["amount"])
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 # 辞書から pydantic モデル OrderModel を生成
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
@@ -803,7 +803,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -827,8 +827,8 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 # order_id, amount を明示的に int型へ変換
                 row_dict["order_id"] = int(row_dict["order_id"])
                 row_dict["amount"] = int(row_dict["amount"])
-                # canceled カラムは整数型等の場合があるため、bool型に変換
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                # checked カラムは整数型等の場合があるため、bool型に変換
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
             
@@ -873,7 +873,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
-                    Order.canceled
+                    Order.checked
                 )
                 .select_from(Order)
                 .join(Company, Order.company_id == Company.company_id)
@@ -914,7 +914,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 # 必要に応じた型変換
                 row_dict["order_id"] = int(row_dict["order_id"])
                 row_dict["amount"] = int(row_dict["amount"])
-                row_dict["canceled"] = bool(row_dict.get("canceled", False))
+                row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
@@ -976,7 +976,7 @@ async def insert_order(
                 menu_id=menu_id,
                 amount=amount,
                 created_at=created_at,
-                canceled=0
+                checked=0
             )
             session.add(new_order)
             await session.commit()
@@ -1010,9 +1010,9 @@ async def insert_order(
 from sqlalchemy import update
 
 @log_decorator
-async def update_order(order_id: int, canceled: bool):
+async def update_order(order_id: int, checked: bool):
     """
-    指定された order_id の注文レコードに対して、canceled フラグと updated_at を更新します。
+    指定された order_id の注文レコードに対して、checked フラグと updated_at を更新します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -1022,7 +1022,7 @@ async def update_order(order_id: int, canceled: bool):
             stmt = (
                 update(Order)
                 .where(Order.order_id == order_id)
-                .values(canceled=canceled, updated_at=current_time)
+                .values(checked=checked, updated_at=current_time)
             )
             result = await session.execute(stmt)
             await session.commit()

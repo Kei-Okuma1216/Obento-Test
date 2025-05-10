@@ -19,7 +19,6 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from utils.utils import log_decorator, get_all_cookies
-from utils.exception import CustomException
 
 templates = Jinja2Templates(directory="templates")
 
@@ -80,7 +79,7 @@ async def order_table_view(
     except HTTPException as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
-        raise CustomException(
+        raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             f"/order_table_view()",
             f"Error: {str(e)}")
@@ -110,13 +109,13 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         except ValueError:
             logger.debug("days_ago の値が数値でないため無効です")
             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
-
-        logger.debug(f"---days_ago: {days_ago_int=}")
+        else:
+            logger.debug(f"---days_ago: {days_ago_int=}")
         # -----------------------------------
 
         # 履歴取得処理（days_ago_intを使って履歴を取得）
         orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
-        # print(f"orders.len(): {len(orders)}")
+        
         print(f"orders.len(): {len(orders) if orders else '注文は0件です'}")
         if not orders:
             logger.info("No orders found or error occurred.")
@@ -128,24 +127,29 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders_dict = [order.model_dump() for order in orders]
         orders_json = json.dumps(orders_dict, default=str)
 
-        return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
+        # return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
     except Exception as e:
         logger.warning(f"get_order_json Error: {str(e)=}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
-
+    else:
+        return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
 # from sqlalchemy import text
 # from schemas.order_schemas import OrderUpdateList
 from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from models.order import Order  # OrdersはSQLAlchemyのモデル定義を想定
+from fastapi import HTTPException, status
 
 @log_decorator
 async def batch_update_orders(updates: list[dict]):
     """
-    DB更新の実処理。キャンセルチェック状態をバッチで更新します。
-    SQLAlchemyのORM updateを使用して各注文を更新します。
+    複数の注文キャンセル状態を一括更新。
+    失敗した注文も記録しつつ、処理を継続します。
     """
+    failed_updates = []
+
     try:
         async with AsyncSessionLocal() as session:
             for update_data in updates:
@@ -154,17 +158,38 @@ async def batch_update_orders(updates: list[dict]):
                     .where(Order.order_id == update_data["order_id"])
                     .values(canceled=update_data["canceled"])
                 )
-                await session.execute(stmt)
-            await session.commit()
+                try:
+                    await session.execute(stmt)
 
-        return {"message": "Orders updated successfully"}
+                except (IntegrityError, OperationalError, SQLAlchemyError) as db_err:
+                    logger.exception(f"注文ID {update_data['order_id']} の更新失敗: {db_err}")
+                    failed_updates.append(update_data['order_id'])
+                except Exception as ex:
+                    logger.exception(f"注文ID {update_data['order_id']} で予期せぬエラー: {ex}")
+                    failed_updates.append(update_data['order_id'])
+
+            try:
+                await session.commit()
+            except Exception as commit_err:
+                await session.rollback()
+                logger.exception(f"コミット失敗: {commit_err}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"コミット処理中にエラーが発生しました: {str(commit_err)}"
+                )
+
+        if failed_updates:
+            logger.warning(f"一部注文の更新に失敗しました: {failed_updates}")
+            return {"message": "一部注文の更新に失敗しました", "failed_order_ids": failed_updates}
 
     except Exception as e:
-        logger.error(f"batch_update_orders Error: {str(e)}")
-        raise CustomException(
-            status.HTTP_500_INTERNAL_SERVER_ERROR,
-            "batch_update_orders()",
-            f"予期せぬエラー: {str(e)=}"
+        logger.exception(f"batch_update_orders 全体失敗: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"サーバー内部エラーが発生しました: {str(e)}"
         )
+    else:
+        return {"message": "すべての注文を正常に更新しました"}
+
 
 

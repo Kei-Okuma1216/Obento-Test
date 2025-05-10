@@ -6,8 +6,7 @@ from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from database.sqlite_database import get_connection, select_shop_order, select_user
-from database.sqlite_database import CustomException
+from database.local_postgresql_database import get_connection, select_shop_order, select_user
 from utils.utils import log_decorator, check_permission, get_all_cookies
 
 templates = Jinja2Templates(directory="templates")
@@ -43,7 +42,7 @@ async def menu_cards_view(request: Request, response: Response,
     except HTTPException as e:
         raise HTTPException(e.status_code, e.detail)
     except Exception as e:
-        raise CustomException(
+        raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
             f"/menu_cards_view()",
             f"Error: {str(e)}")
@@ -112,7 +111,7 @@ async def batch_update_orders(updates: list[dict]):
 
     except Exception as e:
         logger.error(f"batch_update_orders Error: {str(e)}")
-        raise CustomException(
+        raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             "batch_update_orders()",
             f"予期せぬエラー: {str(e)}")

@@ -29,7 +29,6 @@ templates = Jinja2Templates(directory="templates")
 
 from utils.helper import create_auth_response, get_main_url, redirect_error
 from utils.utils import *
-from utils.exception import *
 from sqlalchemy.exc import DatabaseError
 from log_unified import logger
 
@@ -96,7 +95,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
         # 二重注文の禁止
@@ -212,7 +211,7 @@ async def login_get(request: Request):
 
 
 from core.security import authenticate_user, get_user
-
+from sqlalchemy.exc import SQLAlchemyError
 
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
@@ -242,10 +241,10 @@ async def login_post(request: Request,
         logger.exception("DBまたは外部接続失敗")
         return redirect_error(request, ERROR_DATABASE_ACCESS, e)
 
-    except (DatabaseError, SQLException) as e:
+    except (DatabaseError, SQLAlchemyError) as e:
         logger.exception("データベース操作失敗")
         return redirect_login_failure(request, error="データベース異常")
-
+        
     except HTTPException as e:
         logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
         if e.status_code == status.HTTP_400_BAD_REQUEST:

@@ -19,8 +19,6 @@ from venv import logger
 logging.basicConfig(level=logging.INFO)
 
 # 定数
-from ast import stmt
-from utils.exception import CustomException, SQLException
 from utils.utils import log_decorator, get_today_datetime
 from sqlalchemy.exc import DatabaseError
 
@@ -163,40 +161,81 @@ async def drop_database(database_name: str = DATABASE_NAME):
 
 
 
-
 from sqlalchemy import text
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 from database.local_postgresql_database import Base
+from fastapi import HTTPException
 
 @log_decorator
 async def drop_all_table():
     """
-    SQLAlchemy の非同期エンジンを利用して、
     Base.metadata に含まれる全テーブルを CASCADE オプション付きで削除します。
+    テーブルごとに個別の例外処理を行い、エラーログを出力します。
     """
     try:
         async with engine.begin() as conn:
-            # sorted_tables は依存関係順になっているため、逆順に drop することで依存性を回避
             for table in reversed(Base.metadata.sorted_tables):
-                # テーブル名のみなら public スキーマの場合はそのままでOK。必要に応じてスキーマ指定を追加してください。
-                # sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
                 sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
-                print(f"{sql_command=}")
-                #  スキーマ付きで明示的に DROP
-                # sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
-                await conn.execute(text(sql_command))
-                logger.debug(f"DROP TABLE: {sql_command}")
-        logger.debug("全テーブルのDrop完了 (CASCADE)")
-    except DatabaseError as e:
-        raise SQLException(
-            sql_statement=sql_command,
-            method_name="drop_all_table()",
-            detail="SQL実行中にエラーが発生しました",
-            exception=e
-        ) from e
+                try:
+                    print(f"{sql_command=}")
+                    await conn.execute(text(sql_command))
+                except DatabaseError as db_err:
+                    logger.exception(f"DROP TABLE 失敗: {sql_command} - DBエラー: {db_err}")
+                    # 失敗しても次のテーブル処理を続ける（必要なら return で停止可能）
+                except Exception as ex:
+                    logger.exception(f"DROP TABLE 失敗: {sql_command} - 予期せぬエラー: {ex}")
+                    # 失敗しても次のテーブル処理を続ける（必要なら return で停止可能）
+
+        logger.info("✅ 全テーブルのDrop処理が完了しました (CASCADE)")
+
+    except SQLAlchemyError as e:
+        logger.exception("全体処理中にSQLAlchemyのエラーが発生しました")
+        raise HTTPException(
+            status_code=500,
+            detail="全テーブル削除中にデータベースエラーが発生しました。"
+        )
     except Exception as e:
-        print(f"❌ An error occurred while dropping all tables: {e}")
-        # raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
-        logger.error(f"drop_all_table Error: {str(e)}")
+        logger.exception("全体処理中に予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=500,
+            detail="全テーブル削除中にサーバー内部エラーが発生しました。"
+        )
+    else:
+        logger.debug(f"DROP TABLE 成功: {sql_command}")
+
+# from sqlalchemy import text
+# from database.local_postgresql_database import Base
+
+# @log_decorator
+# async def drop_all_table():
+#     """
+#     SQLAlchemy の非同期エンジンを利用して、
+#     Base.metadata に含まれる全テーブルを CASCADE オプション付きで削除します。
+#     """
+#     try:
+#         async with engine.begin() as conn:
+#             # sorted_tables は依存関係順になっているため、逆順に drop することで依存性を回避
+#             for table in reversed(Base.metadata.sorted_tables):
+#                 # テーブル名のみなら public スキーマの場合はそのままでOK。必要に応じてスキーマ指定を追加してください。
+#                 # sql_command = f"DROP TABLE IF EXISTS {table.name} CASCADE"
+#                 sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
+#                 print(f"{sql_command=}")
+#                 #  スキーマ付きで明示的に DROP
+#                 # sql_command = f'DROP TABLE IF EXISTS "public"."{table.name}" CASCADE'
+#                 await conn.execute(text(sql_command))
+#                 logger.debug(f"DROP TABLE: {sql_command}")
+#         logger.debug("全テーブルのDrop完了 (CASCADE)")
+#     except DatabaseError as e:
+#         raise SQLException(
+#             sql_statement=sql_command,
+#             method_name="drop_all_table()",
+#             detail="SQL実行中にエラーが発生しました",
+#             exception=e
+#         ) from e
+#     except Exception as e:
+#         print(f"❌ An error occurred while dropping all tables: {e}")
+#         # raise CustomException(500, "drop_all_table()", f"Error: {e}") from e
+#         logger.error(f"drop_all_table Error: {str(e)}")
 
 # ------------------------------------------------------------------------------
 
