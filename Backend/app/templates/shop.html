@@ -65,6 +65,13 @@
                   </a>
                 </li>
               </ul>
+              <!-- 休日設定用カレンダーピッカー -->
+              <div class="mt-4">
+                <h4>休日設定</h4>
+                <label for="holidayPicker" class="form-label">休日を選択してください：</label>
+                <input type="date" id="holidayPicker" class="form-control w-auto d-inline-block">
+              </div>
+
               <h4>未実装</h4>
               <ul class="list-group">
                 <li class="list-group-item">注文キャンセル処理</li>
@@ -274,6 +281,31 @@
           alert("ログイン画面に戻るのを防ぎました");
           history.forward(); // 無理に防ぐ方法
         }
+      });
+      // 休日ピッカーの日付選択時の処理
+      document.getElementById("holidayPicker").addEventListener("change", function() {
+        const selectedDate = this.value;
+        if (!selectedDate) return;
+
+        // 日付を YYYY/M/D 形式に変換（例: 2025/1/1）
+        const dateObj = new Date(selectedDate);
+        const formattedDate = `${dateObj.getFullYear()}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+        console.log("送信する日付:", formattedDate); // デバッグ用
+
+        // サーバーに祝日判定リクエストを送信
+        fetch(`/api/check_holiday?date=${encodeURIComponent(formattedDate)}`)
+          .then(response => response.json())
+          .then(data => {
+            const holidayName = data.holiday_name;
+            const message = holidayName
+              ? `選択した日付: ${formattedDate} (${holidayName})`
+              : `選択した日付: ${formattedDate}`;
+            alert(message);
+          })
+          .catch(error => {
+            console.error("祝日判定エラー:", error);
+            alert("選択した日付: " + formattedDate);
+          });
       });
       </script>
   </body>

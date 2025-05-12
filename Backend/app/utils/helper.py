@@ -15,11 +15,17 @@ from fastapi import HTTPException, Request, Response, status
 from utils.utils import log_decorator, set_all_cookies
 from log_unified import logger
 
-from utils.config_loader import load_permission_map
+from config.config_loader import load_permission_map, load_holiday_map
 permission_map = load_permission_map()
+holiday_map = load_holiday_map()
 
 @log_decorator
 async def get_main_url(permission: int) -> str:
+    '''
+    パーミッションに基づいてリダイレクト先のURLを取得する。    
+    以下のjsonファイルを参照する。
+    /config/redirect_main_by_permission_map.json
+    '''
     try:
         if not isinstance(permission, int):
             raise HTTPException(

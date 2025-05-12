@@ -57,11 +57,6 @@ app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
 
-# 例外ハンドラーを登録
-# from utils.handlers import register_exception_handlers, test_exception_router  # 追加！
-# register_exception_handlers(app) # 例外ハンドラー登録
-# app.include_router(test_exception_router) # テストルーター登録（任意）
-
 
 # エントリポイントの選択
 from database.local_postgresql_database import endpoint
