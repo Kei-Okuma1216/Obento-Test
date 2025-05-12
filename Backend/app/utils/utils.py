@@ -122,7 +122,6 @@ class Period(NamedTuple):
     end: datetime
 
 # @log_decorator
-
 from fastapi import HTTPException, status
 from log_unified import logger
 
@@ -171,30 +170,8 @@ async def get_created_at_period(days_ago: int) -> Period:
             detail="期間計算中にサーバーエラーが発生しました"
         )
 
-# async def get_created_at_period(days_ago: int) -> Period: #Tuple[datetime, datetime]:
-#     """
-#     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
-#     返す datetime は tzinfo を持たない naive datetime。
-#     開始: 00:00:00、終了: 23:59:59
-#     """
-#     try:
-#         now = datetime.now(pytz.timezone("Asia/Tokyo"))
-        
-#         start_target = now - timedelta(days=days_ago)
-#         end_target = now  # 今日の終端とするため、nowの日付だけ使う
 
-#         start_dt = datetime(start_target.year, start_target.month, start_target.day, 0, 0, 0)
-#         end_dt   = datetime(end_target.year, end_target.month, end_target.day, 23, 59, 59)
-
-#         print(f"{start_dt=}, {end_dt=}")
-
-#         return Period(start_dt, end_dt)
-
-#     except Exception as e:    
-#         logger.error(f"get_created_at_period() - Error: {e}")
-#         # raise CustomException(500, "get_created_at_period()", f"Error: {e}")
-
-@log_decorator
+# @log_decorator
 def get_today_datetime(days_ago: int = 0) -> datetime:
     """
     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
@@ -237,29 +214,6 @@ def get_today_datetime(days_ago: int = 0) -> datetime:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="日付計算中にサーバーエラーが発生しました"
         )
-
-# # @log_decorator
-# def get_today_datetime(days_ago: int = 0) -> datetime:
-#     """
-#     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
-#     例: days_ago=0 -> 今日の 00:00:00（タイムゾーンなし）
-#     """
-#     tz = pytz.timezone("Asia/Tokyo")
-#     current_time = datetime.now(tz) - timedelta(days=days_ago)
-
-#     # JST基準で「0時0分0秒」の日時を作成（tzなしで返す）
-#     naive_datetime = datetime(
-#         current_time.year,
-#         current_time.month,
-#         current_time.day,
-#         current_time.hour,
-#         current_time.minute,
-#         current_time.second,
-#         0
-#     )
-
-#     # print(f"{naive_datetime=}, {naive_datetime.tzinfo=}")
-#     return naive_datetime
 
 
 def get_naive_jst_now() -> datetime:
@@ -324,31 +278,6 @@ def set_all_cookies(response: Response, user: Dict):
         )
 
 
-# @log_decorator
-# def set_all_cookies(response: Response, user: Dict):
-#     try:
-#         username = user['sub']
-#         token = user['token']
-#         permission = user['permission']
-
-#         # expiresを30日後に設定する
-#         future_time = datetime.now(timezone.utc) + timedelta(days=30)
-#         new_expires = future_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT")
-
-#         response.set_cookie(key="token", value=token, expires=new_expires)
-#         response.set_cookie(key="sub", value=username, expires=new_expires)
-#         response.set_cookie(key="permission", value=permission, expires=new_expires)
-
-#         logger.debug(f"sub: {username}, permission: {permission}, token: {token}, expires: {new_expires}")
-#         return new_expires
-        
-#     except KeyError as e:
-#         logger.error(f"Missing key: {e}")
-#     except Exception as e:
-#         logger.error(f"set_all_cookies() - Error: {e}")
-#         # raise CookieException(
-#         #     method_name="set_all_cookies()",
-#         #     message=str(e))
 
 from http.cookies import SimpleCookie
 
@@ -413,46 +342,6 @@ def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
             detail="Cookie取得中にサーバーエラーが発生しました"
         )
 
-# #@log_decorator
-# def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
-#     try:
-#         username = request.cookies.get("sub")
-#         print(f"cookies['sub']: {username}")
-
-#         if username is None:
-#             logger.info("get_all_cookies() - 初回アクセスは cookies['sub']が存在しません")
-#             return None
-
-#         token = request.cookies.get("token")
-#         permission = request.cookies.get("permission")
-
-#         # `Set-Cookie` をパース
-#         set_cookie_header = request.headers.get("cookie")
-#         cookie = SimpleCookie()
-#         cookie.load(set_cookie_header)
-
-#         # `max-age` を取得
-#         expires = cookie["token"]["expires"] if "token" in cookie and "expires" in cookie["token"] else None
-
-#         data = {
-#             "sub": username,
-#             "token": token,
-#             "expires": expires,
-#             "permission": int(permission)
-#         }
-
-#         return data
-
-#     except KeyError as e:
-#         logger.error(f"get_all_cookies() - Missing key: {e}")
-#     except ValueError:
-#         logger.error(f"get_all_cookies() - Error: {e}")
-#         # raise CookieException(
-#         #     method_name="get_all_cookies",
-#         #     detail="値が不正です")
-#     except Exception as e:
-#         logger.error(f"get_all_cookies() - 予期せぬ例外が発生しました: {e}")
-#         raise
 
 @log_decorator
 def delete_all_cookies(response: Response):
@@ -472,9 +361,6 @@ def delete_all_cookies(response: Response):
             detail="Cookie削除中にサーバーエラーが発生しました"
         )
 
-from datetime import datetime, timezone
-from fastapi import HTTPException, status
-from log_unified import logger
 
 
 @log_decorator

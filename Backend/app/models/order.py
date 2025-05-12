@@ -1,4 +1,4 @@
-# models/orders.py
+# models/order.py
 '''
     注文クエリ関数
 
@@ -45,22 +45,23 @@ class Order(Base):
     shop_name = Column(String)
     menu_id = Column(Integer)
     amount = Column(Integer)
-    created_at = Column(DateTime) # このままでOK
-    updated_at = Column(DateTime) # このままでOK
+    expected_delivery_date = Column(DateTime)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
     checked = Column(Integer, default=0)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
-from utils.utils import get_today_datetime, log_decorator
+from utils.utils import log_decorator
 
 import logging
 logger = logging.getLogger(__name__)
 from log_unified import logger
 
-from sqlalchemy.exc import DatabaseError
 
+from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 
 # 作成
 @log_decorator
@@ -629,7 +630,6 @@ from typing import Optional, List
 import logging
 
 from sqlalchemy import select
-from sqlalchemy.exc import DatabaseError
 
 from schemas.order_schemas import OrderModel
 
@@ -938,11 +938,9 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 
 '''-------------------------------------------------------------'''
 # 追加
-from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
-from sqlalchemy import text
-
 from log_unified import log_order
 from utils.utils import get_naive_jst_now
+from config.config_loader import get_non_holiday_date
 
 @log_decorator
 async def insert_order(
@@ -961,7 +959,7 @@ async def insert_order(
     try:
         async with AsyncSessionLocal() as session:
             if created_at is None:
-                created_at = get_naive_jst_now()#get_today_datetime()
+                created_at = get_naive_jst_now()
 
             # 念のため tzinfo を削除（ナイーブ化）
             if created_at.tzinfo is not None:
@@ -969,12 +967,17 @@ async def insert_order(
 
             logger.debug(f"insert_order() - 使用する created_at: {created_at} (tzinfo={created_at.tzinfo})")
 
+            # 配達予定日を取得し、printで確認
+            delivery_date = await get_non_holiday_date(created_at)
+
+
             new_order = Order(
                 company_id=company_id,
                 username=username,
                 shop_name=shop_name,
                 menu_id=menu_id,
                 amount=amount,
+                expected_delivery_date=delivery_date,  # 追加
                 created_at=created_at,
                 checked=0
             )
@@ -1007,7 +1010,8 @@ async def insert_order(
 
 '''-------------------------------------------------------------'''
 # 更新
-from sqlalchemy import update
+from sqlalchemy import update, text
+from utils.utils import get_today_datetime
 
 @log_decorator
 async def update_order(order_id: int, checked: bool):
@@ -1048,7 +1052,7 @@ async def update_order(order_id: int, checked: bool):
 
 '''-------------------------------------------------------------'''
 # 削除（指定ID）
-from sqlalchemy import delete, text
+from sqlalchemy import delete
 
 @log_decorator
 async def delete_order(order_id: int) -> bool:

@@ -100,6 +100,39 @@ async def init_database():
         # 7
         await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime(days_ago=0))
 
+        from datetime import timedelta
+
+        # 8
+        tomorrow = get_today_datetime(days_ago=0) + timedelta(days=1)
+        print(f"明日の日付: {tomorrow}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow)
+
+        # 9
+        print(f"明後日の日付: {tomorrow + timedelta(days=1)}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=1))
+
+        # 10
+        print(f"明後日の日付: {tomorrow + timedelta(days=2)}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=2))
+
+        # 11
+        print(f"明後日の日付: {tomorrow + timedelta(days=3)}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=3))
+
+        # 12
+        print(f"明後日の日付: {tomorrow + timedelta(days=4)}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=4))
+
+        # 13
+        print(f"明後日の日付: {tomorrow + timedelta(days=5)}")
+        await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=5))
+
+        # 14
+        from datetime import datetime
+        oneone = datetime(2025, 1, 1)
+        print(f"お正月の日付: {oneone}")
+        await insert_order(1, "user1", "shop01", 1, 1, oneone)
+
         logger.info("データベースファイル 'example' が正常に作成されました。")
 
     except (DatabaseError, SQLAlchemyError, IntegrityError, OperationalError) as e:

@@ -22,6 +22,12 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
+      /* 4Kモニタ（横幅3840px以上）の場合 */
+      @media (min-width: 3840px) {
+        .scrollable-table {
+          max-height: 800px; /* ここを好きな高さに変更 */
+        }
+      }
     </style>
   </head>
   <body>

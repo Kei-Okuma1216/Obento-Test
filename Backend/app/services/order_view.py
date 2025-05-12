@@ -13,21 +13,15 @@
         SQL文を実行して、変更をコミット。
         エラーが発生した場合はログに記録。
 '''
-from venv import logger
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
-from fastapi.responses import JSONResponse
-from fastapi.templating import Jinja2Templates
-
 from utils.utils import log_decorator, get_all_cookies
-
-templates = Jinja2Templates(directory="templates")
 
 view_router = APIRouter()
 
-from models.order import select_orders_by_shop_ago
-from models.user import select_user
-from database.local_postgresql_database import AsyncSessionLocal
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="templates")
 
+from venv import logger
 
 from collections import Counter
 
@@ -86,6 +80,10 @@ async def order_table_view(
 
 
 import json
+from fastapi.responses import JSONResponse
+from models.order import select_orders_by_shop_ago
+from models.user import select_user
+from database.local_postgresql_database import AsyncSessionLocal
 
 @log_decorator
 async def get_order_json(request: Request, days_ago: str = Query(None)):
@@ -135,11 +133,10 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
     else:
         return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 
-# from sqlalchemy import text
-# from schemas.order_schemas import OrderUpdateList
+
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
-from models.order import Order  # OrdersはSQLAlchemyのモデル定義を想定
+from models.order import Order
 from fastapi import HTTPException, status
 
 @log_decorator
