@@ -181,12 +181,12 @@
       
         checkboxes.forEach(function(checkbox) {
           const orderId = checkbox.getAttribute("data-order-id");
-          const canceled = checkbox.checked;
+          const checked = checkbox.checked;
           updates.push({
             order_id: Number(orderId),
-            canceled: canceled
+            checked: checked
           });
-          // alert(orderId + ' ' + canceled); // 修正済み
+          // alert(orderId + ' ' + checked); // 修正済み
         });
       
         fetch("/update_cancel_status", {

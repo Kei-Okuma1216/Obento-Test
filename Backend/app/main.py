@@ -8,7 +8,7 @@
     4. clear_cookie(response: Response):
 
     5. class CancelUpdate(BaseModel):
-        updates: List[dict]  # 各辞書は {"order_id": int, "canceled": bool} の形式
+        updates: List[dict]  # 各辞書は {"order_id": int, "checked": bool} の形式
     6. update_cancel_status(update: CancelUpdate):
 
     7. custom_exception_handler(request: Request, exc: CustomException):
@@ -95,7 +95,7 @@ async def root(request: Request, response: Response):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
         # 二重注文の禁止
@@ -156,11 +156,11 @@ async def root(request: Request, response: Response):
     # 接続系のエラー（ConnectionError）も考慮すべきです。
     except requests.exceptions.ConnectionError as ce:
         logger.exception("外部認証サーバへの接続に失敗しました")
-        return redirect_error(request, "認証サーバに接続できませんでした", ce)
+        return await redirect_error(request, "認証サーバに接続できませんでした", ce)
 
     except ConnectionError as ce:
         logger.exception("ネットワーク接続エラーが発生しました")
-        return redirect_error(request, "ネットワーク接続に失敗しました", ce)
+        return await redirect_error(request, "ネットワーク接続に失敗しました", ce)
 
     # check_permission_and_stop_orderから投げている
     except HTTPException as e:
@@ -168,9 +168,9 @@ async def root(request: Request, response: Response):
         if e.status_code == status.HTTP_400_BAD_REQUEST:
             return redirect_login_failure(request, e.detail)
         elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
-            return redirect_error(request, "内部サーバーエラーが発生しました", e)
+            return await redirect_error(request, "内部サーバーエラーが発生しました", e)
         else:
-            return redirect_error(request, "不明なHTTPエラーが発生しました", e)
+            return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
 
     except Exception as e:
         logger.exception("root() - 予期せぬエラーが発生しました")
@@ -188,26 +188,26 @@ async def login_get(request: Request):
 
     except ConnectionError as e:
         logger.exception("データベースまたは外部接続失敗")
-        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
+        return await redirect_error(request, ERROR_DATABASE_ACCESS, e)
 
     except TemplateNotFound as e:
         logger.exception("テンプレート login.html が見つかりません")
-        return redirect_error(request, "ログイン画面が利用できません。", e)
+        return await redirect_error(request, "ログイン画面が利用できません。", e)
 
     except (AttributeError, TypeError) as e:
         logger.exception("リクエストオブジェクトが不正")
-        return redirect_login_failure(request, error="リクエストデータが不正です。")
+        return await redirect_login_failure(request, error="リクエストデータが不正です。")
 
     # 将来的にユーザー情報取得やDBアクセスを追加した場合に備え、
     # DatabaseError ハンドリングをここに追加することを検討
     
     except HTTPException as e:
         logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
-        return redirect_login_failure(request, e.detail)
+        return await redirect_login_failure(request, e.detail)
 
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました")
-        return redirect_login_failure(request, ERROR_LOGIN_FAILURE, e)
+        return await redirect_login_failure(request, ERROR_LOGIN_FAILURE, e)
 
 
 from core.security import authenticate_user, get_user
@@ -239,7 +239,7 @@ async def login_post(request: Request,
 
     except ConnectionError as e:
         logger.exception("DBまたは外部接続失敗")
-        return redirect_error(request, ERROR_DATABASE_ACCESS, e)
+        return await redirect_error(request, ERROR_DATABASE_ACCESS, e)
 
     except (DatabaseError, SQLAlchemyError) as e:
         logger.exception("データベース操作失敗")
@@ -252,13 +252,13 @@ async def login_post(request: Request,
         elif e.status_code == status.HTTP_403_FORBIDDEN:
             return redirect_login_failure(request, error=ERROR_ACCESS_DENIED)
         elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
-            return redirect_error(request, e.detail, e)
+            return await redirect_error(request, e.detail, e)
         else:
-            return redirect_error(request, "不明なHTTPエラーが発生しました", e)
+            return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
 
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました")
-        return redirect_error(request, ERROR_UNEXPECTED_ERROR_MESSAGE, e)
+        return await redirect_error(request, ERROR_UNEXPECTED_ERROR_MESSAGE, e)
 
 
 

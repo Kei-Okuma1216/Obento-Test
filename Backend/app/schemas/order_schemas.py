@@ -14,7 +14,7 @@ class OrderModel(BaseModel):
         menu_name: str
         amount: int
         created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
-        canceled: Optional[bool] = Field(default=False)
+        checked: Optional[bool] = Field(default=False)
 
         def get_created_at(self) -> datetime:
                 print(f"order_id: {self.created_at}, created_at: {self.created_at}")
@@ -32,7 +32,7 @@ from typing import List
 
 class OrderUpdate(BaseModel):
     order_id: int
-    canceled: bool
+    checked: bool
 
 class OrderUpdateList(BaseModel):
     updates: List[OrderUpdate]

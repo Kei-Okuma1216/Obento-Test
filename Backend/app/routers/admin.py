@@ -39,7 +39,7 @@ async def admin_view(request: Request):
 
     except Exception as e:
         message = f"admin_view() - 予期せぬエラーが発生しました: {str(e)}"
-        return redirect_error(request, message, e)
+        return await redirect_error(request, message, e)
     else:
         return templates.TemplateResponse(
             "admin.html", {
@@ -70,7 +70,7 @@ async def update_existing_passwords(request: Request):
 
     except Exception as e:
         message = f"update_existing_passwords() - 予期せぬエラーが発生しました"
-        return redirect_error(request, message, e)
+        return await redirect_error(request, message, e)
     else:
         return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 

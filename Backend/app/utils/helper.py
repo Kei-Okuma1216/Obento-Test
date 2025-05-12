@@ -47,47 +47,6 @@ async def get_main_url(permission: int) -> str:
         logger.debug(f"redirect_url: {redirect_url}")
         return redirect_url
 
-# @log_decorator
-# async def get_main_url(permission: int) -> str:
-#     try:
-#         # 型チェック
-#         if not isinstance(permission, int):
-#             logger.warning(f"get_main_url() - 無効なpermission型: {type(permission)}")
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail="permissionは整数で指定してください"
-#             )
-
-#         # 権限ごとのURL定義
-#         permission_map = {
-#             1: "/users/order_complete",
-#             2: "/manager/me",
-#             10: "/shops/me",
-#             99: "/admin/me"
-#         }
-
-#         # 該当権限が未定義の場合は403
-#         if permission not in permission_map:
-#             logger.warning(f"get_main_url() - 許可されていないパーミッション: {permission}")
-#             raise HTTPException(
-#                 status_code=status.HTTP_403_FORBIDDEN,
-#                 detail="許可されていないパーミッションです"
-#             )
-
-#         redirect_url = permission_map[permission]
-#         logger.debug(f"redirect_url: {redirect_url}")
-#         return redirect_url
-
-#     except HTTPException:
-#         raise  # 明示的に投げた HTTPException はそのまま再スロー
-
-#     except Exception as e:
-#         logger.exception("get_main_url() - 予期せぬエラーが発生しました")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="URL取得処理中にサーバーエラーが発生しました"
-#         )
-
 
 from fastapi import HTTPException, status, Response
 from fastapi.responses import RedirectResponse

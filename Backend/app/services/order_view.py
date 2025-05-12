@@ -43,8 +43,8 @@ async def order_table_view(
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
 
-        # チェックが入っている注文の件数をカウント（order.canceled が True の場合）
-        checked_count = sum(1 for order in orders if order.canceled)
+        # チェックが入っている注文の件数をカウント（order.checked が True の場合）
+        checked_count = sum(1 for order in orders if order.checked)
 
         # company_nameごとに注文件数を集計
         company_counts = Counter(order.company_name for order in orders)
@@ -156,7 +156,7 @@ async def batch_update_orders(updates: list[dict]):
                 stmt = (
                     update(Order)
                     .where(Order.order_id == update_data["order_id"])
-                    .values(canceled=update_data["canceled"])
+                    .values(checked=update_data["checked"])
                 )
                 try:
                     await session.execute(stmt)

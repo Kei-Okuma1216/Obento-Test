@@ -96,8 +96,8 @@ async def get_menu_json(request: Request, shop_id: str = Query(None)):
 # キャンセルチェック状態を更新
 async def batch_update_orders(updates: list[dict]):
     try:
-        values = [(change["canceled"], change["order_id"]) for change in updates]
-        sql = "UPDATE Orders SET canceled = ? WHERE order_id = ?"
+        values = [(change["checked"], change["order_id"]) for change in updates]
+        sql = "UPDATE Orders SET checked = ? WHERE order_id = ?"
 
         conn = await get_connection()  # ✅ 非同期DB接続
         try:

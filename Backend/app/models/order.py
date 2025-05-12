@@ -684,7 +684,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                     except ValueError:
                         row_dict["created_at"] = datetime.strptime(created_at_val, "%Y-%m-%d %H:%M:%S.%f%z")
 
-                # canceled を bool に明示変換
+                # checked を bool に明示変換
                 row_dict["checked"] = bool(row_dict.get("checked", False))
 
                 # OrderModel へ変換

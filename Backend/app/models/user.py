@@ -248,7 +248,7 @@ async def update_existing_passwords(request: Request):
 
     except Exception as e:
         message = f"update_existing_passwords() - 予期せぬエラーが発生しました"
-        return redirect_error(request, message, e)
+        return await redirect_error(request, message, e)
 
 
 # 追加

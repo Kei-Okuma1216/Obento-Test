@@ -20,7 +20,7 @@
   <td style="width: 10%;">
     <!-- Bootstrapのフォームチェック用クラス -->
     <input type="checkbox" class="form-check-input cancel-checkbox" data-order-id="{{ order.order_id }}"
-      {% if order.canceled %} checked {% endif %}>
+      {% if order.checked %} checked {% endif %}>
   </td>
 </tr>
 {% endfor %}
