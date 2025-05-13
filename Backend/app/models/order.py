@@ -30,7 +30,7 @@
     17. delete_order(order_id: int) -> bool:
     18. delete_all_orders():
 '''
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Date
 from database.local_postgresql_database import Base, engine
 
 # SELECT * FROM public."Orders"
@@ -45,8 +45,8 @@ class Order(Base):
     shop_name = Column(String)
     menu_id = Column(Integer)
     amount = Column(Integer)
-    expected_delivery_date = Column(DateTime)
     created_at = Column(DateTime)
+    expected_delivery_date = Column(Date)
     updated_at = Column(DateTime)
     checked = Column(Integer, default=0)
 
@@ -108,6 +108,7 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -163,6 +164,7 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -226,6 +228,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -293,6 +296,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -364,6 +368,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -441,6 +446,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -512,6 +518,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -576,6 +583,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -653,6 +661,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -730,6 +739,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -803,6 +813,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -873,6 +884,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                     Menu.name.label("menu_name"),
                     Order.amount,
                     Order.created_at,
+                    Order.expected_delivery_date,
                     Order.checked
                 )
                 .select_from(Order)
@@ -977,8 +989,8 @@ async def insert_order(
                 shop_name=shop_name,
                 menu_id=menu_id,
                 amount=amount,
-                expected_delivery_date=delivery_date,  # 追加
                 created_at=created_at,
+                expected_delivery_date=delivery_date,  # 追加
                 checked=0
             )
             session.add(new_order)

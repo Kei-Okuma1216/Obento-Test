@@ -18,7 +18,14 @@
   <td style="width: 16%;">{{ order.menu_name }}</td>
   <td style="width: 8%;">{{ order.amount }}</td>
   <td style="width: 18%;">{{ order.created_at }}</td>
-  <td style="width: 18%;">{{ order.expected_delivery_date }}</td>
+  <!-- <td style="width: 18%;">{{ order.expected_delivery_date }}</td> -->
+  <td style="width: 18%;">
+    {% if order.expected_delivery_date %}
+      {{ order.expected_delivery_date.strftime('%Y-%m-%d') }}
+    {% else %}
+      -
+    {% endif %}
+  </td>
   <td style="width: 10%;">
     <input type="checkbox" class="form-check-input cancel-checkbox" data-order-id="{{ order.order_id }}"
       {% if order.checked %} checked {% endif %}>

@@ -74,7 +74,8 @@ async def get_non_holiday_date(start_date: datetime) -> datetime:
         if holiday_map.get(date_str) is None:
             # print(f"非祝日として確定: {start_date}")
             logger.debug(f"配達予定日: {start_date.strftime('%Y-%m-%d')}")
-            return start_date
+            
+            return start_date.date()
 
         # 祝日なら翌日に進めて再判定
         start_date += timedelta(days=1)
