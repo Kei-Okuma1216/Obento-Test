@@ -13,8 +13,8 @@ class OrderModel(BaseModel):
         shop_name: str
         menu_name: str
         amount: int
-        expected_delivery_date: Optional[datetime] = Field(default=None)
         created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+        expected_delivery_date: Optional[datetime] = Field(default=None)
         checked: Optional[bool] = Field(default=False)
 
         def get_created_at(self) -> datetime:

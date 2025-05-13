@@ -15,6 +15,7 @@
 '''
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from utils.utils import log_decorator, get_all_cookies
+from utils.helper import redirect_login_failure
 
 view_router = APIRouter()
 
@@ -27,43 +28,36 @@ from collections import Counter
 
 # 注文一覧テーブル表示
 @log_decorator
-async def order_table_view(
-                response: Response,
-                orders ,
-                redirect_url: str,
-                context: dict):
-
+async def order_table_view(request: Request, response: Response, orders, redirect_url: str, context: dict):
     try:
+        # デバッグ出力追加
+        req_in_context = context.get("request", None)
+        print(f"context['request']: {req_in_context}")
+        print(f"type(context['request']): {type(req_in_context)}")
+
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
 
-        # チェックが入っている注文の件数をカウント（order.checked が True の場合）
+        # チェック済み注文の件数をカウント
         checked_count = sum(1 for order in orders if order.checked)
 
-        # company_nameごとに注文件数を集計
+        # 会社別注文件数を集計
         company_counts = Counter(order.company_name for order in orders)
-
-        # ※全件数を集計したい場合は、以下のようにフィルタを外します
         aggregated_orders = [[company, count] for company, count in company_counts.items()]
-        # ２件以上の注文がある会社のみを抽出
-        # aggregated_orders = [[company, count] for company, count in company_counts.items() if count >= 2]
 
         logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
 
-
-
-        calculated_orders_context = {        
+        # コンテキスト更新
+        context.update({
             'checked_count': checked_count,
-            'aggregated_orders': aggregated_orders,
-        }
+            'aggregated_orders': aggregated_orders
+        })
+        context["request"] = request
+        
+        # テンプレート応答作成
+        template_response = templates.TemplateResponse(redirect_url, context)
 
-        context.update(calculated_orders_context)
-
-        templates.TemplateResponse("order_table.html", context)
-
-        template_response = templates.TemplateResponse(
-            redirect_url, context)
-        # 必須！　Set-CookieヘッダーがNoneでないことを確認
+        # Set-Cookie ヘッダー引き継ぎ
         set_cookie_header = response.headers.get("Set-Cookie")
         if set_cookie_header:
             template_response.headers["Set-Cookie"] = set_cookie_header
@@ -71,12 +65,13 @@ async def order_table_view(
         return template_response
 
     except HTTPException as e:
-        raise HTTPException(e.status_code, e.detail)
+        logger.exception(f"HTTPException: {e.detail}")
+        return redirect_login_failure(request, "不正なアクセス、またはセッションが切れました。")
     except Exception as e:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            f"/order_table_view()",
-            f"Error: {str(e)}")
+        logger.exception("shop_view で予期せぬエラーが発生")
+    
+        return redirect_login_failure(request, "システムエラーが発生しました。管理者にお問い合わせください。")
+
 
 
 import json

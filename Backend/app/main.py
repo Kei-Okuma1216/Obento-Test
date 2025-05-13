@@ -23,9 +23,6 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from jinja2 import TemplateNotFound
-
-templates = Jinja2Templates(directory="templates")
 
 from utils.helper import create_auth_response, get_main_url, redirect_error
 from utils.utils import *
@@ -39,6 +36,8 @@ from routers.shop import shop_router
 from routers.user import user_router
 
 app = FastAPI()
+templates = Jinja2Templates(directory="templates")
+
 
 # CORS対策
 from fastapi.middleware.cors import CORSMiddleware
@@ -346,3 +345,5 @@ async def read_log(filename: str):
 
     return HTMLResponse(content)
 
+# for route in app.routes:
+#     print(route.path, route.name)

@@ -48,6 +48,8 @@ async def shop_view(request: Request, response: Response):
 
         shop_context = await get_shop_context(request, orders)
 
+        return await order_table_view(request, response, orders, "shop.html", shop_context)
+
     except HTTPException as e:
         logger.exception(f"HTTPException: {e.detail}")
         return redirect_login_failure(request, e.detail)
@@ -57,8 +59,6 @@ async def shop_view(request: Request, response: Response):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="注文情報の取得中にサーバーエラーが発生しました"
         )
-    else:
-        return await order_table_view(response, orders, "shop.html", shop_context)
 
 
 # @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
@@ -126,6 +126,7 @@ async def get_shop_context(request: Request, orders):
         }
 
         shop_context.update(order_context)
+        return shop_context
 
     except (AttributeError, TypeError) as e:
         logger.exception("get_shop_context - 注文データ形式不正")
@@ -139,8 +140,8 @@ async def get_shop_context(request: Request, orders):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="注文情報取得中にサーバーエラーが発生しました"
         )
-    else:
-        return shop_context
+
+
 
 
 # @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 

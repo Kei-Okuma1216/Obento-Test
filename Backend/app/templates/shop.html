@@ -21,12 +21,6 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
-      /* 4Kモニタ（横幅3840px以上）の場合 */
-      @media (min-width: 3840px) {
-        .scrollable-table {
-          max-height: 800px; /* ここを好きな高さに変更 */
-        }
-      }
     </style>
   </head>
   <body>
@@ -60,17 +54,9 @@
           <div class="tab-pane fade show active" id="info" role="tabpanel" aria-labelledby="info-tab">
             <h2 class="mt-3">備考</h2>
             <p>注文締切時刻：前日13時</p>
-            <!-- <h3 class="mt-3">機能状況</h3> -->
-            <!-- <div class="mb-3">
-              <h4>実装済</h4>
-              <ul class="list-group mb-3">
-                <li class="list-group-item"><del>受注情報を集計</del></li>
-                <li class="list-group-item">
-                  <a href="{{ base_url }}/admin/order_logs">
-                    注文ログファイル一覧
-                  </a>
-                </li>
-              </ul> -->
+            <h3 class="mt-3">機能状況</h3>
+             <div class="mb-3">
+              <h4>実装済</h4>  
               <!-- 休日設定用カレンダーピッカー -->
               <div class="mt-4">
                 <h4>休日設定</h4>
@@ -111,8 +97,7 @@
 
               <!-- 保存ボタン -->
               <button id="save-changes-button" class="btn btn-primary mb-3">保存</button>
-              <!-- order_log_filter_config.pyボタン -->
-              <button id="my-order-log-button" class="btn btn-primary mb-3">注文ログ抽出</button>
+
 
             </div>
             <div class="table-responsive">
@@ -148,11 +133,15 @@
           <!-- ログタブ -->
           <div class="tab-pane fade" id="log" role="tabpanel" aria-labelledby="log-tab">
             <h1 class="mt-3">ログ</h1>
-            <!-- Bootstrap の Modal を利用してログ表示ウィンドウを開く -->
-            <!-- 注文ログ表示ボタン -->
-            <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#orderlogModal">
-              注文ログ表示
-            </button>
+            <!-- 横並び用ラッパー -->
+            <div class="d-flex gap-2 mb-3">
+              <!-- order_log_filter_config.pyボタン -->
+              <button id="my-order-log-button" class="btn btn-primary">注文ログ抽出</button>
+              <!-- 注文ログ表示ボタン -->
+              <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#orderlogModal">
+                注文ログ表示
+              </button>
+            </div>
           </div>
 
         </div>
@@ -188,39 +177,43 @@
 
     <!-- JavaScript: JSON取得処理とリンク更新 -->
     <script>
-      document.getElementById("save-changes-button").addEventListener("click", function() {
-        const checkboxes = document.querySelectorAll('input.cancel-checkbox');
-        const updates = [];
-      
-        checkboxes.forEach(function(checkbox) {
-          const orderId = checkbox.getAttribute("data-order-id");
-          const checked = checkbox.checked;
-          updates.push({
-            order_id: Number(orderId),
-            checked: checked
-          });
-          // alert(orderId + ' ' + checked); // 修正済み
+  const saveButton = document.getElementById("save-changes-button");
+  if (saveButton) {
+    saveButton.addEventListener("click", function() {
+      const checkboxes = document.querySelectorAll('input.cancel-checkbox');
+      const updates = [];
+
+      checkboxes.forEach(function(checkbox) {
+        const orderId = checkbox.getAttribute("data-order-id");
+        const checked = checkbox.checked;
+        updates.push({
+          order_id: Number(orderId),
+          checked: checked
         });
-      
-        fetch("/update_cancel_status", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({ updates: updates })
-        })
-        .then(response => {
-          if (!response.ok) throw new Error("保存に失敗しました");
-          return response.json();
-        })
-        .then(data => {
-          alert("保存が完了しました");
-        })
-        .catch(error => {
-          console.error("Error:", error);
-          alert("エラーが発生しました");
-        });
+        // alert(orderId + ' ' + checked); // 修正済み
+      });  // ← ここで forEach を閉じる
+
+      fetch("/update_cancel_status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ updates: updates })
+      })
+      .then(response => {
+        if (!response.ok) throw new Error("保存に失敗しました");
+        return response.json();
+      })
+      .then(data => {
+        alert("保存が完了しました");
+      })
+      .catch(error => {
+        console.error("Error:", error);
+        alert("エラーが発生しました");
       });
+
+    });  // ← ここで addEventListener を閉じる
+  }  // ← if 文を閉じる
 
       // JSON取得ボタンの処理
       document.getElementById("fetch-json-btn").addEventListener("click", function(){

@@ -66,7 +66,7 @@ async def regist_complete(request: Request, response: Response):
         logger.exception("予期せぬエラーが発生しました: %s", str(e))
         return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
     else:
-        return await order_table_view(response, orders, "order_complete.html", user_context)
+        return await order_table_view(request, response, orders, "order_complete.html", user_context)
 
 
 async def get_user_context(request: Request, orders):

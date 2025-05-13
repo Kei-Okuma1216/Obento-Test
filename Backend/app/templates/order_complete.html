@@ -9,18 +9,7 @@
     <!-- 独自スタイル -->
     <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
     <style>
-      /* 固定フッターの初期状態は少し下に隠す */
-      .fixed-footer {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: -10px;
-        transition: bottom 0.3s ease;
-        z-index: 1030;
-      }
-      .fixed-footer:hover {
-        bottom: 0;
-      }
+
       /* コンテンツ部分に下余白を追加（フッターの高さ分を確保） */
       .content-wrapper {
         padding-bottom: 80px;
@@ -54,19 +43,6 @@
         }
         .table-responsive table {
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
-        }
-      }
-      @media (min-width: 577px) {/* PCモニタサイズ（576px以下）の場合 */
-        .fixed-footer {
-          position: static !important; /* 固定表示を解除 */
-          bottom: auto !important;
-          transition: none;
-        }
-      }
-      /* 4Kモニタ（横幅3840px以上）の場合 */
-      @media (min-width: 3840px) {
-        .scrollable-table {
-          max-height: 800px; /* ここを好きな高さに変更 */
         }
       }
     </style>

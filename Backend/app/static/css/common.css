@@ -1,0 +1,64 @@
+/* static/css/common.css */
+/* ここは以下のエラーにより、インクルードできなかった部分のCSSです。 */
+/* No route exists for name "static" and params "filename". */
+/* <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}"> -->*/
+
+/* コンテンツ部分 */
+/* 下余白を追加（フッターの高さ分を確保）manager, shop */
+.content-wrapper {
+  padding-bottom: 80px; /* ※フッターの高さに合わせて調整 */
+}
+@media (max-width: 576px) { /* スマホサイズ（576px以下）の場合 */
+  .table-responsive {
+    overflow-x: auto; /* 横スクロールを許可 */
+  }
+  .table-responsive table {
+    min-width: 220%; /* テーブル幅を画面の2倍に設定 */
+  }
+}
+
+/* タブのスタイル */
+.tab-pane {
+  height: auto !important;
+  min-height: auto !important;
+}
+/* スクロール可能なテーブルのスタイル */
+.scrollable-table {
+  max-height: none !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+/* モニタサイズに応じたスタイル */
+/* PCモニタサイズ（576px以上）の場合 */
+@media (min-width: 1920px) {
+  .scrollable-table {
+    max-height: none; /* 高さ制限を解除 */
+  }
+}
+/* 4Kモニタ（横幅3840px以上）の場合 */
+@media (min-width: 3840px) {
+  .scrollable-table {
+    max-height: 800px; /* ここを好きな高さに変更 */
+  }
+}
+/* フッターのスタイル */
+/* 固定フッターの初期状態は少し下に隠す */
+.fixed-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  transition: bottom 0.3s ease;
+  z-index: 1030;
+}
+/* PCモニタサイズ（576px以下）の場合 */
+@media (min-width: 577px) {
+  .fixed-footer {
+    position: static !important; /* 固定表示を解除 */
+    bottom: auto !important;
+    transition: none;
+  }
+}
+.fixed-footer:hover {
+  bottom: 0;
+}
