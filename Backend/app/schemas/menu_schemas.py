@@ -11,9 +11,12 @@ class MenuModel(BaseModel):
     price: int
     description: Optional[str] = None
     picture_path: Optional[str] = None
-    disabled: Optional[bool] = Field(default=False)
-    created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
-
+    # disabled: Optional[bool] = Field(default=False)
+    disabled: Optional[bool] = None
+    # created_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+ 
     class Config:
         from_attributes = True  # ここに設定することで全ての派生クラスに適用される
 

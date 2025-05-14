@@ -14,6 +14,7 @@ class UserBase(BaseModel):
     shop_name: Optional[str] = None
     menu_id: Optional[int] = None
     permission: Optional[int] = 1
+    created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True  # ここに設定することで全ての派生クラスに適用される
@@ -68,7 +69,7 @@ class UserResponse(UserCreate):
     token: Optional[str] = None
     exp: Optional[str] = None
     is_modified: bool = False  # デフォルト値 False
-    updated_at: Optional[datetime] = Field(default_factory=lambda: datetime.now())
+    updated_at: Optional[datetime] = None
 
     def get_user_id(self) -> int:
         return self.user_id
