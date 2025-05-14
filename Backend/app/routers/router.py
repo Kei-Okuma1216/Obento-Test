@@ -41,29 +41,15 @@ delivery_mapping = {
     6: 0 # 日 -> 月
 }
 
-# @sample_router.get("/delivery/{order_day}")
-# def get_delivery_day(order_day: int):
-#     return {"order_day": order_day, "delivery_day":
-#     delivery_mapping.get(order_day, "Invalid order day")}
-from datetime import datetime, timedelta
+
+from datetime import datetime
 from utils.utils import log_decorator
+from config.config_loader import skip_holiday
 
-@log_decorator
-def get_non_holiday_date(start_date: datetime) -> datetime:
-    """
-    祝日を飛ばして次の平日を取得する
-    """
-    holiday_map = load_holiday_map()
-
-    while True:
-        date_str = start_date.strftime("%Y/%-m/%-d")  # 例: 2025/1/1
-        if holiday_map.get(date_str) is None:
-            return start_date
-        start_date += timedelta(days=1)
 
 @sample_router.get("/delivery_date/{date_str}")
 @log_decorator
-def get_delivery_date(date_str: str):
+async def delivery_date_view(date_str: str):
     """
     指定された日付（YYYY-MM-DD）から配達可能日を判定するAPI
     """
@@ -73,7 +59,8 @@ def get_delivery_date(date_str: str):
         return {"error": "Invalid date format. Use YYYY-MM-DD."}
 
     # 祝日をスキップ
-    valid_date = get_non_holiday_date(date)
+    valid_date = await skip_holiday(date)
+    print(f"{valid_date}")
 
     # 曜日判定
     weekday = valid_date.weekday()  # 0: 月曜日 ～ 6: 日曜日

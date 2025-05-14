@@ -52,9 +52,11 @@ delivery_mapping = {
 }
 
 # @log_decorator
-async def get_non_holiday_date(start_date: datetime) -> datetime:
+async def skip_holiday(start_date: datetime) -> datetime:
     # print(f"初回 start_date: {start_date}")
-    logger.debug(f"注文日: {start_date.strftime('%Y-%m-%d')}")
+    init_date = start_date.strftime('%Y-%m-%d')
+    # print(f"注文日: {init_date}")
+    
     holiday_map = load_holiday_map()
 
     while True:
@@ -68,13 +70,13 @@ async def get_non_holiday_date(start_date: datetime) -> datetime:
 
         # 日付文字列を "YYYY/M/D" 形式に変換
         date_str = f"{start_date.year}/{start_date.month}/{start_date.day}"
-        print(f"判定対象の日付: {date_str}")
+        # print(f"判定対象の日付: {date_str}")
 
         # 祝日でなければ採用
         if holiday_map.get(date_str) is None:
             # print(f"非祝日として確定: {start_date}")
-            logger.debug(f"配達予定日: {start_date.strftime('%Y-%m-%d')}")
-            
+            logger.debug(f"注文日: {init_date} 配達予定日: {start_date.strftime('%Y-%m-%d')}")
+
             return start_date.date()
 
         # 祝日なら翌日に進めて再判定

@@ -23,6 +23,7 @@ from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from jinja2 import TemplateNotFound
 
 from utils.helper import create_auth_response, get_main_url, redirect_error
 from utils.utils import *
@@ -77,25 +78,27 @@ from core.constants import (
 import jwt
 from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
-from utils.utils import delete_all_cookies
+from utils.utils import delete_all_cookies, check_order_duplex
 from models.admin import init_database
 from requests.exceptions import ConnectionError
 
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
-async def root(request: Request, response: Response):
+async def root(request: Request):
+# async def root(request: Request, response: Response):
 
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
-        # 二重注文の禁止
-        result , last_order = await check_permission_and_stop_order(request, response)
-        logger.info(f"last_order: {last_order}")
-        if result:
+        has_order, last_order = await check_order_duplex(request)
+        if has_order:
+            # 二重注文禁止のメッセージを表示
+            # last_order = orders[0] if orders else None
+            # print(f"last_order: {last_order}")
             return templates.TemplateResponse(
                 "duplicate_order.html",
                 {
@@ -105,6 +108,9 @@ async def root(request: Request, response: Response):
                     "endpoint": endpoint
                 }
             )
+        # 二重注文の禁止
+        # result , last_order = await check_permission_and_stop_order(request, response)
+
 
         # cookies チェック
         token = request.cookies.get("token")
@@ -217,6 +223,48 @@ async def login_post(request: Request,
     try:
         input_username = form_data.username
         input_password = form_data.password
+
+        # 二重注文の拒否
+        response = await check_order_duplex(request)
+        if response:
+            return response  # そのまま返却して終了
+
+        # 二重注文でなければ、ここから続く
+
+        # has_order, last_order = await check_order_duplex(request)
+        # if has_order:
+        #     # 二重注文禁止のメッセージを表示
+        #     # last_order = orders[0] if orders else None
+        #     # print(f"last_order: {last_order}")
+        #     return templates.TemplateResponse(
+        #         "duplicate_order.html",
+        #         {
+        #             "request": request,
+        #             "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
+        #             "last_order": last_order,
+        #             "endpoint": endpoint
+        #         }
+        #     )
+        
+        # today = get_today_date()
+        # orders = await select_orders_by_user_at_date(input_username, today)
+        # if orders:
+        #     logger.info(f"check_order_duplex() - 既に注文が存在します: {orders[0]}")
+        #     # 二重注文禁止のメッセージを表示
+        #     last_order = orders[0] if orders else None
+        #     print(f"last_order: {last_order.created_at}")
+        #     return templates.TemplateResponse(
+        #         "duplicate_order.html",
+        #         {
+        #             "request": request,
+        #             "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
+        #             "last_order": last_order.created_at,
+        #             "endpoint": endpoint
+        #         }
+        #     )            
+        # else:
+        #     logger.debug("check_order_duplex() - 注文は存在しません")
+
 
         user = await get_user(input_username, input_password, "")
         user = await authenticate_user(user, input_password) 

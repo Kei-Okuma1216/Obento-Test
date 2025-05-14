@@ -111,7 +111,8 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
 
         print(f"orders.len(): {len(orders) if orders else '注文は0件です'}")
         if not orders:
-            logger.info("No orders found or error occurred.")
+            logger.info("No orders found.")  # エラーではないため wording 修正
+            # logger.info("No orders found or error occurred.")
             return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
 
         # 日時で逆順にソート

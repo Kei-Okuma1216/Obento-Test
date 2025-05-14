@@ -20,9 +20,10 @@ logging.basicConfig(level=logging.INFO)
 
 # 定数
 from utils.utils import log_decorator, get_today_datetime
+from core.constants import DEFAULT_COMPANY_NAME, DEFAULT_COMPANY_TEL, DEFAULT_SHOP_NAME, DEFAULT_LUNCH_NAME
 from sqlalchemy.exc import DatabaseError
 
-from database.local_postgresql_database import engine, default_shop_name
+from database.local_postgresql_database import engine
 '''------------------------------------------------------'''
 from models.user import create_user_table, insert_shop, insert_user, update_existing_passwords, update_user
 from models.company import create_company_table, insert_company
@@ -47,22 +48,24 @@ async def init_database():
         # 会社情報の登録
         # 備考：Userの外部キーがcompaniesのため、先に登録する
         # await create_company_table()
-        await insert_company("テンシステム", "083-999-9999", default_shop_name) # 1
+        
+        # await insert_company("テンシステム", "083-999-9999", DEFAULT_SHOP_NAME) # 1
+        await insert_company(DEFAULT_COMPANY_NAME, DEFAULT_COMPANY_TEL, DEFAULT_SHOP_NAME) # 1
 
 
         # ユーザー情報の登録
         # await create_user_table() 
         # 1
-        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=default_shop_name, menu_id=1) 
+        await insert_user("user1", "user1", "大隈 慶1", company_id=1, shop_name=DEFAULT_SHOP_NAME, menu_id=1) 
         # 2
-        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=default_shop_name, menu_id=1)
+        await insert_user("user2", "user2", "大隈 慶2", company_id=1, shop_name=DEFAULT_SHOP_NAME, menu_id=1)
         # 3
-        await insert_shop(default_shop_name, "shop01", "お店shop01")
+        await insert_shop(DEFAULT_SHOP_NAME, "shop01", "お店shop01")
         # 4
-        await insert_user("manager", "manager", "manager", company_id=1, shop_name=default_shop_name, menu_id=1)
+        await insert_user("manager", "manager", "manager", company_id=1, shop_name=DEFAULT_SHOP_NAME, menu_id=1)
         await update_user("manager", "permission", 2) # ここで権限を変更する
         # 5
-        await insert_user("admin", "admin", "admin", company_id=1, shop_name=default_shop_name, menu_id=1)
+        await insert_user("admin", "admin", "admin", company_id=1, shop_name=DEFAULT_SHOP_NAME, menu_id=1)
 
 
         await update_user("admin", "permission", 99)
@@ -75,8 +78,8 @@ async def init_database():
         # メニュー情報の登録
         # await create_menu_table()
         await insert_menu(
-            shop_name=default_shop_name,
-            name='お昼の定食',
+            shop_name=DEFAULT_SHOP_NAME,
+            name=DEFAULT_LUNCH_NAME,
             price=500,
             description='お昼のランチお弁当です',
             picture_path='/static/shops/1/menu/ランチ01.jpg') # 1
@@ -86,52 +89,51 @@ async def init_database():
         # await create_orders_table()
         
         # 1
-        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=5))
+        await insert_order(1, "user1", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-5))
         # 2
-        await insert_order(1, "user2", default_shop_name, 1, 2, get_today_datetime(days_ago=4))
+        await insert_order(1, "user2", DEFAULT_SHOP_NAME, 1, 2, get_today_datetime(offset=-4))
         # 3
-        await insert_order(1, "tenten01", default_shop_name, 1, 3, get_today_datetime(days_ago=3))
+        await insert_order(1, "tenten01", DEFAULT_SHOP_NAME, 1, 3, get_today_datetime(offset=-3))
         # 4
-        await insert_order(1, "tenten02", default_shop_name, 1, 1, get_today_datetime(days_ago=2))
+        await insert_order(1, "tenten02", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-2))
         # 5
-        await insert_order(1, "user3", default_shop_name, 1, 1, get_today_datetime(days_ago=1))
+        await insert_order(1, "user3", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-1))
         # 6
-        await insert_order(1, "user1", default_shop_name, 1, 1, get_today_datetime(days_ago=0))
+        await insert_order(1, "user1", DEFAULT_SHOP_NAME, 1, 1)
         # 7
-        await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime(days_ago=0))
+        await insert_order(1, "user1", "shop02", 1, 1)
 
-        from datetime import timedelta
+        from datetime import datetime, timedelta
+        tomorrow = get_today_datetime(offset=1)
 
         # 8
-        tomorrow = get_today_datetime(days_ago=0) + timedelta(days=1)
-        print(f"明日の日付: {tomorrow}")
+        # print(f"明日の日付: {tomorrow}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow)
 
         # 9
-        print(f"明後日の日付: {tomorrow + timedelta(days=1)}")
+        # print(f"明後日の日付: {tomorrow + timedelta(days=1)}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=1))
 
         # 10
-        print(f"明後日の日付: {tomorrow + timedelta(days=2)}")
+        # print(f"明後日の日付: {tomorrow + timedelta(days=2)}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=2))
 
         # 11
-        print(f"明後日の日付: {tomorrow + timedelta(days=3)}")
+        # print(f"明後日の日付: {tomorrow + timedelta(days=3)}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=3))
 
         # 12
-        print(f"明後日の日付: {tomorrow + timedelta(days=4)}")
+        # print(f"明後日の日付: {tomorrow + timedelta(days=4)}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=4))
 
         # 13
-        print(f"明後日の日付: {tomorrow + timedelta(days=5)}")
+        # print(f"明後日の日付: {tomorrow + timedelta(days=5)}")
         await insert_order(1, "user1", "shop01", 1, 1, tomorrow + timedelta(days=5))
 
         # 14
-        from datetime import datetime
-        oneone = datetime(2025, 1, 1)
-        print(f"お正月の日付: {oneone}")
-        await insert_order(1, "user1", "shop01", 1, 1, oneone)
+        # oneone = datetime(2025, 1, 1)
+        # print(f"お正月の日付: {oneone}")
+        await insert_order(1, "user1", "shop01", 1, 1, datetime(2025, 1, 1))
 
         logger.info("データベースファイル 'example' が正常に作成されました。")
 

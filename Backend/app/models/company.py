@@ -78,6 +78,7 @@ async def select_company(company_id: int) -> Optional[CompanyModel]:
         async with AsyncSessionLocal() as session:
             # ORMモデルであるCompanyをクエリする
             stmt = select(Company).where(Company.company_id == company_id)
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             orm_company = result.scalar_one_or_none()
 
@@ -115,7 +116,7 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
             stmt = select(Company)
             result = await session.execute(stmt)
             orm_companies = result.scalars().all()
-            logger.debug(f"select_all_company() - {stmt}")
+            logger.debug(f"{stmt=}")
 
             # 取得したORMオブジェクトをpydanticモデル(CompanyModel)に変換
             if orm_companies:
@@ -138,7 +139,7 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
         logger.error(f"Unexpected error: {e}")
 
 
-from utils.utils import get_today_datetime, get_today_str
+from utils.utils import get_today_datetime
 from sqlalchemy import func
 # 追加
 @log_decorator
@@ -154,20 +155,19 @@ async def insert_company(company_name: str,
             stmt = select(func.count()).select_from(Company).where(Company.name == company_name)
             result = await session.execute(stmt)
             count = result.scalar()
-            logger.debug(f"insert_company() - COUNTクエリ - count: {count}")
+            logger.debug(f"COUNTクエリ: {stmt} - count: {count}")
 
             if count > 0:
                 logger.info(f"会社名: {company_name} は既に存在します。挿入をスキップします。")
                 return False
 
-            print(f"get_today_datetime: {get_today_datetime}")
             # 新規企業レコードの作成
             new_company = Company(
                 # company_id は自動採番される前提のため指定しない
                 name=company_name,
                 tel=telephone,
                 shop_name=default_shop_name,
-                created_at=get_today_datetime(), #get_today_str(),
+                created_at=get_today_datetime(),
                 disabled=False
             )
             session.add(new_company)
@@ -207,6 +207,7 @@ async def update_company(company_id: int, key: str, value: str):
     try:
         async with AsyncSessionLocal() as session:
             stmt = update(CompanyModel).where(CompanyModel.company_id == company_id).values({key: value})
+            logger.debug(f"{stmt=}")
             await session.execute(stmt)
             await session.commit()
 
@@ -223,7 +224,7 @@ async def update_company(company_id: int, key: str, value: str):
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
     else:
-        logger.debug(f"update_company() - {stmt}")
+        logger.info(f"Company {company_id} の更新に成功しました。")
         return True
 
 
@@ -237,6 +238,7 @@ async def delete_company(company_id: int):
     try:
         async with AsyncSessionLocal() as session:
             stmt = delete(CompanyModel).where(CompanyModel.company_id == company_id)
+            logger.debug(f"{stmt=}")
             await session.execute(stmt)
             await session.commit()
 
@@ -254,18 +256,17 @@ async def delete_company(company_id: int):
         logger.error(f"Unexpected error: {e}")
     else:
         logger.info(f"Company {company_id} の削除に成功しました。")
-        logger.debug(f"delete_company() - {stmt}")
         return True
 
 # 削除（全件）
 from sqlalchemy import text
 @log_decorator
 async def delete_all_company():
-    sqlstr = "DROP TABLE IF EXISTS Company"
+    stmt = "DROP TABLE IF EXISTS Company"
     try:
         def drop_table(sync_conn):
-            sync_conn.execute(text(sqlstr))
-
+            sync_conn.execute(text(stmt))
+            logger.debug(f"{stmt}")
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
 
@@ -283,5 +284,4 @@ async def delete_all_company():
         logger.error(f"Unexpected error: {e}")
     else:
         logger.info("Companyテーブルの削除に成功しました。")
-        logger.debug(f"delete_all_company() - {sqlstr}")
         return True

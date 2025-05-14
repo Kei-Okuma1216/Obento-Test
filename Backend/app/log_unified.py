@@ -5,29 +5,30 @@ import pytz
 
 logger = logging.getLogger("uvicorn")
 
-def get_today_datetime(days_ago: int = 0) -> datetime:
-    """
-    JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
-    """
-    if not isinstance(days_ago, int) or days_ago < 0:
-        logger.warning(f"get_today_datetime() - 無効な days_ago: {days_ago}")
-        raise ValueError("days_ago は 0 以上の整数で指定してください")
 
-    try:
-        tz = pytz.timezone("Asia/Tokyo")
-        current_time = datetime.now(tz) - timedelta(days=days_ago)
-        naive_datetime = datetime(
-            current_time.year,
-            current_time.month,
-            current_time.day,
-            0, 0, 0
-        )
-    except Exception as e:
-        logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
-        raise RuntimeError("日付計算中に予期せぬエラーが発生しました") from e
-    else:
-        logger.debug(f"get_today_datetime() - 生成日時: {naive_datetime}")
-        return naive_datetime
+# def get_today_datetime(days_ago: int = 0) -> datetime:
+#     """
+#     JSTで days_ago 日前の0時0分0秒のナイーブな datetime を返す。
+#     """
+#     if not isinstance(days_ago, int) or days_ago < 0:
+#         logger.warning(f"get_today_datetime() - 無効な days_ago: {days_ago}")
+#         raise ValueError("days_ago は 0 以上の整数で指定してください")
+
+#     try:
+#         tz = pytz.timezone("Asia/Tokyo")
+#         current_time = datetime.now(tz) - timedelta(days=days_ago)
+#         naive_datetime = datetime(
+#             current_time.year,
+#             current_time.month,
+#             current_time.day,
+#             0, 0, 0
+#         )
+#     except Exception as e:
+#         logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
+#         raise RuntimeError("日付計算中に予期せぬエラーが発生しました") from e
+#     else:
+#         logger.debug(f"get_today_datetime() - 生成日時: {naive_datetime}")
+#         return naive_datetime
 
 
 
@@ -39,6 +40,7 @@ class FixedWidthFormatter(logging.Formatter):
 
 import os
 from logging.handlers import TimedRotatingFileHandler  # 必要なインポート
+from utils.utils import get_today_date
 
 # 方法　２つのロガーをつくる
 # from log_unified import uvicorn_logger, order_logger
@@ -56,9 +58,11 @@ def create_logger(name: str, log_dir: str) -> logging.Logger:
     """
     # print(f"作成ログ: {name}")
     os.makedirs(log_dir, exist_ok=True)
-    current_time = get_today_datetime()
-    # print(f"current_time: {current_time}")
-    log_filename = os.path.join(log_dir, f"{current_time.strftime('%Y-%m-%d')}.log")
+    current_date = get_today_date()
+    # print(f"current_date_with_zero: {current_date_with_zero}")
+    # log_filename = os.path.join(log_dir, f"{current_time_with_zero.strftime('%Y-%m-%d')}.log")
+    log_filename = os.path.join(log_dir, f"{current_date}.log")
+    
     # print(f"ログファイル名: {log_filename}")
 
     logger = logging.getLogger(name)

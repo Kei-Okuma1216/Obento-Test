@@ -12,7 +12,7 @@
     8. delete_all_menus():
 '''
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, func
-from sqlalchemy.exc import DatabaseError
+from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
@@ -30,9 +30,8 @@ class Menu(Base):
     description = Column(Text, default="")  # 説明（デフォルト空）
     picture_path = Column(String, default="")  # 画像パス（デフォルト空）
     disabled = Column(Boolean, default=False)  # 0: 利用可能, 1: 利用不可
-    # タイムゾーン対応の日時を返すようにする
-    #created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))  # 作成日時(アプリ側作成日時)
     created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
+    updated_at = Column(DateTime, nullable=True)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
@@ -153,7 +152,6 @@ async def select_all_menus(shop_name: str) -> Optional[List[Menu]]:
 
 '''------------------------------------------------------'''
 from sqlalchemy import func  # COUNT用
-from sqlalchemy.exc import IntegrityError, OperationalError
 
 @log_decorator
 async def insert_menu(

@@ -10,7 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 
 from utils.helper import redirect_error
-from utils.utils import get_all_cookies, log_decorator, check_permission, prevent_order_twice
+from utils.utils import get_all_cookies, log_decorator, check_permission, set_last_order
 from models.user import select_user
 from models.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
@@ -58,15 +58,16 @@ async def regist_complete(request: Request, response: Response):
         order_count = len(orders) - 1
         last_order_date = orders[order_count].created_at
 
-        prevent_order_twice(response, last_order_date)  # ここで注文の重複を防止
+        set_last_order(response, last_order_date)  # ここで注文の重複を防止
 
         user_context = await get_user_context(request, orders)
+
+        return await order_table_view(request, response, orders, "order_complete.html", user_context)
 
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました: %s", str(e))
         return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
-    else:
-        return await order_table_view(request, response, orders, "order_complete.html", user_context)
+
 
 
 async def get_user_context(request: Request, orders):

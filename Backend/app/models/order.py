@@ -2,7 +2,7 @@
 '''
     注文クエリ関数
 
-    1. class Orders(Base):
+    1. class Order(Base):
     2. create_orders_table():
 
     # 管理者(admin)用に注文を取得する
@@ -20,7 +20,7 @@
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[OrderModel]]:
 
     # 店舗(shop_name) を指定して、注文を取得する
-    11. all(shop_name: str) -> Optional[List[OrderModel]]:
+    11. select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
     12. select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[OrderModel]]:
     13. select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[OrderModel]]:
     14. select_orders_by_shop_ago(shop_name: str, days_ago_str: str) -> Optional[List[OrderModel]]:
@@ -30,7 +30,7 @@
     17. delete_order(order_id: int) -> bool:
     18. delete_all_orders():
 '''
-from sqlalchemy import Column, Integer, String, DateTime, Date
+from sqlalchemy import Column, Integer, String, DateTime, Date, func
 from database.local_postgresql_database import Base, engine
 
 # SELECT * FROM public."Orders"
@@ -45,23 +45,23 @@ class Order(Base):
     shop_name = Column(String)
     menu_id = Column(Integer)
     amount = Column(Integer)
-    created_at = Column(DateTime)
-    expected_delivery_date = Column(Date)
-    updated_at = Column(DateTime)
+    created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
+    updated_at = Column(DateTime, nullable=True)
+    expected_delivery_date = Column(Date, nullable=True)
     checked = Column(Integer, default=0)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
-from utils.utils import log_decorator
 
 import logging
 logger = logging.getLogger(__name__)
 from log_unified import logger
 
-
 from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
+
+from utils.utils import log_decorator
 
 # 作成
 @log_decorator
@@ -116,12 +116,13 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.order_id == order_id)
             )
-            logger.debug(f"select_single_order() - {stmt=}")
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             row = result.first()
 
             if row is None:
-                return None
+                logger.warning("No order found")
+                return []
 
             # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
             row_dict = dict(row._mapping)
@@ -150,7 +151,7 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
 async def select_all_orders() -> Optional[List[OrderModel]]:
     """
     全てのOrdersレコードを取得し、pydanticのOrderModelのリストとして返します。
-    (注文が存在しない場合は None を返します)
+    (注文が存在しない場合は [] を返します)
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -171,14 +172,15 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                 .join(Company, Order.company_id == Company.company_id)
                 .join(Menu, Order.menu_id == Menu.menu_id)
             )
-            logger.debug(f"select_all_orders() - {stmt=}")
+            logger.debug(f"{stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
 
             if not rows:
                 logger.warning("No order found")
-                return None
+                return []# return None
+
 
             order_models: List[OrderModel] = []
             for row in rows:
@@ -206,7 +208,7 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
         logger.error(f"Unexpected error: {e}")
 
 '''-----------------------------------------------------------'''
-from utils.utils import get_created_at_period
+
 
 # 選択（一般ユーザー:全件）
 @log_decorator
@@ -215,7 +217,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
     指定された username の全 Orders レコードを取得し、
     CompanyおよびMenuテーブルとJOINして必要な情報（company_name, menu_nameなど）を取得、
     その結果をpydanticの OrderModel オブジェクトのリストとして返します。
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -236,13 +238,13 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.username == username)
             )
-            logger.debug(f"select_orders_by_user_all() - {stmt=}")
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
                 logger.warning(f"No order found for user: {username}")
-                return None
+                return []# return None
 
             order_list: List[OrderModel] = []
             for row in rows:
@@ -280,12 +282,16 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
     00:00:00～23:59:59 の範囲の注文を対象とします。
     CompanyおよびMenuテーブルとJOINして、company_name や menu_name など必要な情報を取得し、
     結果を pydantic の OrderModel オブジェクトのリストとして返します。
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
+    from datetime import time
     try:
         async with AsyncSessionLocal() as session:
-            start_dt = f"{target_date.isoformat()} 00:00:00"
-            end_dt = f"{target_date.isoformat()} 23:59:59"
+            # start_dt = f"{target_date.isoformat()} 00:00:00"
+            # end_dt = f"{target_date.isoformat()} 23:59:59"
+            # 00:00:00 と 23:59:59.999999 の datetime を作成
+            start_dt = datetime.combine(target_date, time.min)
+            end_dt = datetime.combine(target_date, time.max)
             
             stmt = (
                 select(
@@ -307,19 +313,14 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                     Order.created_at.between(start_dt, end_dt)
                 )
             )
-            # SELECT * FROM "Orders"
-            # WHERE created_at BETWEEN 
-            # '2025-04-22 00:00:00+09'::timestamptz AND 
-            # '2025-04-22 23:59:59+09'::timestamptz;
 
-            
-            logger.debug(f"select_orders_by_user_at_date() - {stmt=}")
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
                 logger.warning(f"No order found for user: {username} on {target_date.isoformat()}")
-                return None
+                return []# return None
 
             order_models: List[OrderModel] = []
             for row in rows:
@@ -344,7 +345,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
 
-
+from utils.utils import get_created_at_period
 
 # 選択（一般ユーザー:日付遡及）
 @log_decorator
@@ -354,7 +355,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
     例）days_ago=3 → 本日から３日前～本日の期間の注文を取得する。
     CompanyおよびMenuテーブルとJOINして、必要な情報（company_name, menu_nameなど）を取得し、
     その結果を pydantic の OrderModel オブジェクトのリストとして返します。
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -377,28 +378,16 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 .where(Order.username == username)
             )
 
-            # # 検証用
-            # recent = await session.execute(
-            #     select(Order.order_id, Order.created_at)
-            #     .where(Order.shop_name == username)
-            #     .order_by(Order.created_at.desc())
-            #     .limit(5)
-            # )
-            # for row in recent.fetchall():
-            #     print(f"[DEBUG] DB created_at: {row[1]} (type={type(row[1])})")
-
-            # 指定日数前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
-            # print(f"{start_dt=}, {end_dt=}")
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            
-            logger.debug(f"select_orders_by_user_ago() - {stmt=}")
+
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
-            
+
             if not rows:
-                logger.warning(f"No order found for user: {username} within the specified period")
-                return None
+                logger.warning(f"No order found for user: {username} within the specified period days_ago: {days_ago}")
+                return []# return None
 
             order_models: List[OrderModel] = []
             for row in rows:
@@ -408,7 +397,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
-            
+
             return order_models
 
     except IntegrityError as e:
@@ -433,7 +422,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
     """
     指定された company_id の注文レコードを、Company および Menu テーブルとJOINして取得します。
     取得結果を pydantic の OrderModel オブジェクトのリストとして返します。
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -455,14 +444,14 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                 .where(Order.company_id == company_id)
             )
 
-            logger.debug(f"- {stmt=}")
+            logger.debug(f"{stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
 
             if not rows:
-                logger.warning("No order found for the given company_id")
-                return None
+                logger.warning(f"No order found for the given company_id: {company_id}")
+                return []# return None
 
             order_models: List[OrderModel] = []
             for row in rows:
@@ -501,14 +490,14 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
     00:00:00～23:59:59 の範囲の注文を対象とします。
     
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
-    該当する注文が存在しなければ None を返します。
+    該当する注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
             # target_date をもとに期間文字列を生成
             start_datetime = f"{target_date.isoformat()} 00:00:00"
             end_datetime   = f"{target_date.isoformat()} 23:59:59"
-            
+
             stmt = (
                 select(
                     Order.order_id,
@@ -528,13 +517,13 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 .where(Order.created_at.between(start_datetime, end_datetime))
             )
             
-            logger.debug(f"select_orders_by_company_at_date() - {stmt=}")
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
-                logger.warning("No order found for the given company_id and target_date")
-                return None
+                logger.warning(f"No order found for the given company_id:{company_id} and target_date: {target_date}")
+                return []# return None
             
             order_models: List[OrderModel] = []
             for row in rows:
@@ -544,9 +533,8 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 row_dict["checked"] = bool(row_dict.get("checked", False))
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
-            
-            logger.debug(f"select_orders_by_company_at_date() - order_models: {order_models}")
-            return order_models
+
+        logger.debug(f"{order_models=}")
 
     except IntegrityError as e:
         await session.rollback()
@@ -560,6 +548,8 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 
@@ -569,7 +559,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
     指定された company_id の注文レコードを、Company および Menu テーブルとJOINして取得します。
     days_ago が指定されている場合、created_at が指定期間内の注文に絞り込みます。
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -596,15 +586,14 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
             # 期間指定: days_ago日前から本日までの期間を取得
             start_dt, end_dt = await get_created_at_period(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
-            logger.debug(f"select_orders_by_company_ago() - {stmt=}")
+            logger.debug(f"{stmt=}")
 
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
-                logger.warning("No order found for the given company_id")
-                return [] 
-                #return None
+                logger.warning(f"No order found for the given company_id: {company_id}")
+                return []# return None
             
             order_models: List[OrderModel] = []
             for row in rows:
@@ -633,9 +622,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
 
 
 '''-----------------------------------------------------------'''
-from datetime import datetime
 from typing import Optional, List
-import logging
 
 from sqlalchemy import select
 
@@ -648,7 +635,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
     """
     指定された shop_name に該当する全注文情報を、Company および Menu テーブルとJOINして取得し、
     pydantic の OrderModel オブジェクトのリストとして返します。
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -669,21 +656,20 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.shop_name == shop_name)
             )
-            logger.debug(f"select_orders_by_shop_all() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
                 logger.warning(f"No order found with the given shop_name: {shop_name}")
-                return None
+                return []# return None
             
             order_models: List[OrderModel] = []
             for row in rows:
                 row_dict = dict(row._mapping)
 
                 # DEBUG: created_at の型確認
-                logger.debug(f"[DEBUG] created_at type: {type(row_dict.get('created_at'))}, value: {row_dict.get('created_at')}")
+                # logger.debug(f"[DEBUG] created_at type: {type(row_dict.get('created_at'))}, value: {row_dict.get('created_at')}")
 
                 # created_at を文字列から datetime に変換（必要な場合のみ）
                 created_at_val = row_dict.get("created_at")
@@ -701,20 +687,25 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                 order_models.append(order_model)
             
             logger.debug(f"select_orders_by_shop_all() - order_models: {order_models}")
-            return order_models
 
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.debug(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.debug(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.debug(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.debug(f"{stmt=}")
+    else:
+        return order_models
 
 
 
@@ -726,7 +717,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
     指定された shop_name と company_id に該当する注文情報を、
     Company および Menu テーブルとJOINして取得します。
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
-    注文が存在しなければ None を返します。
+    注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -747,14 +738,13 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.shop_name == shop_name, Order.company_id == company_id)
             )
-            logger.debug(f"select_orders_by_shop_company() - {stmt=}")
             
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
                 logger.warning(f"No order found for shop: {shop_name} and company_id: {company_id}")
-                return None
+                return []# return None
             
             order_models: List[OrderModel] = []
             for row in rows:
@@ -769,21 +759,25 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                 order_models.append(order_model)
             
             logger.debug(f"select_orders_by_shop_company() - order_models: {order_models}")
-            return order_models
 
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.debug(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.debug(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.debug(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+        logger.debug(f"{stmt=}")
+    else:
+        return order_models
 
 
 
@@ -796,7 +790,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
     00:00:00～23:59:59 の範囲内の注文を対象とします。
     
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
-    該当する注文が存在しなければ None を返します。
+    該当する注文が存在しなければ [] を返します。
     """
     try:
         async with AsyncSessionLocal() as session:
@@ -822,14 +816,13 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 .where(Order.shop_name == shop_name)
                 .where(Order.created_at.between(start_datetime, end_datetime))
             )
-            
-            logger.debug(f"select_orders_by_shop_at_date() - {stmt=}")
+
             result = await session.execute(stmt)
             rows = result.all()
             
             if not rows:
-                logger.warning("No order found for the given shop_name and target_date")
-                return None
+                logger.warning(f"No order found for the given shop_name: {shop_name} and target_date: {target_date}")
+                return []# return None
 
             order_models: List[OrderModel] = []
             for row in rows:
@@ -844,20 +837,25 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 order_models.append(order_model)
             
             logger.debug(f"select_orders_by_shop_at_date() - order_models: {order_models}")
-            return order_models
 
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.debug(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.debug(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.debug(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.debug(f"{stmt=}")
+    else:
+        return order_models
 
 
 
@@ -869,7 +867,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
     Orders.created_at の範囲内の注文に絞り込みます。
     
     取得結果は pydantic の OrderModel オブジェクトのリストとして返し、
-    該当する注文が存在しなければ None を返します。
+    該当する注文が存在しなければ [] を返します。
     """
     print(f"{shop_name=}, {days_ago=}")
     try:
@@ -897,7 +895,6 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             start_dt, end_dt = await get_created_at_period(days_ago)
 
             # 期間条件を追加
-            print(f"days_ago: {days_ago}")
             if days_ago == 0:
                 stmt = stmt.where(
                     Order.created_at >= start_dt,
@@ -908,13 +905,12 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                     Order.created_at >= start_dt,
                     Order.created_at <= end_dt  # ここは `<=` にするのが素直で安全
                 )
-            print(f"str(stmt):--->{str(stmt)}")
 
             result = await session.execute(stmt)
             rows = result.all()
 
             if not rows:
-                logger.warning("No order found for the given shop_name with the specified period")
+                logger.warning(f"No order found for the given shop_name: {shop_name} with the specified start_dt: {start_dt}, end_dt: {end_dt}")
                 return []# return None
 
             print(f"rows count: {len(rows)}")
@@ -930,20 +926,25 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
                 order_model = OrderModel(**row_dict)
                 order_models.append(order_model)
 
+            logger.debug(f"{order_models=}")
+
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.error(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.error(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.error(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.error(f"{stmt=}")
     else:
-        logger.debug(f"{order_models=}")
         return order_models
 
 
@@ -952,7 +953,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
 # 追加
 from log_unified import log_order
 from utils.utils import get_naive_jst_now
-from config.config_loader import get_non_holiday_date
+from config.config_loader import skip_holiday
 
 @log_decorator
 async def insert_order(
@@ -972,15 +973,18 @@ async def insert_order(
         async with AsyncSessionLocal() as session:
             if created_at is None:
                 created_at = get_naive_jst_now()
+                print(f"1: {created_at=}")
 
             # 念のため tzinfo を削除（ナイーブ化）
             if created_at.tzinfo is not None:
                 created_at = created_at.replace(tzinfo=None)
+                print(f"2: {created_at=}")
 
             logger.debug(f"insert_order() - 使用する created_at: {created_at} (tzinfo={created_at.tzinfo})")
-
             # 配達予定日を取得し、printで確認
-            delivery_date = await get_non_holiday_date(created_at)
+            delivery_date = await skip_holiday(created_at)
+            # create_date = datetime.strptime(created_at, "%Y-%m-%d")
+            # delivery_date = await skip_holiday(create_date)
 
 
             new_order = Order(
@@ -1023,7 +1027,7 @@ async def insert_order(
 '''-------------------------------------------------------------'''
 # 更新
 from sqlalchemy import update, text
-from utils.utils import get_today_datetime
+from utils.utils import get_naive_jst_now
 
 @log_decorator
 async def update_order(order_id: int, checked: bool):
@@ -1034,11 +1038,11 @@ async def update_order(order_id: int, checked: bool):
         async with AsyncSessionLocal() as session:
             await session.execute(text("SET TIME ZONE 'Asia/Tokyo'"))  # タイムゾーン設定
 
-            current_time = get_today_datetime()
+            updated_time = get_naive_jst_now()
             stmt = (
                 update(Order)
                 .where(Order.order_id == order_id)
-                .values(checked=checked, updated_at=current_time)
+                .values(checked=checked, updated_at=updated_time)
             )
             result = await session.execute(stmt)
             await session.commit()
@@ -1046,18 +1050,23 @@ async def update_order(order_id: int, checked: bool):
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.error(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.error(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.error(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.error(f"{stmt=}")
     else:
         if result.rowcount == 0:
             logger.warning(f"注文更新失敗: order_id {order_id} の注文が見つかりませんでした。")
+            logger.error(f"{stmt=}")
         else:
             logger.info(f"注文更新成功: order_id {order_id}")
         logger.debug(f"update_order() - SQL: {stmt}")
@@ -1075,6 +1084,7 @@ async def delete_order(order_id: int) -> bool:
     try:
         async with AsyncSessionLocal() as session:
             stmt = delete(Order).where(Order.order_id == order_id)
+            logger.debug(f"{stmt=}")
             result = await session.execute(stmt)
             await session.commit()
 
@@ -1087,15 +1097,19 @@ async def delete_order(order_id: int) -> bool:
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.error(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.error(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.error(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.error(f"{stmt=}")
     else:
         logger.info(f"Order with order_id {order_id} deleted successfully.")
         return True
@@ -1104,10 +1118,10 @@ async def delete_order(order_id: int) -> bool:
 # 削除（全件）
 @log_decorator
 async def delete_all_orders():
-    sqlstr = "DROP TABLE IF EXISTS orders"
+    stmt = "DROP TABLE IF EXISTS orders"
     try:
         def drop_table(sync_conn):
-            sync_conn.execute(text(sqlstr))
+            sync_conn.execute(text(stmt))
 
         async with AsyncSessionLocal() as session:
             await session.run_sync(drop_table)
@@ -1115,15 +1129,19 @@ async def delete_all_orders():
     except IntegrityError as e:
         await session.rollback()
         logger.error(f"IntegrityError: {e}")
+        logger.error(f"{stmt=}")
     except OperationalError as e:
         await session.rollback()
         logger.error(f"OperationalError: {e}")
+        logger.error(f"{stmt=}")
     except DatabaseError as e:
         await session.rollback()
         logger.error(f"SQL実行中にエラーが発生しました:{e}")
+        logger.error(f"{stmt=}")
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+        logger.error(f"{stmt=}")
     else:
         logger.info("All orders deleted successfully.")
         log_order(

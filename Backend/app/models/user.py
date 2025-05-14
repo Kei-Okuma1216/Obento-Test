@@ -18,7 +18,7 @@
     12. delete_all_user():
     13. alter_orders_created_at_column_type():
 '''
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, inspect, select, func
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, inspect, select, func
 from database.local_postgresql_database import Base
 
 # database.Userクラス
@@ -39,6 +39,7 @@ class User(Base):
     menu_id = Column(Integer, nullable=True)
     permission = Column(Integer, default=1)
     is_modified = Column(Boolean, default=False)
+    created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
     updated_at = Column(String, nullable=True)
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
@@ -256,8 +257,12 @@ async def update_existing_passwords(request: Request):
 '''
 @log_decorator
 async def insert_user(
-    username: str, password: str, name: str,
-    company_id: int, shop_name: str, menu_id: int=1)-> bool:
+    username: str,
+    password: str,
+    name: str,
+    company_id: int,
+    shop_name: str,
+    menu_id: int=1)-> bool:
     async with AsyncSessionLocal() as session:
         try:
             # ユーザーが既に存在するか確認
