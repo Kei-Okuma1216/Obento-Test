@@ -178,13 +178,12 @@ async def root(request: Request):
 async def register_get(request: Request):
     return templates.TemplateResponse("register.html", {"request": request})
 
-
 # 重複ユーザーの有無確認
 async def is_user_exists(username: str) -> bool:
     existing_user = await select_user(username)
     return existing_user is not None
 
-
+# 新規登録画面
 @app.post("/register", response_class=HTMLResponse)
 @log_decorator
 async def register_post(
@@ -237,13 +236,6 @@ async def register_post(
             status_code=500
         )
 
-# ログイン画面のGET（サンプル）
-@app.get("/login", response_class=HTMLResponse)
-async def login_get(request: Request):
-    message = request.cookies.get("message")
-    response = templates.TemplateResponse("login.html", {"request": request, "message": message})
-    response.delete_cookie("message")
-    return response
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
