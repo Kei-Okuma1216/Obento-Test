@@ -419,7 +419,8 @@ def set_last_order(response: Response, last_order_date: datetime):
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     end_time = int(end_of_day.timestamp())
 
-    current = get_today_datetime()
+    # current = get_today_datetime()
+    current = get_naive_jst_now()
     current_time = int(current.timestamp())
 
     future_time = end_time - current_time

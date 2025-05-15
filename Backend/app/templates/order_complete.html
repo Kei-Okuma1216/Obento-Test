@@ -45,6 +45,12 @@
           min-width: 220%; /* テーブル幅を画面の2倍に設定 */
         }
       }
+        .delivery-date-label {
+        width: 30% !important;
+      }
+        .delivery-date-value {
+        width: 70% !important;
+      }
     </style>
   </head>
   <body class="bg-light">
@@ -87,8 +93,10 @@
                     <tr><th>メニュー名</th><td>{{ order_details.menu_name }}</td></tr>
                     <tr><th>注文数</th><td>{{ order_details.amount }} 件</td></tr>
                     <tr><th>注文日時</th><td>{{ order_details.created_at }}</td></tr>
-                    <!-- <tr><th>配達予定日</th><td>{{ order_details.expected_delivery_date }}</td></tr> -->
-                    <tr><th>配達予定日</th><td>{{ order_details.expected_delivery_date.strftime('%Y-%m-%d') }}</td></tr>
+                    <tr>
+                      <th class="delivery-date-label">配達予定日</th>
+                      <td class="delivery-date-value">{{ order_details.expected_delivery_date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
                   </table>
               </div>
             </div>
