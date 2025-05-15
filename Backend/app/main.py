@@ -69,7 +69,6 @@ tracemalloc.start()
 from core.constants import (
     ERROR_TOKEN_EXPIRED,
     ERROR_ACCESS_DENIED,
-    ERROR_FORBIDDEN_SECOND_ORDER,
     ERROR_LOGIN_FAILURE,
     ERROR_UNEXPECTED_ERROR_MESSAGE,
     ERROR_DATABASE_ACCESS
@@ -87,7 +86,6 @@ import requests
 @app.get("/", response_class=HTMLResponse, tags=["users"])
 @log_decorator
 async def root(request: Request):
-# async def root(request: Request, response: Response):
 
     try:
         logger.info(f"root() - ルートにアクセスしました")
@@ -95,11 +93,10 @@ async def root(request: Request):
         # await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
-        has_order, last_order, response = await check_order_duplex(request)
+        # 二重注文の禁止
+        has_order, response = await check_order_duplex(request)
         if has_order:
             return response
-        # 二重注文の禁止
-        # result , last_order = await check_permission_and_stop_order(request, response)
 
 
         # cookies チェック
@@ -215,46 +212,9 @@ async def login_post(request: Request,
         input_password = form_data.password
 
         # 二重注文の拒否
-        has_order, last_order, response = await check_order_duplex(request)
+        has_order, response = await check_order_duplex(request)
         if has_order:
             return response
-
-        # 二重注文でなければ、ここから続く
-
-        # has_order, last_order = await check_order_duplex(request)
-        # if has_order:
-        #     # 二重注文禁止のメッセージを表示
-        #     # last_order = orders[0] if orders else None
-        #     # print(f"last_order: {last_order}")
-        #     return templates.TemplateResponse(
-        #         "duplicate_order.html",
-        #         {
-        #             "request": request,
-        #             "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
-        #             "last_order": last_order,
-        #             "endpoint": endpoint
-        #         }
-        #     )
-        
-        # today = get_today_date()
-        # orders = await select_orders_by_user_at_date(input_username, today)
-        # if orders:
-        #     logger.info(f"check_order_duplex() - 既に注文が存在します: {orders[0]}")
-        #     # 二重注文禁止のメッセージを表示
-        #     last_order = orders[0] if orders else None
-        #     print(f"last_order: {last_order.created_at}")
-        #     return templates.TemplateResponse(
-        #         "duplicate_order.html",
-        #         {
-        #             "request": request,
-        #             "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
-        #             "last_order": last_order.created_at,
-        #             "endpoint": endpoint
-        #         }
-        #     )            
-        # else:
-        #     logger.debug("check_order_duplex() - 注文は存在しません")
-
 
         user = await get_user(input_username, input_password, "")
         user = await authenticate_user(user, input_password) 

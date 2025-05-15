@@ -551,100 +551,10 @@ async def check_order_duplex(request: Request):
             },
             status_code=200
         )
-        return True, last_order, response
+        return True, response
 
-    logger.debug("check_order_duplex() - 注文は存在しません")
-    return False, None, None
-
-
-# @log_decorator
-# async def check_order_duplex(request: Request):
-#     try:
-#         # ここでusernameを使ってDBから情報を取得する
-#         username = request.cookies.get("sub")
-
-#         today = get_today_date()
-#         today_orders = await select_orders_by_user_at_date(username, today)
-#         if today_orders:
-#             logger.debug(f"check_order_duplex() - 既に注文が存在します: {today_orders[0]}")
-#             last_order = today_orders[0] if today_orders else None
-#             return True, last_order
-#         else:
-#             logger.debug("check_order_duplex() - 注文は存在しません")
-#             return False, None
-
-#     except HTTPException:
-#         raise  # 既に投げたHTTPExceptionはそのまま再スロー
-#     except Exception as e:
-#         logger.exception("check_permission_and_stop_order() - 予期せぬエラーが発生しました")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="権限と注文チェック中にサーバーエラーが発生しました"
-#         )
-        
-
-
-# # チェックする
-# #@log_decorator
-# async def check_permission_and_stop_order(request: Request, response: Response):
-#     try:
-#         ''' 権限と二重注文チェックを合体させた関数
-#             - cookie permissionが1の場合に限り実行する。
-#             - last_order_dateが存在していればTrueを返す
-#             - それ以外の場合はFalseを返す
-#         '''
-#         # Cookieからpermissionを取得
-#         permission = request.cookies.get("permission")
-#         #print(f"cookie permission: {permission}")
-
-#         if permission is None:
-#             permission = '1'
-
-#         if permission != '' and permission.isdigit():
-#             permission = int(permission)
-#         #print(f"permission: {permission}")
-
-#         # permissionが1である場合のみ、二重注文（last_order_date）のチェックを行う
-#         if permission == 1:
-#             last_order = request.cookies.get("last_order_date")
-#             if last_order is None:
-#                 return False, None
-#             else:
-#                 logger.info(f"今日２度目の注文を阻止 - 最終注文日: {last_order}")
-#                 logger.debug(f"result , last_order: {True , str(last_order)}")
-#                 return True, last_order
-#         else:
-#             # Cookieを全部消す
-#             delete_all_cookies(response)
-#             return False, None
-
-#     except KeyError as e:
-#         logger.error(f"get_token_expires() - KeyError: {e}")
-#     except ValueError:
-#         logger.error(f"get_token_expires() - ValueError: {e}")
-#     except Exception as e:
-#         logger.error(f"get_token_expires() - 予期せぬエラーが発生しました: {e}")
-
-        
-
-# @log_decorator
-# async def check_permission(request: Request, permits: list):
-#     ''' 権限チェック '''
-#     permission = request.cookies.get("permission")
-
-#     # print(f"permission: {permission}")
-#     if permission is None or permission == '':
-#         permission = 0
-
-#     if isinstance(permission, str) and permission.isdigit():
-#         permission = int(permission)
-
-#     # print(f"permits: {permits}")
-#     if permission in permits:
-#         return True
-
-#     return False
-
+    print("check_order_duplex() - 注文は存在しません")
+    return False, None
 
 
 @log_decorator
