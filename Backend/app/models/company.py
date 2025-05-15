@@ -12,6 +12,7 @@
     8. delete_all_company():
 '''
 
+from datetime import datetime
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.exc import DatabaseError
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
@@ -24,7 +25,7 @@ class Company(Base):
     name = Column(String, nullable=False)
     tel = Column(String, nullable=True)
     shop_name = Column(String, nullable=True)
-    created_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())  # 作成日時(サーバー側作成日時)
     disabled = Column(Boolean, default=False)
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
