@@ -39,17 +39,40 @@
           <form action="/register" method="post">
             <div class="mb-3">
               <label for="username" class="form-label">ユーザー名</label>
-              <input type="text" id="username" name="username" class="form-control" required>
+              <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                class="form-control" 
+                required
+                placeholder="例:  abc@gmail.com"
+              >
             </div>
 
             <div class="mb-3">
               <label for="password" class="form-label">パスワード</label>
-              <input type="password" id="password" name="password" class="form-control" required>
+                <input 
+                  type="password" 
+                  id="password" 
+                  name="password" 
+                  class="form-control" 
+                  required
+                  placeholder="15文字以内半角英数字を入力してください。"
+                >
             </div>
 
             <div class="mb-3">
               <label for="nickname" class="form-label">ニックネーム</label>
-              <input type="text" id="nickname" name="nickname" class="form-control" required>
+              <input 
+                type="text" 
+                id="nickname" 
+                name="nickname" 
+                class="form-control" 
+                required 
+                placeholder="例: たろう"
+                oninvalid="this.setCustomValidity('ニックネームを入力してください。')"
+                oninput="this.setCustomValidity('')"
+              >
             </div>
 
             <div class="d-grid">

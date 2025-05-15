@@ -103,7 +103,8 @@ async def root(request: Request):
             # return False, templates.TemplateResponse("error.html", {"request": request, "error": "認証情報が不正です。"})
             # /register へリダイレクト
             # return RedirectResponse(url="/register", status_code=303)
-            return RedirectResponse(url="/register?message=ユーザー新規登録をしてください。", status_code=303)
+            # return RedirectResponse(url="/register?message=ユーザー新規登録をしてください。", status_code=303)
+            return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
         # 二重注文の禁止
         has_order, response = await check_order_duplex(request)
