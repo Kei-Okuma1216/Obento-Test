@@ -79,7 +79,7 @@ def deprecated(func):
 from fastapi.responses import RedirectResponse
 import pytz
 
-@log_decorator
+# @log_decorator
 def get_naive_jst_now() -> datetime:
     """Asia/Tokyo の現在時刻を tzinfo なしで返す
     日付取得はasyncにする必要なし
@@ -88,7 +88,7 @@ def get_naive_jst_now() -> datetime:
         datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
         "%Y-%m-%d %H:%M:%S"
     )
-    print(f"{time_now=}")
+    print(f"get_naive_jst_now(): {time_now=}")
     return time_now
 
 
@@ -97,7 +97,7 @@ from fastapi import HTTPException, status
 
 
 
-@log_decorator
+# @log_decorator
 def get_today_datetime(offset: int = 0) -> date:
     """
     JSTで offset 日前の0時0分0秒のナイーブな datetime を返す。
@@ -123,7 +123,7 @@ def get_today_datetime(offset: int = 0) -> date:
             0, 0, 0
         )
 
-        print(f"get_today_datetime() - 生成日時: {naive_datetime}")
+        print(f"get_today_datetime(): {naive_datetime}")
         return naive_datetime
 
     except HTTPException:
@@ -143,7 +143,7 @@ def get_today_datetime(offset: int = 0) -> date:
         )
 
 # 今日の日付取得 update_datetime用
-@log_decorator
+# @log_decorator
 def get_today_date(offset: int = 0) -> datetime:
     """
     今日の日付 (date型) を取得する関数。
@@ -174,7 +174,7 @@ class Period(NamedTuple):
     start: datetime
     end: datetime
 
-@log_decorator
+# @log_decorator
 async def get_datetime_range(days_ago: int) -> Period:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。

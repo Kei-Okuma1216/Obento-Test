@@ -100,10 +100,6 @@ async def root(request: Request):
         if not username:
             # ログを出して処理を止める
             logger.info("Cookieから username が取得できませんでした。")
-            # return False, templates.TemplateResponse("error.html", {"request": request, "error": "認証情報が不正です。"})
-            # /register へリダイレクト
-            # return RedirectResponse(url="/register", status_code=303)
-            # return RedirectResponse(url="/register?message=ユーザー新規登録をしてください。", status_code=303)
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
         # 二重注文の禁止
@@ -254,6 +250,11 @@ async def login_get(request: Request):
 @log_decorator
 async def login_get(request: Request):
     try:
+        has_order, response = await check_order_duplex(request)
+        if has_order:
+            return response
+        
+        
         # ログイン成功画面にリダイレクト
         return redirect_login_success(request)
 
@@ -295,10 +296,10 @@ async def login_post(request: Request,
         input_username = form_data.username
         input_password = form_data.password
 
-        # 二重注文の拒否
-        has_order, response = await check_order_duplex(request)
-        if has_order:
-            return response
+        # # 二重注文の拒否
+        # has_order, response = await check_order_duplex(request)
+        # if has_order:
+        #     return response
 
         # ユーザー取得・認証
         user = await get_user(input_username, input_password, "")
@@ -308,6 +309,15 @@ async def login_post(request: Request,
             # ここでパスワード間違いのメッセージを表示
             return redirect_login_failure(request, error="パスワードが間違っています")
 
+        # ここで認証成功後に username をセットして判定させる
+        request._cookies["sub"] = user.get_username()  # Cookieをセットするか、別途パラメータとして渡す
+
+        # 二重注文の拒否
+        has_order, response = await check_order_duplex(request)
+        if has_order:
+            return response
+
+        # 権限確認
         permission = user.get_permission()
         main_url = await get_main_url(permission)
 

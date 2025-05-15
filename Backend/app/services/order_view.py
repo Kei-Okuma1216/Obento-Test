@@ -31,9 +31,9 @@ from collections import Counter
 async def order_table_view(request: Request, response: Response, orders, redirect_url: str, context: dict):
     try:
         # デバッグ出力追加
-        req_in_context = context.get("request", None)
-        print(f"context['request']: {req_in_context}")
-        print(f"type(context['request']): {type(req_in_context)}")
+        # req_in_context = context.get("request", None)
+        # print(f"context['request']: {req_in_context}")
+        # print(f"type(context['request']): {type(req_in_context)}")
 
         # ordersリストをin-placeで降順にソート
         orders.sort(key=lambda x: x.order_id, reverse=True)
