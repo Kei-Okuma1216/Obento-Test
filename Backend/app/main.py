@@ -81,6 +81,7 @@ from utils.helper import redirect_login_failure, redirect_login_success
 from utils.utils import delete_all_cookies, check_order_duplex
 from models.admin import init_database
 from requests.exceptions import ConnectionError
+import requests
 
 # エントリポイント
 @app.get("/", response_class=HTMLResponse, tags=["users"])
@@ -91,23 +92,12 @@ async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        # await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
-        has_order, last_order = await check_order_duplex(request)
+        has_order, last_order, response = await check_order_duplex(request)
         if has_order:
-            # 二重注文禁止のメッセージを表示
-            # last_order = orders[0] if orders else None
-            # print(f"last_order: {last_order}")
-            return templates.TemplateResponse(
-                "duplicate_order.html",
-                {
-                    "request": request,
-                    "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
-                    "last_order": last_order,
-                    "endpoint": endpoint
-                }
-            )
+            return response
         # 二重注文の禁止
         # result , last_order = await check_permission_and_stop_order(request, response)
 
@@ -225,9 +215,9 @@ async def login_post(request: Request,
         input_password = form_data.password
 
         # 二重注文の拒否
-        response = await check_order_duplex(request)
-        if response:
-            return response  # そのまま返却して終了
+        has_order, last_order, response = await check_order_duplex(request)
+        if has_order:
+            return response
 
         # 二重注文でなければ、ここから続く
 

@@ -1,7 +1,8 @@
 # schemas/user_schemas.py
 # pydantic用クラス
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 from typing import Optional
+from datetime import datetime
 
 ''' 使用例
     user = UserBase(username="alice", company_id=123, shop_name="Shop A")

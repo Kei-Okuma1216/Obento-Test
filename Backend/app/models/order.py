@@ -345,7 +345,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
 
-from utils.utils import get_created_at_period
+from utils.utils import get_datetime_range
 
 # 選択（一般ユーザー:日付遡及）
 @log_decorator
@@ -378,7 +378,7 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
                 .where(Order.username == username)
             )
 
-            start_dt, end_dt = await get_created_at_period(days_ago)
+            start_dt, end_dt = await get_datetime_range(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
 
             logger.debug(f"{stmt=}")
@@ -584,7 +584,7 @@ async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Op
 
 
             # 期間指定: days_ago日前から本日までの期間を取得
-            start_dt, end_dt = await get_created_at_period(days_ago)
+            start_dt, end_dt = await get_datetime_range(days_ago)
             stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
             logger.debug(f"{stmt=}")
 
@@ -892,7 +892,7 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
             )
 
             # 指定日数前から本日までの期間を取得
-            start_dt, end_dt = await get_created_at_period(days_ago)
+            start_dt, end_dt = await get_datetime_range(days_ago)
 
             # 期間条件を追加
             if days_ago == 0:

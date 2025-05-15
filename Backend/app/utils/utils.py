@@ -6,7 +6,7 @@
     3. get_naive_jst_now() -> datetime:
     4. get_today_datetime(offset: int = 0) -> date:
     5. get_today_date(offset: int = 0) -> datetime:
-    6. get_created_at_period(days_ago: int) -> Tuple[datetime, datetime]:
+    6. get_datetime_range(days_ago: int) -> Tuple[datetime, datetime]:
 
     7. set_all_cookies(response: Response, user: Dict):
     8. get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
@@ -29,7 +29,8 @@ from venv import logger
 from fastapi import Request, Response
 from http.cookies import SimpleCookie
 
-from functools import functools, wraps
+from functools import wraps
+import functools
 from typing import Dict, Optional
 
 import inspect
@@ -92,7 +93,7 @@ def get_naive_jst_now() -> datetime:
 
 # @log_decorator
 from fastapi import HTTPException, status
-from log_unified import logger
+
 
 
 @log_decorator
@@ -102,6 +103,7 @@ def get_today_datetime(offset: int = 0) -> date:
     例: offset=0 -> 今日の 00:00:00（タイムゾーンなし）
     """
     try:
+        from log_unified import logger
         # 型と値の検証
         if not isinstance(offset, int):
             logger.warning(f"get_today_datetime() - 無効な offset: {offset}")
@@ -172,7 +174,7 @@ class Period(NamedTuple):
     end: datetime
 
 @log_decorator
-async def get_created_at_period(days_ago: int) -> Period:
+async def get_datetime_range(days_ago: int) -> Period:
     """
     指定された days_ago に基づいて、期間の開始日時と終了日時を返す。
     返す datetime は tzinfo を持たない naive datetime。
@@ -181,7 +183,7 @@ async def get_created_at_period(days_ago: int) -> Period:
     try:
         # 型と値の検証
         if not isinstance(days_ago, int) or days_ago < 0:
-            logger.warning(f"get_created_at_period() - 無効な days_ago: {days_ago}")
+            logger.warning(f"get_datetime_range() - 無効な days_ago: {days_ago}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="days_ago は 0 以上の整数で指定してください"
@@ -199,20 +201,20 @@ async def get_created_at_period(days_ago: int) -> Period:
         start_dt = datetime(start_target.year, start_target.month, start_target.day, 0, 0, 0)
         end_dt   = datetime(end_target.year, end_target.month, end_target.day, 23, 59, 59)
 
-        logger.debug(f"get_created_at_period() - start: {start_dt}, end: {end_dt}")
+        logger.debug(f"get_datetime_range() - start: {start_dt}, end: {end_dt}")
 
     except HTTPException:
         raise  # 既に投げた HTTPException はそのまま再スロー
 
     except (ValueError, TypeError) as e:
-            logger.exception("get_created_at_period() - 型または値のエラー")
+            logger.exception("get_datetime_range() - 型または値のエラー")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="期間計算中に不正なパラメータが指定されました"
             )
 
     except Exception as e:
-        logger.exception("get_created_at_period() - 予期せぬエラーが発生しました")
+        logger.exception("get_datetime_range() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="期間計算中にサーバーエラーが発生しました"
@@ -539,7 +541,7 @@ async def check_order_duplex(request: Request):
     if today_orders:
         last_order = today_orders[0]
         logger.debug(f"check_order_duplex() - 既に注文が存在します: {last_order}")
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "duplicate_order.html",
             {
                 "request": request,
@@ -549,8 +551,11 @@ async def check_order_duplex(request: Request):
             },
             status_code=200
         )
+        return True, last_order, response
+
     logger.debug("check_order_duplex() - 注文は存在しません")
-    return None  # 注文なし
+    return False, None, None
+
 
 # @log_decorator
 # async def check_order_duplex(request: Request):

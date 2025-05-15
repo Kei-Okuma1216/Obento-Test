@@ -1,4 +1,4 @@
-# test/test_utils___get_created_at_period.py
+# test/test_utils___get_datetime_range.py
 # 実行方法
 # pytest -s test_utils___get_today_datetime.py
 
@@ -7,12 +7,12 @@ from datetime import datetime, timedelta
 import pytz
 import asyncio
 
-from utils.utils import get_created_at_period
+from utils.utils import get_datetime_range
 
 # ----------------------------------------------------------
 # 📌 補助関数
 # JSTで days_ago 日前の 00:00:00（ナイーブ）を期待値として返す
-# get_created_at_period() の start_dt と比較する用途
+# get_datetime_range() の start_dt と比較する用途
 # ----------------------------------------------------------
 def get_expected_start(days_ago: int) -> datetime:
     jst = pytz.timezone("Asia/Tokyo")
@@ -23,7 +23,7 @@ def get_expected_start(days_ago: int) -> datetime:
 # ----------------------------------------------------------
 # 📌 補助関数
 # 本日（JST）の 23:59:59（ナイーブ）を期待値として返す
-# get_created_at_period() の end_dt と比較する用途
+# get_datetime_range() の end_dt と比較する用途
 # ----------------------------------------------------------
 def get_expected_end() -> datetime:
     jst = pytz.timezone("Asia/Tokyo")
@@ -33,15 +33,15 @@ def get_expected_end() -> datetime:
 
 # ----------------------------------------------------------
 # 📌 テスト本体
-# get_created_at_period(days_ago) が正しく以下を満たすかを検証：
+# get_datetime_range(days_ago) が正しく以下を満たすかを検証：
 # - start_dt は days_ago 日前の JST 00:00:00（ナイーブ）
 # - end_dt は 本日 JST の 23:59:59（ナイーブ）
 # - いずれも tzinfo を持たないナイーブな datetime
 # ----------------------------------------------------------
 @pytest.mark.asyncio
 @pytest.mark.parametrize("days_ago", [0, 1, 3, 7, 30])
-async def test_get_created_at_period_returns_correct_range(days_ago):
-    start_dt, end_dt = await get_created_at_period(days_ago)
+async def get_datetime_range(days_ago):
+    start_dt, end_dt = await get_datetime_range(days_ago)
 
     expected_start = get_expected_start(days_ago)
     expected_end = get_expected_end()

@@ -12,8 +12,7 @@
     8. delete_all_company():
 '''
 
-from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, func
 from sqlalchemy.exc import DatabaseError
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
