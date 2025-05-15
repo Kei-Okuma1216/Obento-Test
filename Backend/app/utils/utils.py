@@ -76,6 +76,7 @@ def deprecated(func):
 
 
 
+from fastapi.responses import RedirectResponse
 import pytz
 
 @log_decorator
@@ -532,10 +533,17 @@ from core.constants import ERROR_FORBIDDEN_SECOND_ORDER
 from database.local_postgresql_database import endpoint
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
+from models.user import select_user
 
 @log_decorator
 async def check_order_duplex(request: Request):
-    username = request.cookies.get("sub")
+    username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
+
+    if not username:
+        # ログを出して処理を止める
+        logger.error("Cookieから username が取得できませんでした。")
+        return False, templates.TemplateResponse("error.html", {"request": request, "error": "認証情報が不正です。"})
+
     today = get_today_date()
     today_orders = await select_orders_by_user_at_date(username, today)
 

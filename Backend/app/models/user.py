@@ -48,6 +48,8 @@ class User(Base):
         return self.username
     def get_password(self):
         return self.password
+    def get_name(self):
+        return self.name
 
 
 # ログ用の設定
@@ -190,20 +192,6 @@ async def get_hashed_password(password: str) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="内部エラーが発生しました。"
         )
-
-# import bcrypt
-
-# # パスワードをハッシュ化
-# #@log_decorator
-# async def get_hashed_password(password: str)-> str:
-#     """パスワードをハッシュ化する"""
-#     # bcryptは同期的なライブラリですが、ここでは非同期関数内でそのまま利用しています
-#     salt = bcrypt.gensalt()
-#     hashed_password = bcrypt.hashpw(password.encode(), salt)
-#     new_hashed_password = hashed_password.decode()  # バイト列を文字列に変換
-#     print(f"new_hashed_password: {new_hashed_password}")
-
-#     return new_hashed_password
 
 
 from fastapi import Request

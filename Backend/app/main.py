@@ -18,7 +18,7 @@
     10. list_logs():
     11. read_log(filename: str):
 '''
-from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests
+from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -93,6 +93,18 @@ async def root(request: Request):
         # await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
+
+        # ここでCookieよりuserの有無をチェックする
+        username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
+
+        if not username:
+            # ログを出して処理を止める
+            logger.info("Cookieから username が取得できませんでした。")
+            # return False, templates.TemplateResponse("error.html", {"request": request, "error": "認証情報が不正です。"})
+            # /register へリダイレクト
+            # return RedirectResponse(url="/register", status_code=303)
+            return RedirectResponse(url="/register?message=ユーザー新規登録をしてください。", status_code=303)
+
         # 二重注文の禁止
         has_order, response = await check_order_duplex(request)
         if has_order:
@@ -164,6 +176,77 @@ async def root(request: Request):
         return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
 
 
+# 新規登録画面
+@app.get("/register", response_class=HTMLResponse)
+async def register_get(request: Request):
+    return templates.TemplateResponse("register.html", {"request": request})
+
+
+# 重複ユーザーの有無確認
+async def is_user_exists(username: str) -> bool:
+    existing_user = await select_user(username)
+    return existing_user is not None
+
+
+@app.post("/register", response_class=HTMLResponse)
+@log_decorator
+async def register_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    nickname: str = Form(...)
+):
+    try:
+        logger.info(f"/register - 登録処理開始: {username}")
+
+        # ここで重複ユーザー確認
+        if await is_user_exists(username):
+            logger.warning(f"/register - 既存ユーザー名: {username}")
+            return templates.TemplateResponse(
+                "register.html",
+                {"request": request, "error": "重複するIDです。別のIDを入力してください。"},
+                status_code=400
+            )
+
+        # ユーザー取得・登録
+        user = await get_user(username, password, nickname)
+        if user is None:
+            logger.warning(f"/register - ユーザー取得に失敗: {username}")
+            return templates.TemplateResponse(
+                "register.html",
+                {"request": request, "error": "ユーザー登録に失敗しました。もう一度お試しください。"},
+                status_code=400
+            )
+
+        nick_name = user.get_name()
+        logger.info(f"/register - 登録成功: {username}（{nick_name}）")
+
+        # 成功メッセージとリダイレクト
+        return redirect_login_success(request, f"ユーザー登録が完了しました。{nick_name}さん、ログインしてください。")
+
+    except HTTPException as e:
+        logger.exception(f"/register - HTTPException: {e.detail}")
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": f"HTTPエラー: {e.detail}"},
+            status_code=e.status_code
+        )
+
+    except Exception as e:
+        logger.exception("/register - 予期せぬエラーが発生")
+        return templates.TemplateResponse(
+            "register.html",
+            {"request": request, "error": "予期せぬエラーが発生しました。しばらくしてからお試しください。"},
+            status_code=500
+        )
+
+# ログイン画面のGET（サンプル）
+@app.get("/login", response_class=HTMLResponse)
+async def login_get(request: Request):
+    message = request.cookies.get("message")
+    response = templates.TemplateResponse("login.html", {"request": request, "message": message})
+    response.delete_cookie("message")
+    return response
 
 # ログイン画面を表示するエンドポイント
 @app.get("/login", response_class=HTMLResponse, tags=["users"])
@@ -216,6 +299,7 @@ async def login_post(request: Request,
         if has_order:
             return response
 
+        # ユーザー取得・認証
         user = await get_user(input_username, input_password, "")
         user = await authenticate_user(user, input_password) 
         if user is None:
