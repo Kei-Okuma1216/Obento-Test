@@ -46,12 +46,20 @@ class UserCreate(UserBase):
     _password: str = PrivateAttr()
 
     def __init__(self, **data):
-        password = data.pop("password")
+        password = data.pop("password", "")  # ← デフォルトを空文字にする
         super().__init__(**data)
         self._password = password
 
-    def get_password(self) -> str:
-        return self._password
+# class UserCreate(UserBase):
+#     _password: str = PrivateAttr()
+
+#     def __init__(self, **data):
+#         password = data.pop("password")
+#         super().__init__(**data)
+#         self._password = password
+
+#     def get_password(self) -> str:
+#         return self._password
 
 
 ''' 使用例

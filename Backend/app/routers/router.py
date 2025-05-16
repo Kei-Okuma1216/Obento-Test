@@ -8,11 +8,47 @@ sample_router = APIRouter(
     tags=["sample"]
 )
 
-# 呼び方
+
+# 呼び方 お試しエンドポイント
 # https://127.0.0.1:8000/api/items
 @sample_router.get("/items/", tags=["sample"])
 async def read_items():
     return [{"item": "Foo"}, {"item": "Bar"}]
+
+
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from schemas.user_schemas import UserResponse
+from utils.helper import redirect_unauthorized
+from utils.utils import check_permission
+from models.user import select_user
+import pprint
+# 管理者アカウント情報の取得
+@sample_router.get("/v1/account/admin", response_model=UserResponse)
+async def get_admin_account(request: Request):
+    if not await check_permission(request, [99]):
+        return redirect_unauthorized(request, "管理者権限がありません。")
+
+    # 未実装
+    # ここでselect_userして管理者インスタンスをつくる
+    admin_info = await select_user("admin")
+
+    # 取得結果を確認
+    # pprint.pprint(admin_info)
+
+    # user_schemas.UserResponse へマッピング（必要に応じて変換）
+    response_data = UserResponse(
+        user_id=admin_info.user_id,
+        username=admin_info.username,
+        name=admin_info.name,
+        company_id=admin_info.company_id,
+        shop_name=admin_info.shop_name,
+        menu_id=admin_info.menu_id,
+        permission=admin_info.permission
+    )
+
+    return JSONResponse(content=response_data.model_dump())
+
 
 from fastapi.responses import JSONResponse
 from config.config_loader import load_holiday_map

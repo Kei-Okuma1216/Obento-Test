@@ -47,7 +47,29 @@ async def admin_view(request: Request):
                 "base_url": endpoint
             }
         )
-    
+
+# from fastapi.responses import JSONResponse
+# from schemas.user_schemas import UserResponse
+
+# # 管理者アカウント情報を取得する
+# @admin_router.get("/admin/api/v1/account", response_model=UserResponse)
+# async def get_admin_account(request: Request):
+
+#     if not await check_permission(request, [99]):   # 管理者認証チェック
+#         return redirect_unauthorized(request, "管理者権限がありません。")
+
+#     # ここでは例として固定値を返却（実際はDBから取得するなど適宜修正）
+#     admin_info = UserResponse(
+#         user_id=1,
+#         username="admin",
+#         name="管理者",
+#         company_id=None,
+#         shop_name=None,
+#         menu_id=None,
+#         permission=99
+#     )
+#     return JSONResponse(content=admin_info.dict())
+
 
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
