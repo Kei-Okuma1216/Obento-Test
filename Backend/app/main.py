@@ -184,6 +184,7 @@ async def is_user_exists(username: str) -> bool:
     return existing_user is not None
 
 from utils.helper import redirect_register
+from models.user import register_or_get_user
 
 # 新規登録画面
 @app.post("/register", response_class=HTMLResponse)
@@ -197,20 +198,14 @@ async def register_post(
     try:
         logger.info(f"/register - 登録処理開始: {username}")
 
-        # ここで重複ユーザー確認
+        # 既存ユーザー確認（is_user_exists は取得専用）
         if await is_user_exists(username):
-            logger.warning(f"/register - 既存ユーザー名: {username}")
-            return redirect_register(request, username, "重複するIDです。別のIDを入力してください。")
+            return redirect_register(request, username, "ユーザー名が重複しています。")
 
-        # ユーザー取得・登録
-        user = await get_user(username, password, nickname)
-        if user is None:
-            logger.warning(f"/register - ユーザー取得に失敗: {username}")
-            return templates.TemplateResponse(
-                "register.html",
-                {"request": request, "error": "ユーザー登録に失敗しました。もう一度お試しください。"},
-                status_code=400
-            )
+        # ユーザー登録 or 取得（登録後取得できなければエラーにする）
+        user = await register_or_get_user(username, password, nickname)
+        if user is None: 
+            return redirect_register(request, username, "ユーザー登録に失敗しました。もう一度お試しください。")
 
         nick_name = user.get_name()
         logger.info(f"/register - 登録成功: {username}（{nick_name}）")
@@ -272,7 +267,8 @@ async def login_get(request: Request):
         return await redirect_login_failure(request, ERROR_LOGIN_FAILURE, e)
 
 
-from core.security import authenticate_user, get_user
+from core.security import authenticate_user
+from models.user import get_user
 from sqlalchemy.exc import SQLAlchemyError
 
 # ログイン画面入力を受け付けるエンドポイント
@@ -286,17 +282,12 @@ async def login_post(request: Request,
         input_username = form_data.username
         input_password = form_data.password
 
-        # ここで重複ユーザー確認
-        if await is_user_exists(input_username):
-            return redirect_register(request, input_username, "重複するIDです。別のIDを入力してください。")
-            # return templates.TemplateResponse(
-            #     "register.html",
-            #     {"request": request, "error": "重複するIDです。別のIDを入力してください。"},
-            #     status_code=400
-            # )
-
         # ユーザー取得・認証
-        user = await get_user(input_username, input_password, "")
+        # user = await get_user(input_username, input_password, "")
+        user = await get_user(input_username)
+        if user is None:
+            return redirect_login_failure(request, error="ユーザーが存在しません")
+
         user = await authenticate_user(user, input_password) 
         if user is None:
             logger.warning(f"ユーザー認証に失敗しました: {input_username}")

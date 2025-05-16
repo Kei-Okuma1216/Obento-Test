@@ -31,9 +31,6 @@
             <p class="text-center mb-3">
               未登録の方はユーザー登録をしてください。
             </p>
-            <p class="text-danger text-center mb-3">
-              店舗ユーザーもしくは契約企業ユーザーを登録する場合は、一度ご相談ください。
-            </p>
 
           {% if message %}
             <div class="alert alert-info">{{ message }}</div>
@@ -63,7 +60,7 @@
                   name="password" 
                   class="form-control" 
                   required
-                  placeholder="15文字以内半角英数字を入力してください。"
+                  placeholder="例: 15文字以内半角英数字"
                 >
             </div>
 
@@ -76,7 +73,7 @@
                 class="form-control" 
                 required 
                 placeholder="例: たろう"
-                oninvalid="this.setCustomValidity('ニックネームを入力してください。')"
+                oninvalid="this.setCustomValidity('任意の呼び出し名')"
                 oninput="this.setCustomValidity('')"
               >
             </div>
@@ -84,6 +81,9 @@
             <div class="d-grid">
               <button type="submit" class="btn btn-success">登録する</button>
             </div>
+            <p class="text-danger text-center mb-3">
+              店舗ユーザーもしくは契約企業ユーザーを登録する場合は、一度ご相談ください。
+            </p>
           </form>
         </div>
       </div>

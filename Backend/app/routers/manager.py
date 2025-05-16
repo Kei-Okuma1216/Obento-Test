@@ -57,7 +57,7 @@ async def manager_view(request: Request, response: Response):
         logger.exception("manager_view - 予期せぬエラーが発生しました")
         return HTMLResponse("注文情報の取得中にエラーが発生しました", status_code=500)
     else:
-        return await order_table_view(response, orders, "manager.html", context)
+        return await order_table_view(request, response, orders, "manager.html", context)
 
 
 async def get_manager_context(request: Request, orders):

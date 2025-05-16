@@ -16,7 +16,9 @@
     10. update_user(username: str, key: str, value):
     11. delete_user(username: str):
     12. delete_all_user():
-    13. alter_orders_created_at_column_type():
+    13. execute_with_retry(session, stmt, retries=3, delay=1):
+    14. get_user(username: str) -> Optional[UserResponse]:
+    15. register_or_get_user(username: str, password: str, name: str) -> UserResponse:
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, inspect, select, func
 from database.local_postgresql_database import Base
@@ -527,3 +529,64 @@ async def delete_all_user():
         logger.error(f"Unexpected error: {e}")
     else:
         logger.info("User テーブルの削除が完了しました。")
+
+
+
+import asyncio
+async def execute_with_retry(session, stmt, retries=3, delay=1):
+    """セッションとステートメントに対してリトライ付き実行"""
+    for attempt in range(1, retries + 1):
+        try:
+            return await session.execute(stmt)
+        except Exception as e:
+            logger.warning(f"クエリ実行失敗 (試行 {attempt}/{retries}): {e}")
+            if attempt < retries:
+                await asyncio.sleep(delay)
+            else:
+                raise e
+
+@log_decorator
+async def get_user(username: str) -> Optional[UserResponse]:
+    async with AsyncSessionLocal() as session:
+        stmt = select(User).where(User.username == username)
+        result = await execute_with_retry(session, stmt)
+        user_obj = result.scalar_one_or_none()
+
+    if user_obj is None:
+        return None
+
+    return UserResponse(
+        user_id=user_obj.user_id,
+        username=user_obj.username,
+        password=user_obj.password,
+        name=user_obj.name,
+        token=user_obj.token,
+        exp=user_obj.exp,
+        permission=user_obj.permission,
+        company_id=user_obj.company_id,
+        shop_name=user_obj.shop_name,
+        menu_id=user_obj.menu_id,
+        is_modified=user_obj.is_modified,
+        updated_at=user_obj.updated_at
+    )
+
+
+@log_decorator
+async def register_or_get_user(username: str, password: str, name: str) -> UserResponse:
+    user = await get_user(username)
+    if user:
+        return user
+
+    # ユーザーが存在しなければ新規作成
+    await insert_new_user(username, password, name)
+
+    # 作成後再取得
+    user = await get_user(username)
+    if user:
+        return user
+
+    logger.warning(f"ユーザー {username} の登録後取得に失敗しました")
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="ユーザー登録後の取得に失敗しました。"
+    )

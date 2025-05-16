@@ -9,6 +9,7 @@ from datetime import datetime
 '''
 class UserBase(BaseModel):
     user_id: int
+    password: Optional[str] = None
     username: str
     name: Optional[str] = None
     company_id: Optional[int] = None
@@ -23,6 +24,9 @@ class UserBase(BaseModel):
     # ゲッターメソッド
     def get_username(self) -> str:
         return self.username
+
+    def get_password(self) -> Optional[str]:
+        return self.password
 
     def get_name(self) -> Optional[str]:
         return self.name
@@ -43,12 +47,15 @@ class UserBase(BaseModel):
     user = UserCreate(username="alice", company_id=123, shop_name="Shop A", password="")
 '''
 class UserCreate(UserBase):
-    _password: str = PrivateAttr()
+    # _password: str = PrivateAttr()
+
 
     def __init__(self, **data):
         password = data.pop("password", "")  # ← デフォルトを空文字にする
-        super().__init__(**data)
-        self._password = password
+        super().__init__(password=password, **data)  # ここで設定
+        self._password = password  # 互換性のため保持
+        # super().__init__(**data)
+        # self._password = password
 
 # class UserCreate(UserBase):
 #     _password: str = PrivateAttr()
