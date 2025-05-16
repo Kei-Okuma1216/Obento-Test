@@ -183,6 +183,8 @@ async def is_user_exists(username: str) -> bool:
     existing_user = await select_user(username)
     return existing_user is not None
 
+from utils.helper import redirect_register
+
 # 新規登録画面
 @app.post("/register", response_class=HTMLResponse)
 @log_decorator
@@ -198,7 +200,7 @@ async def register_post(
         # ここで重複ユーザー確認
         if await is_user_exists(username):
             logger.warning(f"/register - 既存ユーザー名: {username}")
-            return redirect_register(request, "重複するIDです。別のIDを入力してください。")
+            return redirect_register(request, username, "重複するIDです。別のIDを入力してください。")
 
         # ユーザー取得・登録
         user = await get_user(username, password, nickname)
@@ -272,7 +274,7 @@ async def login_get(request: Request):
 
 from core.security import authenticate_user, get_user
 from sqlalchemy.exc import SQLAlchemyError
-from utils.helper import redirect_register
+
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
 @app.post("/login", response_class=HTMLResponse, tags=["users"])
@@ -286,8 +288,7 @@ async def login_post(request: Request,
 
         # ここで重複ユーザー確認
         if await is_user_exists(input_username):
-            logger.warning(f"/register - 既存ユーザー名: {input_username}")
-            return redirect_register(request, "重複するIDです。別のIDを入力してください。")
+            return redirect_register(request, input_username, "重複するIDです。別のIDを入力してください。")
             # return templates.TemplateResponse(
             #     "register.html",
             #     {"request": request, "error": "重複するIDです。別のIDを入力してください。"},

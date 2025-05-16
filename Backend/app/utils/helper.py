@@ -120,44 +120,6 @@ async def create_auth_response(
             detail="認証レスポンス生成中にサーバーエラーが発生しました"
         )
 
-# @log_decorator
-# async def create_auth_response(
-#     username: str,
-#     permission: int,
-#     redirect_url: str
-# ) -> Response:
-#     try:
-#         """
-#         ユーザー情報を元に新しいトークンを生成し、Cookie を設定したリダイレクトレスポンスを返す。
-#         """
-#         data = {"sub": username, "permission": permission}
-#         access_token, expires = get_access_token(data)
-
-#         new_data = {
-#             "sub": username,
-#             "permission": permission,
-#             "token": access_token,
-#             "expires": expires
-#         }
-
-#         response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
-#         set_all_cookies(response, new_data)
-
-#         return response
-
-#     except (KeyError, TypeError, ValueError) as e:
-#         logger.exception("create_auth_response() - 入力データ形式エラー")
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail="トークン生成に必要なデータが不正です"
-#         )
-
-#     except Exception as e:
-#         logger.exception("create_auth_response() - 予期せぬエラーが発生しました")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="認証レスポンス生成中にサーバーエラーが発生しました"
-#         )
 
 
 from fastapi.templating import Jinja2Templates
