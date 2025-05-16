@@ -9,6 +9,7 @@
     5. redirect_login_failure(request: Request, error: str, e: Exception = None):
     6. redirect_error(request: Request, message: str, e: Exception):
     7. redirect_unauthorized(request: Request, message: str, code: int = 403):
+    8. redirect_register(request: Request, username: str, error_message: str):
 '''
 from fastapi import HTTPException, Request, Response, status
 
@@ -42,39 +43,6 @@ async def get_main_url(permission: int, username: str = None) -> str:
         logger.exception("get_main_url() - エラー")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="URL取得中に内部エラーが発生しました")
 
-# @log_decorator
-# async def get_main_url(permission: int) -> str:
-#     '''
-#     パーミッションに基づいてリダイレクト先のURLを取得する。    
-#     以下のjsonファイルを参照する。
-#     /config/redirect_main_by_permission_map.json
-#     '''
-#     try:
-#         if not isinstance(permission, int):
-#             raise HTTPException(
-#                 status_code=status.HTTP_400_BAD_REQUEST,
-#                 detail="permissionは整数で指定してください"
-#             )
-
-#         if str(permission) not in permission_map:
-#             raise HTTPException(
-#                 status_code=status.HTTP_403_FORBIDDEN,
-#                 detail="許可されていないパーミッションです"
-#             )
-
-#         redirect_url = permission_map[str(permission)]
-
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.exception("get_main_url() - エラー")
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="URL取得中に内部エラーが発生しました"
-#         )
-#     else:
-#         logger.debug(f"redirect_url: {redirect_url}")
-#         return redirect_url
 
 
 from fastapi import HTTPException, status, Response
@@ -394,4 +362,15 @@ def redirect_unauthorized(request: Request, message: str, code: int = 403):
             },
             status_code=code
         )
+
+def redirect_register(request: Request, username: str, error_message: str):
+    """
+    ユーザー登録画面へのリダイレクトレスポンスを返すヘルパー関数。
+    """
+    logger.warning(f"/register - 既存ユーザー名: {username}")
+    return templates.TemplateResponse(
+        "register.html",
+        {"request": request, "error": error_message},
+        status_code=400
+    )
 
