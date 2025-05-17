@@ -35,6 +35,10 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
           </li>
+          <!-- アカウントタブ -->
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="false">アカウント</button>
+          </li>
         </ul>
 
         <!-- タブコンテンツ -->
@@ -151,6 +155,12 @@
 
             </div>
           </div>
+          <!-- アカウントタブ -->
+          <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+            <h1 class="mt-3">アカウント情報</h1>
+            <pre id="account-info">読み込み中...</pre>
+          </div>
+
 
         </div>
       </div>    
@@ -179,41 +189,39 @@
 
     // FAX送信ボタンをクリックしたときにモーダルを開く関数
     function openFaxOrderSheet() {
-    const base_url = "{{ base_url }}";
+      const base_url = "{{ base_url }}";
 
-    const faxContext = {
-      shop_name: "{{ shop_name }}",
-      menu_name: "{{ menu_name }}",
-      price: "{{ price }}",
-      order_count: document.getElementById('bento-count').value,
-      total_amount: document.getElementById('total-amount').value,
-      facility_name: document.getElementById('facility-name').value,
-      POC: document.getElementById('POC').value,
-      delivery_year: document.getElementById("delivery-year").textContent,
-      delivery_month: document.getElementById("delivery-month").textContent,
-      delivery_day: document.getElementById("delivery-day").value,
-      delivery_weekday: document.getElementById("delivery-weekday").value
-    };
+      const faxContext = {
+        shop_name: "{{ shop_name }}",
+        menu_name: "{{ menu_name }}",
+        price: "{{ price }}",
+        order_count: document.getElementById('bento-count').value,
+        total_amount: document.getElementById('total-amount').value,
+        facility_name: document.getElementById('facility-name').value,
+        POC: document.getElementById('POC').value,
+        delivery_year: document.getElementById("delivery-year").textContent,
+        delivery_month: document.getElementById("delivery-month").textContent,
+        delivery_day: document.getElementById("delivery-day").value,
+        delivery_weekday: document.getElementById("delivery-weekday").value
+      };
 
-    const params = new URLSearchParams(faxContext).toString();
-    const url = base_url + "/manager/me/fax_order_sheet?" + params;
+      const params = new URLSearchParams(faxContext).toString();
+      const url = base_url + "/manager/me/fax_order_sheet?" + params;
 
-    // デスクトップ画面サイズを取得
-    const screenWidth = window.screen.availWidth;
-    const screenHeight = window.screen.availHeight;
+      // デスクトップ画面サイズを取得
+      const screenWidth = window.screen.availWidth;
+      const screenHeight = window.screen.availHeight;
 
-    // 画面サイズいっぱいのウィンドウを開く
-    const newWindow = window.open(url, "_blank",
-      `width=${screenWidth},height=${screenHeight},top=0,left=0`);
+      // 画面サイズいっぱいのウィンドウを開く
+      const newWindow = window.open(url, "_blank",
+        `width=${screenWidth},height=${screenHeight},top=0,left=0`);
 
-    // 読み込み完了後に印刷ダイアログを表示
-    newWindow.onload = function () {
-      newWindow.focus();  // フォーカスも当てる
-      newWindow.print();
-    };
-  }
-
-
+      // 読み込み完了後に印刷ダイアログを表示
+      newWindow.onload = function () {
+        newWindow.focus();  // フォーカスも当てる
+        newWindow.print();
+      };
+    }
 
     // 1個あたりの価格
     const pricePerBento = 450;
@@ -227,9 +235,28 @@
       document.getElementById('total-amount').value = formattedTotal //+ " 円";
     }
 
-  // 個数入力欄での直接入力時に更新
-  document.getElementById('bento-count').addEventListener('input', updateTotal);
+    // 個数入力欄での直接入力時に更新
+    document.getElementById('bento-count').addEventListener('input', updateTotal);
+
+    // アカウントタブの表示
+    document.addEventListener("DOMContentLoaded", function() {
+      const accountTab = document.getElementById('account-tab');
+      accountTab.addEventListener('shown.bs.tab', function () {
+        // fetch('/api/v1/account/manager')
+        const username = "{{ username }}";
+        fetch('/api/v1/account/manager?username=' + encodeURIComponent(username))
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById('account-info').textContent = JSON.stringify(data, null, 2);
+          })
+          .catch(error => {
+            document.getElementById('account-info').textContent = '取得に失敗しました: ' + error;
+          });
+      });
+    });
   </script>
+
+  
   <!-- モーダル -->
   <div class="modal fade" id="faxModal" tabindex="-1" aria-labelledby="faxModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">

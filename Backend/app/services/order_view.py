@@ -47,10 +47,13 @@ async def order_table_view(request: Request, response: Response, orders, redirec
 
         logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
 
+        # ここで username をコンテキストに追加（shop_idやmanager_idを使う）
+        current_username = context.get("shop_id") or context.get("manager_id") or "unknown"
         # コンテキスト更新
         context.update({
             'checked_count': checked_count,
-            'aggregated_orders': aggregated_orders
+            'aggregated_orders': aggregated_orders,
+            'username': current_username  # ★ ここに追加
         })
         context["request"] = request
         

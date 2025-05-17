@@ -31,7 +31,8 @@ async def regist_complete(request: Request, response: Response):
     try:
         permits = [1, 2, 10, 99]  # ユーザーの権限
         if not await check_permission(request, permits):
-            return templates.TemplateResponse("Unauthorized.html", {"request": request})
+            return templates.TemplateResponse(
+                "Unauthorized.html", {"request": request})
 
         cookies = get_all_cookies(request)
 

@@ -46,6 +46,10 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="log-tab" data-bs-toggle="tab" data-bs-target="#log" type="button" role="tab" aria-controls="log" aria-selected="false">ログ</button>
           </li>
+          <!-- アカウントタブ -->
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="false">アカウント</button>
+          </li>
         </ul>
 
         <!-- タブコンテンツ -->
@@ -144,6 +148,12 @@
                 注文ログ表示
               </button>
             </div>
+          </div>
+
+          <!-- アカウントタブ -->
+          <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
+            <h1 class="mt-3">アカウント情報</h1>
+            <pre id="account-info">読み込み中...</pre>
           </div>
 
         </div>
@@ -320,30 +330,22 @@
         checkAndAlert(dateObj);
       });
 
-      // document.getElementById("holidayPicker").addEventListener("change", function() {
-      //   const selectedDate = this.value;
-      //   if (!selectedDate) return;
-
-      //   // 日付を YYYY/M/D 形式に変換（例: 2025/1/1）
-      //   const dateObj = new Date(selectedDate);
-      //   const formattedDate = `${dateObj.getFullYear()}/${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-      //   console.log("送信する日付:", formattedDate); // デバッグ用
-
-      //   // サーバーに祝日判定リクエストを送信
-      //   fetch(`/api/check_holiday?date=${encodeURIComponent(formattedDate)}`)
-      //     .then(response => response.json())
-      //     .then(data => {
-      //       const holidayName = data.holiday_name;
-      //       const message = holidayName
-      //         ? `選択した日付: ${formattedDate} (${holidayName})`
-      //         : `選択した日付: ${formattedDate}`;
-      //       alert(message);
-      //     })
-      //     .catch(error => {
-      //       console.error("祝日判定エラー:", error);
-      //       alert("選択した日付: " + formattedDate);
-      //     });
-      // });
+      // アカウントタブの表示
+      document.addEventListener("DOMContentLoaded", function() {
+        const accountTab = document.getElementById('account-tab');
+        accountTab.addEventListener('shown.bs.tab', function () {
+          // fetch('/api/v1/account/shop')
+        const username = "{{ username }}";
+        fetch('/api/v1/account/shop?username=' + encodeURIComponent(username))
+          .then(response => response.json())
+            .then(data => {
+              document.getElementById('account-info').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+              document.getElementById('account-info').textContent = '取得に失敗しました: ' + error;
+            });
+        });
+      });
       </script>
   </body>
 </html>

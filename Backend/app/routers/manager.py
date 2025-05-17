@@ -50,6 +50,12 @@ async def manager_view(request: Request, response: Response):
 
         context = await get_manager_context(request, orders)
 
+        # CookieからユーザーID（manager_id）取得
+        cookies = get_all_cookies(request)
+        manager_id = cookies.get("sub", "default_manager01")
+
+        context.update({"username": manager_id})
+
     except HTTPException as e:
         logger.exception(f"manager_view - HTTPException: {e.detail}")
         return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)
@@ -107,7 +113,7 @@ async def get_manager_context(request: Request, orders):
 async def fax_order_sheet_view(request: Request):
     try:
         context = await get_fax_sheet_context(request)
-
+        
     except HTTPException as e:
         logger.exception(f"fax_order_sheet_view - HTTPException: {e.detail}")
         return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)
@@ -115,7 +121,8 @@ async def fax_order_sheet_view(request: Request):
         logger.exception("fax_order_sheet_view - 予期せぬエラーが発生しました")
         return HTMLResponse("FAXシート表示中にエラーが発生しました", status_code=500)
     else:
-        return templates.TemplateResponse("fax_order_sheet.html", {"request": request, **context})
+        return templates.TemplateResponse(
+            "fax_order_sheet.html", {"request": request, **context})
 
 
 

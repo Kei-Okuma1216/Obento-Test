@@ -176,7 +176,8 @@ async def root(request: Request):
 # 新規登録画面
 @app.get("/register", response_class=HTMLResponse)
 async def register_get(request: Request):
-    return templates.TemplateResponse("register.html", {"request": request})
+    return templates.TemplateResponse(
+        "register.html", {"request": request})
 
 # 重複ユーザーの有無確認
 async def is_user_exists(username: str) -> bool:

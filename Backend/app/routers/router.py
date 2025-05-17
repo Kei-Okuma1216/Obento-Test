@@ -22,34 +22,65 @@ from schemas.user_schemas import UserResponse
 from utils.helper import redirect_unauthorized
 from utils.utils import check_permission
 from models.user import select_user
-import pprint
-# 管理者アカウント情報の取得
-@sample_router.get("/v1/account/admin", response_model=UserResponse)
-async def get_admin_account(request: Request):
-    if not await check_permission(request, [99]):
-        return redirect_unauthorized(request, "管理者権限がありません。")
 
-    # 未実装
-    # ここでselect_userして管理者インスタンスをつくる
-    admin_info = await select_user("admin")
+from fastapi import HTTPException, Query
+from fastapi import Request, HTTPException
 
-    # 取得結果を確認
-    # pprint.pprint(admin_info)
+# ヘルパー
+async def get_account_or_404_response(username: str):
+    """
+    ユーザー取得＆JSON返却を共通化。存在しない場合は404エラー。
+    """
+    user_info = await select_user(username)
+    if user_info is None:
+        raise HTTPException(status_code=404, detail=f"ユーザー {username} が見つかりません")
 
-    # user_schemas.UserResponse へマッピング（必要に応じて変換）
     response_data = UserResponse(
-        user_id=admin_info.user_id,
-        username=admin_info.username,
-        name=admin_info.name,
-        company_id=admin_info.company_id,
-        shop_name=admin_info.shop_name,
-        menu_id=admin_info.menu_id,
-        permission=admin_info.permission
+        user_id=user_info.user_id,
+        username=user_info.username,
+        name=user_info.name,
+        company_id=user_info.company_id,
+        shop_name=user_info.shop_name,
+        menu_id=user_info.menu_id,
+        permission=user_info.permission
     )
-
     return JSONResponse(content=response_data.model_dump())
 
 
+# 管理者アカウント情報の取得
+@sample_router.get("/v1/account/admin", response_model=UserResponse)
+async def get_admin_account(request: Request):
+
+    if not await check_permission(request, [99]):
+        return redirect_unauthorized(request, "管理者権限がありません。")
+
+    return await get_account_or_404_response("admin")
+
+
+# 契約企業ユーザー情報の取得
+@sample_router.get("/v1/account/manager", response_model=UserResponse)
+async def get_manager_account(request: Request, username: str = Query(...)):
+
+    if not await check_permission(request, [2]):
+        return redirect_unauthorized(request, "マネージャー権限がありません。")
+
+    return await get_account_or_404_response(username)
+
+# 店舗ユーザー情報の取得
+@sample_router.get("/v1/account/shop", response_model=UserResponse)
+async def get_shop_account(request: Request, username: str = Query(...)):
+
+    if not await check_permission(request, [10]):
+        return redirect_unauthorized(request, "店舗権限がありません。")
+
+    return await get_account_or_404_response(username)
+
+
+
+
+
+
+'''--------------------------------------------------------------------------'''
 from fastapi.responses import JSONResponse
 from config.config_loader import load_holiday_map
 

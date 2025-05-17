@@ -29,8 +29,7 @@ shop_router = APIRouter()
 @log_decorator
 async def shop_view(request: Request, response: Response):
     try:
-        permits = [10, 99]
-        if await check_permission(request, permits) == False:
+        if await check_permission(request, [10, 99]) == False:
             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
 
         cookies = get_all_cookies(request)
@@ -41,12 +40,22 @@ async def shop_view(request: Request, response: Response):
                 detail=ERROR_ILLEGAL_COOKIE#"Cookieが不正または取得できません"
             )
 
-        orders = await select_orders_by_shop_all(default_shop_name)
+        # クッキーからユーザーID（shop_id）取得
+        shop_id = cookies.get("sub")
+        print(f"{shop_id=}")
+        if not shop_id:
+            logger.warning("shop_view - Cookie 'sub' が取得できません")
+            return redirect_login_failure(request, "ログイン情報が取得できません。再度ログインしてください。")
+        
+
+
+        orders = await select_orders_by_shop_all(shop_id)
         if orders is None:
             logger.debug('shop_view - 注文がありません')
             return HTMLResponse("<html><p>注文は0件です</p></html>")
 
         shop_context = await get_shop_context(request, orders)
+        shop_context.update({"username": shop_id})  # ここでユーザー名をテンプレートへ
 
         return await order_table_view(request, response, orders, "shop.html", shop_context)
 
