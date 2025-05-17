@@ -1,9 +1,13 @@
 # routers/shop.py
-# ../shops/meになる
+# ../shops/4になる
 '''
-    1. shop_view(request: Request, response: Response):
-    2. get_shop_context(request: Request, orders):
-    3. order_json(request: Request, days_ago: str = Query("0")):
+    1. order_json(request: Request, days_ago: str = Query("0")):
+    2. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
+    3. list_combined_order_logs():
+    4. view_combined_order_log(filename: str):
+    5. list_combined_order_logs():
+    6. shop_view(request: Request, response: Response, shop_id: str):
+    7. get_shop_context(request: Request, orders):
 '''
 from fastapi import HTTPException, Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
@@ -24,140 +28,9 @@ templates = Jinja2Templates(directory="templates")
 shop_router = APIRouter()
 
 
-@shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
-@shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
-@log_decorator
-async def shop_view(request: Request, response: Response):
-    try:
-        if await check_permission(request, [10, 99]) == False:
-            return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
-
-        cookies = get_all_cookies(request)
-        if not cookies:
-            logger.warning("shop_view - Cookieが取得できません")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=ERROR_ILLEGAL_COOKIE#"Cookieが不正または取得できません"
-            )
-
-        # クッキーからユーザーID（shop_id）取得
-        shop_id = cookies.get("sub")
-        print(f"{shop_id=}")
-        if not shop_id:
-            logger.warning("shop_view - Cookie 'sub' が取得できません")
-            return redirect_login_failure(request, "ログイン情報が取得できません。再度ログインしてください。")
-        
-
-
-        orders = await select_orders_by_shop_all(shop_id)
-        if orders is None:
-            logger.debug('shop_view - 注文がありません')
-            return HTMLResponse("<html><p>注文は0件です</p></html>")
-
-        shop_context = await get_shop_context(request, orders)
-        shop_context.update({"username": shop_id})  # ここでユーザー名をテンプレートへ
-
-        return await order_table_view(request, response, orders, "shop.html", shop_context)
-
-    except HTTPException as e:
-        logger.exception(f"HTTPException: {e.detail}")
-        return redirect_login_failure(request, e.detail)
-    except Exception as e:
-        logger.exception("shop_viewで予期せぬエラーが発生しました")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="注文情報の取得中にサーバーエラーが発生しました"
-        )
-
-
-# @shop_router.post("/me", response_class=HTMLResponse, tags=["shops"])
-# @shop_router.get("/me", response_class=HTMLResponse, tags=["shops"])
-# @log_decorator
-# async def shop_view(request: Request, response: Response):
-#     # お弁当屋の注文確認
-#     try:
-#         permits = [10, 99]
-#         if await check_permission(request, permits) == False:
-#             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
-
-#         cookies = get_all_cookies(request)
-#         if not cookies:
-#             raise CookieException(method_name="get_all_cookies()")
-
-#         orders = await select_orders_by_shop_all(default_shop_name)
-#         # print(f"shop_view() - orders: {orders}")
-#         if orders is None:
-#             logger.debug('shop_view - ordersなし')
-#             return HTMLResponse("<html><p>注文は0件です</p></html>")
-
-#         shop_context = await get_shop_context(request, orders)
-
-#         return await order_table_view(response, orders, "shop.html", shop_context)
-
-
-#     except CookieException as e:
-#          return redirect_login_failure(request, ERROR_ILLEGAL_COOKIE, e)
-#     except HTTPException as e:
-#         return redirect_login_failure(request, e.detail)
-#     except Exception as e:
-#         raise CustomException(
-#             status.HTTP_400_BAD_REQUEST,
-#             f"/shop_view()",
-#             f"Error: {str(e)}")
-
-
-# async def get_shop_context(request: Request, orders):
-#         # 備考：ここはtarget_urlをcontextに入れる改善が必要
-#         # 更に、order_table_view()も引数を2個にできる(response, shop_context)
-#         shop_context = {
-#             'request': request,
-#             'base_url': endpoint,
-#         }
-#         order_context = {
-#             'orders': orders,
-#             'order_count': len(orders),
-#             "order_details": orders[0].model_dump() if orders else None
-#         }
-
-#         shop_context.update(order_context)
-
-#         return shop_context
-async def get_shop_context(request: Request, orders):
-    try:
-        shop_context = {
-            'request': request,
-            'base_url': endpoint,
-        }
-        order_context = {
-            'orders': orders,
-            'order_count': len(orders),
-            "order_details": orders[0].model_dump() if orders else None
-        }
-
-        shop_context.update(order_context)
-        return shop_context
-
-    except (AttributeError, TypeError) as e:
-        logger.exception("get_shop_context - 注文データ形式不正")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="注文データが不正です"
-        )
-    except Exception as e:
-        logger.exception("get_shop_context - 予期せぬエラー")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="注文情報取得中にサーバーエラーが発生しました"
-        )
 
 
 
-
-# @shop_router.get("/me/order_json",response_class=HTMLResponse, tags=["shops"]) 
-# @log_decorator
-# async def order_json(request: Request, days_ago: str = Query("0")):
-#     # services/order_view.pyにある
-#     return await get_order_json(request, days_ago)
 @shop_router.get("/me/order_json", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
@@ -191,42 +64,6 @@ async def filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query
     return JSONResponse(content={"message": "ログ抽出処理をバックグラウンドで開始しました"})
 
 
-# @shop_router.get("/filter_order_logs", tags=["shops"])
-# async def filter_order_logs(shop: str = Query(...)):
-#     try:
-#         process = await asyncio.create_subprocess_exec(
-#             "python", "order_log_filter_config.py", "order_logs", shop,
-#             stdout=asyncio.subprocess.PIPE,
-#             stderr=asyncio.subprocess.PIPE
-#         )
-#         stdout, stderr = await process.communicate()
-#         return JSONResponse(content={
-#             "stdout": stdout.decode(),
-#             "stderr": stderr.decode()
-#         })
-#     except Exception as e:
-#         return JSONResponse(status_code=500, content={"error": str(e)})
-
-# import subprocess
-# @shop_router.get("/filter_order_logs", tags=["shops"])
-# async def filter_order_logs(shop: str = Query(...)):
-#     """
-#     注文ログを指定されたショップ名でフィルタし、combined_ログを生成
-#     """
-#     try:
-#         # Pythonスクリプトを呼び出してフィルタ処理を実行
-#         result = subprocess.run(
-#             ["python", "order_log_filter_config.py", "order_logs", shop],
-#             capture_output=True,
-#             text=True,
-#             timeout=10
-#         )
-#         return JSONResponse(content={
-#             "stdout": result.stdout,
-#             "stderr": result.stderr
-#         })
-#     except Exception as e:
-#         return JSONResponse(status_code=500, content={"error": str(e)})
 
 from fastapi.responses import HTMLResponse
 import os
@@ -298,3 +135,96 @@ async def view_combined_order_log(filename: str):
     with open(log_path, "r", encoding="utf-8") as f:
         content = f.read().replace("\n", "<br>")
     return f"<h1>{filename}</h1><pre>{content}</pre>"
+
+
+
+from models.user import select_user_by_id
+
+@shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
+@shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
+@log_decorator
+async def shop_view(request: Request, response: Response, shop_id: str):
+    try:
+        if await check_permission(request, [10, 99]) == False:
+            return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
+
+        # ユーザー情報取得
+        user_info = await select_user_by_id(int(shop_id))
+        if user_info is None:
+            logger.warning(f"ユーザーID {shop_id} が見つかりません")
+            return HTMLResponse("<html><p>ユーザー情報が見つかりません</p></html>")
+
+        # username（shop01）を取得
+        shop_code = user_info.username
+
+        # cookies = get_all_cookies(request)
+        # if not cookies:
+        #     logger.warning("shop_view - Cookieが取得できません")
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail=ERROR_ILLEGAL_COOKIE#"Cookieが不正または取得できません"
+        #     )
+
+        # クッキーからユーザーID（shop_id）取得
+        # shop_id = cookies.get("sub")
+        # 上書きしない、URLパラメータの shop_id をそのまま使う
+        # 注意：このshop_idはuser_idと共用している
+        # print(f"shop_view - URLパラメータ shop_id: {shop_id}")
+
+        # if not shop_id:
+        #     logger.warning("shop_view - Cookie 'sub' が取得できません")
+        #     return redirect_login_failure(request, "ログイン情報が取得できません。再度ログインしてください。")
+
+        orders = await select_orders_by_shop_all(shop_code)
+        if orders is None:
+            logger.debug('shop_view - 注文がありません')
+            return HTMLResponse("<html><p>注文は0件です</p></html>")
+
+
+        shop_context = await get_shop_context(request, orders)
+        shop_context.update({"username": shop_id})  # ここでユーザー名をテンプレートへ
+
+        print(f"shop_view - context username: {shop_id}")
+        shop_context.update({"username": shop_id, "shop_id": shop_id})
+
+
+        return await order_table_view(request, response, orders, "shop.html", shop_context)
+
+    except HTTPException as e:
+        logger.exception(f"HTTPException: {e.detail}")
+        return redirect_login_failure(request, e.detail)
+    except Exception as e:
+        logger.exception("shop_viewで予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="注文情報の取得中にサーバーエラーが発生しました"
+        )
+
+
+async def get_shop_context(request: Request, orders):
+    try:
+        shop_context = {
+            'request': request,
+            'base_url': endpoint,
+        }
+        order_context = {
+            'orders': orders,
+            'order_count': len(orders),
+            "order_details": orders[0].model_dump() if orders else None
+        }
+
+        shop_context.update(order_context)
+        return shop_context
+
+    except (AttributeError, TypeError) as e:
+        logger.exception("get_shop_context - 注文データ形式不正")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="注文データが不正です"
+        )
+    except Exception as e:
+        logger.exception("get_shop_context - 予期せぬエラー")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="注文情報取得中にサーバーエラーが発生しました"
+        )

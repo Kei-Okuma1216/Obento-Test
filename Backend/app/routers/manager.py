@@ -54,7 +54,7 @@ async def manager_view(request: Request, response: Response, manager_id: str):
         
         print(f"manager_view - context username: {manager_id}")
         context.update({"username": manager_id,
-                        "manager_id": manager_id  # 追加
+                        "manager_id": manager_id
                         })
 
     except HTTPException as e:

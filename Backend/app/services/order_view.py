@@ -45,8 +45,11 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         company_counts = Counter(order.company_name for order in orders)
         aggregated_orders = [[company, count] for company, count in company_counts.items()]
 
-        logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
-
+        # logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
+        if orders:
+            logger.debug(f"orders.model_dump(): {orders[0].model_dump()=}")
+        else:
+            logger.debug("orders is empty")
 
         # ここで username をコンテキストに追加（shop_idやmanager_idを使う）
         # current_username = context.get("shop_id") or context.get("manager_id") or "unknown"

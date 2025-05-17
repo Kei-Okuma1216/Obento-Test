@@ -329,14 +329,13 @@
 
         checkAndAlert(dateObj);
       });
-
       // アカウントタブの表示
       document.addEventListener("DOMContentLoaded", function() {
         const accountTab = document.getElementById('account-tab');
         accountTab.addEventListener('shown.bs.tab', function () {
           // fetch('/api/v1/account/shop')
-        const username = "{{ username }}";
-        fetch('/api/v1/account/shop?username=' + encodeURIComponent(username))
+        const user_id = "{{ username }}";
+        fetch('/api/v1/account/shop?user_id=' + encodeURIComponent(user_id))
           .then(response => response.json())
             .then(data => {
               document.getElementById('account-info').textContent = JSON.stringify(data, null, 2);

@@ -48,6 +48,7 @@ async def get_account_or_404_response(username: str):
 
 from models.user import select_user_by_id
 
+# 共通
 async def get_account_by_id_or_404_response(user_id: int):
     user_info = await select_user_by_id(user_id)  # user_id で検索
     if user_info is None:
@@ -78,24 +79,26 @@ async def get_admin_account(request: Request):
 # 契約企業ユーザー情報の取得
 @sample_router.get("/v1/account/manager", response_model=UserResponse)
 async def get_manager_account(request: Request, user_id: int = Query(...)):
-# async def get_manager_account(request: Request, username: str = Query(...)):
 
     if not await check_permission(request, [2]):
         return redirect_unauthorized(request, "マネージャー権限がありません。")
 
     return await get_account_by_id_or_404_response(user_id)
-    # return await get_account_or_404_response(username)
+
 
 # 店舗ユーザー情報の取得
 @sample_router.get("/v1/account/shop", response_model=UserResponse)
-async def get_shop_account(request: Request, username: str = Query(...)):
+async def get_shop_account(request: Request, user_id: str = Query(...)):
 
     if not await check_permission(request, [10]):
         return redirect_unauthorized(request, "店舗権限がありません。")
 
-    return await get_account_or_404_response(username)
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="無効なユーザーID")
 
-
+    return await get_account_by_id_or_404_response(user_id_int)
 
 
 

@@ -458,5 +458,6 @@ async def read_log(filename: str):
     return HTMLResponse(content)
 
 # 現在登録しているルート一覧を表示する
-for route in app.routes:
-    print(route.path, route.name)
+# これはデバッグに有用なので絶対に消さない！
+# for route in app.routes:
+#     print(route.path, route.name)

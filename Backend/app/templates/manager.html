@@ -243,9 +243,6 @@
     document.addEventListener("DOMContentLoaded", function() {
       const accountTab = document.getElementById('account-tab');
       accountTab.addEventListener('shown.bs.tab', function () {
-        // const username = "{{ username }}";
-        // fetch('/api/v1/account/manager?username=' + encodeURIComponent(username))
-        // 修正後
         const user_id = "{{ username }}";  // ここはuser_id相当
         fetch('/api/v1/account/manager?user_id=' + encodeURIComponent(user_id))
           .then(response => response.json())

@@ -44,11 +44,14 @@ class DefaultDict(dict):
         return ""
 
 from models.user import select_user_by_id
+from fastapi.responses import JSONResponse
 
 async def get_account_by_id_or_404_response(user_id: int):
+
     user_info = await select_user_by_id(user_id)  # user_id で検索
     if user_info is None:
         raise HTTPException(status_code=404, detail=f"ユーザーID {user_id} が見つかりません")
+
     print(f"{user_info=}")
     response_data = UserResponse(
         user_id=user_info.user_id,
