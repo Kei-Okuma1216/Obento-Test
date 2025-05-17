@@ -98,10 +98,17 @@ async def init_database():
         await insert_order(1, "tenten02", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-2))
         # 5
         await insert_order(1, "user3", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-1))
+
         # 6
-        await insert_order(1, "user1", DEFAULT_SHOP_NAME, 1, 1)
+        await insert_order(1, "user1", DEFAULT_SHOP_NAME, 1, 1, get_today_datetime(offset=-1))
         # 7
-        await insert_order(1, "user1", "shop02", 1, 1)
+        await insert_order(1, "user1", "shop02", 1, 1, get_today_datetime(offset=-1))
+
+        # 本日の注文は挿入するとアプリテストできないのでコメントアウトした        
+        # # 6
+        # await insert_order(1, "user1", DEFAULT_SHOP_NAME, 1, 1)
+        # # 7
+        # await insert_order(1, "user1", "shop02", 1, 1)
 
         from datetime import datetime, timedelta
         tomorrow = get_today_datetime(offset=1)

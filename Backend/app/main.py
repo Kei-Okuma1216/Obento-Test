@@ -132,7 +132,33 @@ async def root(request: Request):
 
         username = payload['sub']
         permission = payload['permission']
-        main_url = await get_main_url(permission)
+
+        # main_url = await get_main_url(permission)
+        
+        # user情報を取得
+        user = await get_user(username)
+        if user is None:
+            return redirect_login_failure(request, error="ユーザー情報が取得できません")
+        # print(f"get_user()の動作確認 user_id (from get_id): {user}")
+
+        logger.debug(f"get_main_url() 呼び出し前 - permission: {permission}, user_id: {str(user.get_id())}")
+
+        kwargs = {}
+        if str(permission) == "1":
+            kwargs["user_id"] = str(user.get_id())
+        elif str(permission) == "2":
+            kwargs["manager_id"] = user.get_id()
+        elif str(permission) == "10":
+            kwargs["shop_id"] = user.get_id()
+
+        main_url = await get_main_url(permission, **kwargs)
+        # main_url = await get_main_url(
+        #     permission, # user.get_id() が None を返している
+        #     user_id=str(user.get_id()) if str(permission) == "1" else None,
+        #     user_id=user.get_id() if str(permission) == "2" else None,
+        #     shop_id=user.get_id() if str(permission) == "10" else None
+        # )
+        logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
 
         return await create_auth_response(
             username, permission, main_url)
@@ -305,7 +331,14 @@ async def login_post(request: Request,
 
         # 権限確認
         permission = user.get_permission()
-        main_url = await get_main_url(permission)
+        # main_url = await get_main_url(permission)
+        main_url = await get_main_url(
+            permission,
+            user_id=user.get_id() if permission == "1" else None,
+            manager_id=user.get_manager_id() if permission == "2" else None,
+            shop_id=user.get_shop_id() if permission == "10" else None
+        )
+
 
         return await create_auth_response(
             user.get_username(), permission, main_url)
@@ -424,5 +457,6 @@ async def read_log(filename: str):
 
     return HTMLResponse(content)
 
-# for route in app.routes:
-#     print(route.path, route.name)
+# 現在登録しているルート一覧を表示する
+for route in app.routes:
+    print(route.path, route.name)

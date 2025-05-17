@@ -1,7 +1,7 @@
 {
-    "1": "/users/order_complete",
-    "2": "/manager/me",
-    "10": "/shops/me",
+    "1": "/users/{user_id}/order_complete",
+    "2": "/manager/{manager_id}",
+    "10": "/shops/me?shop_id={shop_id}",
     "99": "/admin/me"
 }
   

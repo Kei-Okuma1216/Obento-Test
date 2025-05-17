@@ -4,21 +4,22 @@
     2. create_user_table():
 
     3. select_user(username: str) -> Optional[UserModel]:
-    4. select_all_user() -> Optional[list[UserModel]]:
+    4. select_user_by_id(user_id: int) -> Optional[UserResponse]:
+    5. select_all_user() -> Optional[list[UserModel]]:
 
-    5. get_hashed_password(password: str)-> str:
-    6. update_existing_passwords():
+    6. get_hashed_password(password: str)-> str:
+    7. update_existing_passwords():
 
-    7. insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
-    8. insert_new_user(username: str, password: str, name: str = '')-> bool:
-    9. insert_shop(username: str, password: str, shop_name: str) -> None:
+    8. insert_user(username: str, password: str, name: str, company_id: int, shop_name: str, menu_id: int)-> bool:
+    9. insert_new_user(username: str, password: str, name: str = '')-> bool:
+    10. insert_shop(username: str, password: str, shop_name: str) -> None:
 
-    10. update_user(username: str, key: str, value):
-    11. delete_user(username: str):
-    12. delete_all_user():
-    13. execute_with_retry(session, stmt, retries=3, delay=1):
-    14. get_user(username: str) -> Optional[UserResponse]:
-    15. register_or_get_user(username: str, password: str, name: str) -> UserResponse:
+    11. update_user(username: str, key: str, value):
+    12. delete_user(username: str):
+    13. delete_all_user():
+    14. execute_with_retry(session, stmt, retries=3, delay=1):
+    15. get_user(username: str) -> Optional[UserResponse]:
+    16. register_or_get_user(username: str, password: str, name: str) -> UserResponse:
 '''
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, inspect, select, func
 from database.local_postgresql_database import Base
@@ -46,6 +47,8 @@ class User(Base):
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
+    def get_id(self):
+        return self.user_id
     def get_username(self):
         return self.username
     def get_password(self):
@@ -120,6 +123,44 @@ async def select_user(username: str) -> Optional[UserResponse]:
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+
+
+@log_decorator
+async def select_user_by_id(user_id: int) -> Optional[UserResponse]:
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = select(User).where(User.user_id == user_id)
+            logger.debug(f"select_user_by_id() - SQLAlchemyクエリ: {stmt}")
+            result = await session.execute(stmt)
+            orm_user = result.scalars().first()
+
+            if orm_user is None:
+                return None
+
+            # ORMインスタンスの as_dict() メソッドを利用して辞書化する
+            user_dict = orm_user.as_dict()
+            logger.debug(f"user_dict: {user_dict}")
+
+            # その辞書をもとに pydantic モデル UserResponse を生成
+            user_model = UserResponse(**user_dict)
+            logger.debug(f"user_model: {user_model}")
+
+            return user_model
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
 
 
 from .user import User  # ORMのUserモデル。適切なパスに合わせてください

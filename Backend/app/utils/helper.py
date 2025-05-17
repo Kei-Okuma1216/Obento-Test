@@ -13,6 +13,7 @@
 '''
 from fastapi import HTTPException, Request, Response, status
 
+from schemas.user_schemas import UserResponse
 from utils.utils import log_decorator, set_all_cookies
 from log_unified import logger
 
@@ -20,28 +21,80 @@ from config.config_loader import load_permission_map, load_holiday_map
 permission_map = load_permission_map()
 holiday_map = load_holiday_map()
 
-# utils/helper.py
-@log_decorator
-async def get_main_url(permission: int, username: str = None) -> str:
+
+from config.config_loader import load_permission_map
+
+async def get_main_url(permission: str, **kwargs) -> str:
+    permission_map = load_permission_map()
+    url_template = permission_map.get(str(permission))
+    
+    if not url_template:
+        raise ValueError("権限に対応するURLが見つかりません")
+
     try:
-        if not isinstance(permission, int):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="permissionは整数で指定してください")
+        # テンプレート展開
+        return url_template.format(**kwargs)
+    except KeyError as e:
+        # 未設定項目があれば空文字列に置換
+        return url_template.format_map(DefaultDict("", kwargs))
 
-        if str(permission) not in permission_map:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="許可されていないパーミッションです")
+# 補助クラス: 空文字返却用
+class DefaultDict(dict):
+    def __missing__(self, key):
+        return ""
 
-        base_url = permission_map[str(permission)]
+from models.user import select_user_by_id
 
-        # 店舗ユーザーならクエリパラメータ付与
-        if permission == 10 and username:
-            return f"/shops?shop_id={username}"
-        return base_url
+async def get_account_by_id_or_404_response(user_id: int):
+    user_info = await select_user_by_id(user_id)  # user_id で検索
+    if user_info is None:
+        raise HTTPException(status_code=404, detail=f"ユーザーID {user_id} が見つかりません")
+    print(f"{user_info=}")
+    response_data = UserResponse(
+        user_id=user_info.user_id,
+        username=user_info.username,
+        name=user_info.name,
+        company_id=user_info.company_id,
+        shop_name=user_info.shop_name,
+        menu_id=user_info.menu_id,
+        permission=user_info.permission
+    )
+    return JSONResponse(content=response_data.model_dump())
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.exception("get_main_url() - エラー")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="URL取得中に内部エラーが発生しました")
+
+# async def get_main_url(permission: str, user_id: str = None, manager_id: str = None, shop_id: str = None) -> str:
+#     url_template = permission_map.get(str(permission))
+#     if not url_template:
+#         raise ValueError("権限に対応するURLが見つかりません")
+
+#     # 必要に応じてテンプレート埋め込み
+#     return url_template.format(
+#         user_id=user_id or "",
+#         manager_id=manager_id or "",
+#         shop_id=shop_id or ""
+#     )
+
+# @log_decorator
+# async def get_main_url(permission: int, username: str = None) -> str:
+#     try:
+#         if not isinstance(permission, int):
+#             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="permissionは整数で指定してください")
+
+#         if str(permission) not in permission_map:
+#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="許可されていないパーミッションです")
+
+#         base_url = permission_map[str(permission)]
+
+#         # 店舗ユーザーならクエリパラメータ付与
+#         if permission == 10 and username:
+#             return f"/shops?shop_id={username}"
+#         return base_url
+
+#     except HTTPException:
+#         raise
+#     except Exception as e:
+#         logger.exception("get_main_url() - エラー")
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="URL取得中に内部エラーが発生しました")
 
 
 

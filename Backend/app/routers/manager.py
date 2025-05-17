@@ -27,12 +27,11 @@ manager_router = APIRouter()
 
 # 契約企業(お弁当担当者)画面
 # 注意：エンドポイントにprefix:managerはつけない
-@manager_router.get("/me", response_class=HTMLResponse, tags=["manager"])
+@manager_router.get("/{manager_id}", response_class=HTMLResponse, tags=["manager"])
 @log_decorator
-async def manager_view(request: Request, response: Response):
+async def manager_view(request: Request, response: Response, manager_id: str):
     try:
-        permits = [2, 99]
-        if await check_permission(request, permits) == False:
+        if await check_permission(request, [2, 99]) == False:
             return redirect_unauthorized(request, "契約企業ユーザー権限がありません。")
 
         cookies = get_all_cookies(request)
@@ -52,9 +51,11 @@ async def manager_view(request: Request, response: Response):
 
         # CookieからユーザーID（manager_id）取得
         cookies = get_all_cookies(request)
-        manager_id = cookies.get("sub", "default_manager01")
-
-        context.update({"username": manager_id})
+        
+        print(f"manager_view - context username: {manager_id}")
+        context.update({"username": manager_id,
+                        "manager_id": manager_id  # 追加
+                        })
 
     except HTTPException as e:
         logger.exception(f"manager_view - HTTPException: {e.detail}")
@@ -64,7 +65,7 @@ async def manager_view(request: Request, response: Response):
         return HTMLResponse("注文情報の取得中にエラーが発生しました", status_code=500)
     else:
         return await order_table_view(request, response, orders, "manager.html", context)
-
+        # return templates.TemplateResponse("manager.html", context) # これでも動いた
 
 async def get_manager_context(request: Request, orders):
     try:

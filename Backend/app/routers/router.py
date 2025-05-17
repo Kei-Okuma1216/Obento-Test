@@ -34,7 +34,25 @@ async def get_account_or_404_response(username: str):
     user_info = await select_user(username)
     if user_info is None:
         raise HTTPException(status_code=404, detail=f"ユーザー {username} が見つかりません")
+    print(f"{user_info=}")
+    response_data = UserResponse(
+        user_id=user_info.user_id,
+        username=user_info.username,
+        name=user_info.name,
+        company_id=user_info.company_id,
+        shop_name=user_info.shop_name,
+        menu_id=user_info.menu_id,
+        permission=user_info.permission
+    )
+    return JSONResponse(content=response_data.model_dump())
 
+from models.user import select_user_by_id
+
+async def get_account_by_id_or_404_response(user_id: int):
+    user_info = await select_user_by_id(user_id)  # user_id で検索
+    if user_info is None:
+        raise HTTPException(status_code=404, detail=f"ユーザーID {user_id} が見つかりません")
+    print(f"{user_info=}")
     response_data = UserResponse(
         user_id=user_info.user_id,
         username=user_info.username,
@@ -59,12 +77,14 @@ async def get_admin_account(request: Request):
 
 # 契約企業ユーザー情報の取得
 @sample_router.get("/v1/account/manager", response_model=UserResponse)
-async def get_manager_account(request: Request, username: str = Query(...)):
+async def get_manager_account(request: Request, user_id: int = Query(...)):
+# async def get_manager_account(request: Request, username: str = Query(...)):
 
     if not await check_permission(request, [2]):
         return redirect_unauthorized(request, "マネージャー権限がありません。")
 
-    return await get_account_or_404_response(username)
+    return await get_account_by_id_or_404_response(user_id)
+    # return await get_account_or_404_response(username)
 
 # 店舗ユーザー情報の取得
 @sample_router.get("/v1/account/shop", response_model=UserResponse)

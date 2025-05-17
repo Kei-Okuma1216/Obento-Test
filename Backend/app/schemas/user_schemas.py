@@ -22,6 +22,9 @@ class UserBase(BaseModel):
         from_attributes = True  # ここに設定することで全ての派生クラスに適用される
 
     # ゲッターメソッド
+    def get_id(self) -> int:
+        return self.user_id
+    
     def get_username(self) -> str:
         return self.username
 

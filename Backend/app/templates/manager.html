@@ -159,6 +159,7 @@
           <div class="tab-pane fade" id="account" role="tabpanel" aria-labelledby="account-tab">
             <h1 class="mt-3">アカウント情報</h1>
             <pre id="account-info">読み込み中...</pre>
+            <p>確認用: {{ username }}</p>
           </div>
 
 
@@ -242,9 +243,11 @@
     document.addEventListener("DOMContentLoaded", function() {
       const accountTab = document.getElementById('account-tab');
       accountTab.addEventListener('shown.bs.tab', function () {
-        // fetch('/api/v1/account/manager')
-        const username = "{{ username }}";
-        fetch('/api/v1/account/manager?username=' + encodeURIComponent(username))
+        // const username = "{{ username }}";
+        // fetch('/api/v1/account/manager?username=' + encodeURIComponent(username))
+        // 修正後
+        const user_id = "{{ username }}";  // ここはuser_id相当
+        fetch('/api/v1/account/manager?user_id=' + encodeURIComponent(user_id))
           .then(response => response.json())
           .then(data => {
             document.getElementById('account-info').textContent = JSON.stringify(data, null, 2);
