@@ -135,16 +135,19 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 logger.warning(f"No order found for user: {username}")
                 return []# return None
 
-            order_list: List[OrderModel] = []
+            # order_list: List[OrderModel] = []
+            # for row in rows:
+            #     # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
+            #     row_dict = dict(row._mapping)
+            #     # checkedカラムは整数型の場合があるため、bool型に変換します
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_list.append(order_model)
+            order_models = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
                 row_dict = dict(row._mapping)
-                # checkedカラムは整数型の場合があるため、bool型に変換します
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_list.append(order_model)
-                
-            return order_list
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -158,6 +161,8 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_list
 
 
 # 選択（一般ユーザー: 日付指定）
@@ -205,15 +210,19 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 logger.warning(f"No order found for user: {username} on {target_date.isoformat()}")
                 return []# return None
 
-            order_models: List[OrderModel] = []
+            order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
-                # checkedカラムが整数等の場合、boolに変換
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-                
-            return order_models
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     row_dict = dict(row._mapping)
+            #     # checkedカラムが整数等の場合、boolに変換
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+
 
     except IntegrityError as e:
         await session.rollback()
@@ -227,7 +236,8 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        return order_models
 
 # 選択（一般ユーザー:開始日から終了日まで）
 @log_decorator
@@ -269,13 +279,16 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
                 logger.warning(f"No order found for user: {username} between {start} and {end}")
                 return []
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     row_dict = dict(row._mapping)
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_models.append(OrderModel(**row_dict))
+            order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_models.append(OrderModel(**row_dict))
-
-            return order_models
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -289,7 +302,8 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        return order_models
 
 from utils.utils import get_datetime_range
 from datetime import time
@@ -415,16 +429,18 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                 logger.warning(f"No order found for the given company_id: {company_id}")
                 return []# return None
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     row_dict = dict(row._mapping) # _mapping 属性で変換
+            #     # checked カラムは整数型の場合があるので bool 型に変換します
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+            order_models = []
             for row in rows:
-                row_dict = dict(row._mapping) # _mapping 属性で変換
-                # checked カラムは整数型の場合があるので bool 型に変換します
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-
-            logger.debug(f"- {order_models=}")
-            return order_models
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -438,7 +454,9 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        logger.debug(f"- {order_models=}")
+        return order_models
 
 # 選択（契約企業ユーザー: 日付指定）
 @log_decorator
@@ -485,16 +503,19 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 logger.warning(f"No order found for the given company_id:{company_id} and target_date: {target_date}")
                 return []# return None
             
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     # Rowオブジェクトは _mapping 属性で辞書として変換可能です
+            #     row_dict = dict(row._mapping)
+            #     # checked カラムは整数型の場合があるので、bool型に変換
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+            order_models = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性で辞書として変換可能です
                 row_dict = dict(row._mapping)
-                # checked カラムは整数型の場合があるので、bool型に変換
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-
-        logger.debug(f"{order_models=}")
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -509,6 +530,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
     else:
+        logger.debug(f"{order_models=}")
         return order_models
 
 
@@ -550,13 +572,16 @@ async def select_orders_by_company_at_date_range(company_id: int, start_date: da
                 logger.warning(f"No order found for company_id: {company_id} between {start_date} and {end_date}")
                 return []
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     row_dict = dict(row._mapping)
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_models.append(OrderModel(**row_dict))
+            order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_models.append(OrderModel(**row_dict))
-
-            return order_models
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -570,6 +595,8 @@ async def select_orders_by_company_at_date_range(company_id: int, start_date: da
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 # 選択（契約企業ユーザー:日付遡及）
@@ -626,17 +653,21 @@ async def select_orders_by_company_ago_old(company_id: int, days_ago: int = 0) -
                 logger.warning(f"No order found for the given company_id: {company_id}")
                 return []# return None
             
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     # Rowオブジェクトは _mapping 属性で辞書に変換可能
+            #     row_dict = dict(row._mapping)
+            #     # checked が数値の場合があるので、明示的に bool に変換
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+            order_models = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性で辞書に変換可能
                 row_dict = dict(row._mapping)
-                # checked が数値の場合があるので、明示的に bool に変換
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-            
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
+
             logger.debug(f"select_orders_by_company_ago() - order_models: {order_models}")
-            return order_models
 
     except IntegrityError as e:
         await session.rollback()
@@ -650,6 +681,8 @@ async def select_orders_by_company_ago_old(company_id: int, days_ago: int = 0) -
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 '''-----------------------------------------------------------'''
@@ -715,10 +748,13 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                 row_dict["checked"] = bool(row_dict.get("checked", False))
 
                 # OrderModel へ変換
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-            
-            logger.debug(f"select_orders_by_shop_all() - order_models: {order_models}")
+                # order_model = OrderModel(**row_dict)
+                # order_models.append(order_model)
+                order_models = []
+                for row in rows:
+                    row_dict = dict(row._mapping)
+                    row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                    order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -737,6 +773,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
         logger.error(f"Unexpected error: {e}")
         logger.debug(f"{stmt=}")
     else:
+        logger.debug(f"select_orders_by_shop_all() - order_models: {order_models}")
         return order_models
 
 
@@ -775,20 +812,23 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
             if not rows:
                 logger.warning(f"No order found for shop: {shop_name} and company_id: {company_id}")
                 return []# return None
-            
-            order_models: List[OrderModel] = []
+
+            order_models = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性で辞書に変換可能です
                 row_dict = dict(row._mapping)
-                # 必要に応じた型変換
-                row_dict["order_id"] = int(row_dict["order_id"])
-                row_dict["amount"] = int(row_dict["amount"])
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                # 辞書から pydantic モデル OrderModel を生成
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-            
-            logger.debug(f"select_orders_by_shop_company() - order_models: {order_models}")
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     # Rowオブジェクトは _mapping 属性で辞書に変換可能です
+            #     row_dict = dict(row._mapping)
+            #     # 必要に応じた型変換
+            #     row_dict["order_id"] = int(row_dict["order_id"])
+            #     row_dict["amount"] = int(row_dict["amount"])
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     # 辞書から pydantic モデル OrderModel を生成
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
 
     except IntegrityError as e:
         await session.rollback()
@@ -807,6 +847,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
         logger.error(f"Unexpected error: {e}")
         logger.debug(f"{stmt=}")
     else:
+        logger.debug(f"select_orders_by_shop_company() - order_models: {order_models}")
         return order_models
 
 
@@ -853,19 +894,23 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 logger.warning(f"No order found for the given shop_name: {shop_name} and target_date: {target_date}")
                 return []# return None
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # とりあえず複雑なので、動作家訓までまだ消さない。
+            # for row in rows:
+            #     # Rowオブジェクトは _mapping 属性を利用して辞書に変換できます
+            #     row_dict = dict(row._mapping)
+            #     # order_id, amount を明示的に int型へ変換
+            #     row_dict["order_id"] = int(row_dict["order_id"])
+            #     row_dict["amount"] = int(row_dict["amount"])
+            #     # checked カラムは整数型等の場合があるため、bool型に変換
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+            order_models = []
             for row in rows:
-                # Rowオブジェクトは _mapping 属性を利用して辞書に変換できます
                 row_dict = dict(row._mapping)
-                # order_id, amount を明示的に int型へ変換
-                row_dict["order_id"] = int(row_dict["order_id"])
-                row_dict["amount"] = int(row_dict["amount"])
-                # checked カラムは整数型等の場合があるため、bool型に変換
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-            
-            logger.debug(f"select_orders_by_shop_at_date() - order_models: {order_models}")
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -884,6 +929,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
         logger.error(f"Unexpected error: {e}")
         logger.debug(f"{stmt=}")
     else:
+        logger.debug(f"select_orders_by_shop_at_date() - order_models: {order_models}")
         return order_models
 
 
@@ -924,13 +970,16 @@ async def select_orders_by_shop_at_date_range(shop_name: str, start_date: date, 
                 logger.warning(f"No orders found for shop: {shop_name} between {start_date} and {end_date}")
                 return []
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     row_dict = dict(row._mapping)
+            #     row_dict["checked"] = bool(row_dict.get("checked", False))
+            #     order_models.append(OrderModel(**row_dict))
+            order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
-                row_dict["checked"] = bool(row_dict.get("checked", False))
-                order_models.append(OrderModel(**row_dict))
-
-            return order_models
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -944,6 +993,8 @@ async def select_orders_by_shop_at_date_range(shop_name: str, start_date: date, 
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 # 選択（店舗ユーザー:日付遡及）
@@ -1089,7 +1140,6 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
             # checkedは整数型の場合があるので、明示的にbool型に変換
             row_dict["checked"] = bool(row_dict["checked"])
             order_model = OrderModel(**row_dict)
-            return order_model
 
     except IntegrityError as e:
         await session.rollback()
@@ -1103,7 +1153,8 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
-
+    else:
+        return order_model
 
 # 選択（管理者ユーザー:全件）
 @log_decorator
@@ -1141,17 +1192,20 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                 return []# return None
 
 
-            order_models: List[OrderModel] = []
+            # order_models: List[OrderModel] = []
+            # for row in rows:
+            #     # SQLAlchemyのRowオブジェクトは _mapping 属性で辞書のようにアクセス可能です
+            #     row_dict = dict(row._mapping)
+            #     # checkedは整数型になっている場合があるため、bool型に変換
+            #     row_dict["checked"] = bool(row_dict["checked"])
+            #     # 取得した辞書データをもとに、pydanticモデルOrderModelを生成します
+            #     order_model = OrderModel(**row_dict)
+            #     order_models.append(order_model)
+            order_models = []
             for row in rows:
-                # SQLAlchemyのRowオブジェクトは _mapping 属性で辞書のようにアクセス可能です
                 row_dict = dict(row._mapping)
-                # checkedは整数型になっている場合があるため、bool型に変換
-                row_dict["checked"] = bool(row_dict["checked"])
-                # 取得した辞書データをもとに、pydanticモデルOrderModelを生成します
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-
-            return order_models
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
     except IntegrityError as e:
         await session.rollback()
@@ -1165,6 +1219,8 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 # 選択（管理者ユーザー:日付指定）
@@ -1210,11 +1266,11 @@ async def select_orders_by_admin_at_date(target_date: date) -> Optional[List[Ord
                 row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
                 order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
-            return order_models
-
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 # 選択（管理者ユーザー:開始日から終了日まで）
@@ -1261,11 +1317,11 @@ async def select_orders_at_date_range(start_date: date, end_date: date) -> Optio
                 row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
                 order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
 
-            return order_models
-
     except Exception as e:
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
+    else:
+        return order_models
 
 
 # 選択（管理者ユーザー:日付遡及）

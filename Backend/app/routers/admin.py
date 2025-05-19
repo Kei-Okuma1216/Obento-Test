@@ -88,7 +88,9 @@ async def get_admin_orders(begin: str):
     パラメータ begin は yyyy-mm-dd 形式の日付文字列
     """
     try:
-        if not begin:
+        # if not begin:
+        #     return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
+        if not begin or begin.lower() in ["", "null", "none"]:
             return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
 
         try:
