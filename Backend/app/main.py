@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 2.3 システムテスト完了
+# 2.4 アカウントタブの表示完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
     2. login_get(request: Request):
@@ -35,6 +35,7 @@ from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
 from routers.user import user_router
+from routers import order
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -56,6 +57,7 @@ app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
+app.include_router(order.order_api_router)
 
 
 # エントリポイントの選択
@@ -132,8 +134,6 @@ async def root(request: Request):
 
         username = payload['sub']
         permission = payload['permission']
-
-        # main_url = await get_main_url(permission)
         
         # user情報を取得
         user = await get_user(username)
@@ -152,12 +152,7 @@ async def root(request: Request):
             kwargs["shop_id"] = user.get_id()
 
         main_url = await get_main_url(permission, **kwargs)
-        # main_url = await get_main_url(
-        #     permission, # user.get_id() が None を返している
-        #     user_id=str(user.get_id()) if str(permission) == "1" else None,
-        #     user_id=user.get_id() if str(permission) == "2" else None,
-        #     shop_id=user.get_id() if str(permission) == "10" else None
-        # )
+
         logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
 
         return await create_auth_response(

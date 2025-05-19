@@ -65,42 +65,6 @@ async def get_account_by_id_or_404_response(user_id: int):
     return JSONResponse(content=response_data.model_dump())
 
 
-# async def get_main_url(permission: str, user_id: str = None, manager_id: str = None, shop_id: str = None) -> str:
-#     url_template = permission_map.get(str(permission))
-#     if not url_template:
-#         raise ValueError("権限に対応するURLが見つかりません")
-
-#     # 必要に応じてテンプレート埋め込み
-#     return url_template.format(
-#         user_id=user_id or "",
-#         manager_id=manager_id or "",
-#         shop_id=shop_id or ""
-#     )
-
-# @log_decorator
-# async def get_main_url(permission: int, username: str = None) -> str:
-#     try:
-#         if not isinstance(permission, int):
-#             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="permissionは整数で指定してください")
-
-#         if str(permission) not in permission_map:
-#             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="許可されていないパーミッションです")
-
-#         base_url = permission_map[str(permission)]
-
-#         # 店舗ユーザーならクエリパラメータ付与
-#         if permission == 10 and username:
-#             return f"/shops?shop_id={username}"
-#         return base_url
-
-#     except HTTPException:
-#         raise
-#     except Exception as e:
-#         logger.exception("get_main_url() - エラー")
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="URL取得中に内部エラーが発生しました")
-
-
-
 from fastapi import HTTPException, status, Response
 from fastapi.responses import RedirectResponse
 from core.security import get_access_token

@@ -25,9 +25,6 @@ user_router = APIRouter()
 
 
 # お弁当の注文完了　ユーザーのみ
-# @user_router.get("/order_complete", response_class=HTMLResponse, tags=["users"])
-# @log_decorator
-# async def regist_complete(request: Request, response: Response):
 @user_router.get("/{user_id}/order_complete/", response_class=HTMLResponse, tags=["users"])
 async def regist_complete(request: Request, response: Response, user_id: str):
     try:

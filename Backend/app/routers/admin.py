@@ -3,11 +3,12 @@
 '''
     1. admin_view(request: Request): 
     2. update_existing_passwords():
+    3. get_admin_orders(begin: str):
 
-    3. list_logs():
-    4. view_log(filename: str):
-    5. list_order_logs():
-    6. view_order_log(filename: str):
+    4. list_logs():
+    5. view_log(filename: str):
+    6. list_order_logs():
+    7. view_order_log(filename: str):
 '''
 import bcrypt
 import os
@@ -48,29 +49,6 @@ async def admin_view(request: Request):
             }
         )
 
-# from fastapi.responses import JSONResponse
-# from schemas.user_schemas import UserResponse
-
-# # 管理者アカウント情報を取得する
-# @admin_router.get("/admin/api/v1/account", response_model=UserResponse)
-# async def get_admin_account(request: Request):
-
-#     if not await check_permission(request, [99]):   # 管理者認証チェック
-#         return redirect_unauthorized(request, "管理者権限がありません。")
-
-#     # ここでは例として固定値を返却（実際はDBから取得するなど適宜修正）
-#     admin_info = UserResponse(
-#         user_id=1,
-#         username="admin",
-#         name="管理者",
-#         company_id=None,
-#         shop_name=None,
-#         menu_id=None,
-#         permission=99
-#     )
-#     return JSONResponse(content=admin_info.dict())
-
-
 @log_decorator
 @admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
 async def update_existing_passwords(request: Request):
@@ -95,6 +73,43 @@ async def update_existing_passwords(request: Request):
         return await redirect_error(request, message, e)
     else:
         return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
+
+
+from fastapi.responses import JSONResponse
+from datetime import datetime
+from models.order import select_orders_by_admin_at_date
+
+
+# 注文ログファイルの内容JSONを表示するエンドポイント
+@admin_router.get("/orders/admin", tags=["admin"])
+async def get_admin_orders(begin: str):
+    """
+    管理者用 注文JSON取得API
+    パラメータ begin は yyyy-mm-dd 形式の日付文字列
+    """
+    try:
+        if not begin:
+            return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
+
+        try:
+            target_date = datetime.strptime(begin, "%Y-%m-%d").date()
+        except ValueError:
+            return JSONResponse({"error": "開始日フォーマットが不正です (yyyy-mm-dd 形式)"}, status_code=400)
+
+        # 管理者用の注文取得関数を呼び出し
+        orders = await select_orders_by_admin_at_date(target_date)
+
+        if not orders:
+            return JSONResponse({"message": "注文が見つかりません"}, status_code=404)
+
+        # Pydanticモデルから辞書リストに変換
+        orders_json = [order.model_dump() for order in orders]
+
+        return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
+
+    except Exception as e:
+        return JSONResponse({"error": f"サーバーエラー: {str(e)}"}, status_code=500)
+
 
 '''
 # 注意：ここに移動するとJSONのみ表示になる
@@ -156,16 +171,6 @@ def list_order_logs():
     links = [f"<li><a href='/admin/order_logs/{file}'>{file}</a></li>" for file in log_files]
     return f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
 
-# # 注文ログファイルの内容を表示するエンドポイント
-# @admin_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["admin","shops"])
-# def view_order_log(filename: str):
-#     log_path = os.path.join("order_logs", filename)
-#     if os.path.exists(log_path):
-#         with open(log_path, "r", encoding="utf-8") as f:
-#             content = f.read().replace('\n', '<br>')
-#         return f"<h1>{filename}</h1><pre>{content}</pre>"
-#     else:
-#         return "注文ログファイルが存在しません。"
 
 from fastapi import HTTPException
 # 注文ログファイルの内容を表示するエンドポイント

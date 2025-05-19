@@ -5,30 +5,38 @@
     1. class Order(Base):
     2. create_orders_table():
 
-    # 管理者(admin)用に注文を取得する
-    3. select_single_order(order_id: int) -> OrderModel:
-    4. select_all_orders() -> Optional[List[OrderModel]]:
-
     # 一般ユーザー(username) を指定して、注文を取得する
-    5. select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]:
-    6. select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
-    7. select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
+    3. select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]:
+    4. select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
+    5. select_orders_by_user_at_date_range(username: str, start: datetime, end: datetime) -> Optional
+    6. select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
 
     # 契約企業(company_id) を指定して、注文を取得する
-    8. select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
-    9. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
+    7. select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
+    8. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
+    9. select_orders_by_company_at_date_range(company_id: int, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[OrderModel]]:
 
     # 店舗(shop_name) を指定して、注文を取得する
     11. select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
     12. select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[OrderModel]]:
     13. select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[OrderModel]]:
-    14. select_orders_by_shop_ago(shop_name: str, days_ago_str: str) -> Optional[List[OrderModel]]:
+    14. select_orders_by_shop_at_date_range(shop_name: str, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    15. select_orders_by_shop_ago(shop_name: str, days_ago_str: str) -> Optional[List[OrderModel]]:
 
-    15. insert_order(company_id: int, username: str, shop_name: str, menu_id: int, amount: int, created_at: Optional[str] = None) -> int:
-    16. update_order(order_id: int, company_id: int, username: str, shop_name: str, menu_id: int, amount: int, updated_at: Optional[str] = None) -> bool:
-    17. delete_order(order_id: int) -> bool:
-    18. delete_all_orders():
+    # 管理者(admin)用に注文を取得する
+    16. select_single_order(order_id: int) -> OrderModel:
+    17. select_all_orders() -> Optional[List[OrderModel]]:
+    18. select_orders_by_admin_at_date(target_date: date) -> Optional[List[OrderModel]]:
+    19. select_orders_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    20. select_orders_by_admin_ago(days_ago: int = 0) -> Optional[List[OrderModel]]:
+
+    21. insert_order(company_id: int, username: str, shop_name: str, menu_id: int, amount: int, created_at: Optional[str] = None) -> int:
+    22. update_order(order_id: int, company_id: int, username: str, shop_name: str, menu_id: int, amount: int, updated_at: Optional[str] = None) -> bool:
+    23. delete_order(order_id: int) -> bool:
+    24. delete_all_orders():
+    
+    25. get_datetime_range_for_date(target_date) -> start_dt, end_dt
 '''
 from sqlalchemy import Column, Integer, String, DateTime, Date, func
 from database.local_postgresql_database import Base, engine
@@ -36,6 +44,7 @@ from database.local_postgresql_database import Base, engine
 # SELECT * FROM public."Orders"
 # ORDER BY order_id DESC
 
+# モデルクラス定義
 class Order(Base):
     __tablename__ = "Orders"
 
@@ -89,126 +98,6 @@ from datetime import date, datetime, timedelta
 from typing import List, Optional
 from schemas.order_schemas import OrderModel
 from database.local_postgresql_database import AsyncSessionLocal
-
-# 選択（１件）
-@log_decorator
-async def select_single_order(order_id: int) -> Optional[OrderModel]:
-    """
-    指定されたorder_idに該当するOrdersレコードを、
-    Company、MenuテーブルとJOINして必要な情報を取得し、pydanticのOrderModelオブジェクトとして返します。
-    """
-    try:
-        async with AsyncSessionLocal() as session:
-            stmt = (
-                select(
-                    Order.order_id,
-                    Company.name.label("company_name"),
-                    Order.username,
-                    Order.shop_name,
-                    Menu.name.label("menu_name"),
-                    Order.amount,
-                    Order.created_at,
-                    Order.expected_delivery_date,
-                    Order.checked
-                )
-                .select_from(Order)
-                .join(Company, Order.company_id == Company.company_id)
-                .join(Menu, Order.menu_id == Menu.menu_id)
-                .where(Order.order_id == order_id)
-            )
-            logger.debug(f"{stmt=}")
-            result = await session.execute(stmt)
-            row = result.first()
-
-            if row is None:
-                logger.warning("No order found")
-                return []
-
-            # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
-            row_dict = dict(row._mapping)
-            # checkedは整数型の場合があるので、明示的にbool型に変換
-            row_dict["checked"] = bool(row_dict["checked"])
-            order_model = OrderModel(**row_dict)
-            return order_model
-
-    except IntegrityError as e:
-        await session.rollback()
-        logger.error(f"IntegrityError: {e}")
-    except OperationalError as e:
-        await session.rollback()
-        logger.error(f"OperationalError: {e}")
-    except DatabaseError as e:
-        await session.rollback()
-        logger.error(f"SQL実行中にエラーが発生しました:{e}")
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"Unexpected error: {e}")
-
-
-
-# 選択（全件）
-@log_decorator
-async def select_all_orders() -> Optional[List[OrderModel]]:
-    """
-    全てのOrdersレコードを取得し、pydanticのOrderModelのリストとして返します。
-    (注文が存在しない場合は [] を返します)
-    """
-    try:
-        async with AsyncSessionLocal() as session:
-            # CompanyおよびMenuテーブルとJOINして、必要なカラムを取得します
-            stmt = (
-                select(
-                    Order.order_id,
-                    Company.name.label("company_name"),
-                    Order.username,
-                    Order.shop_name,
-                    Menu.name.label("menu_name"),
-                    Order.amount,
-                    Order.created_at,
-                    Order.expected_delivery_date,
-                    Order.checked
-                )
-                .select_from(Order)
-                .join(Company, Order.company_id == Company.company_id)
-                .join(Menu, Order.menu_id == Menu.menu_id)
-            )
-            logger.debug(f"{stmt=}")
-
-            result = await session.execute(stmt)
-            rows = result.all()
-
-            if not rows:
-                logger.warning("No order found")
-                return []# return None
-
-
-            order_models: List[OrderModel] = []
-            for row in rows:
-                # SQLAlchemyのRowオブジェクトは _mapping 属性で辞書のようにアクセス可能です
-                row_dict = dict(row._mapping)
-                # checkedは整数型になっている場合があるため、bool型に変換
-                row_dict["checked"] = bool(row_dict["checked"])
-                # 取得した辞書データをもとに、pydanticモデルOrderModelを生成します
-                order_model = OrderModel(**row_dict)
-                order_models.append(order_model)
-
-            return order_models
-
-    except IntegrityError as e:
-        await session.rollback()
-        logger.error(f"IntegrityError: {e}")
-    except OperationalError as e:
-        await session.rollback()
-        logger.error(f"OperationalError: {e}")
-    except DatabaseError as e:
-        await session.rollback()
-        logger.error(f"SQL実行中にエラーが発生しました:{e}")
-    except Exception as e:
-        await session.rollback()
-        logger.error(f"Unexpected error: {e}")
-
-'''-----------------------------------------------------------'''
-
 
 # 選択（一般ユーザー:全件）
 @log_decorator
@@ -271,9 +160,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
         logger.error(f"Unexpected error: {e}")
 
 
-
-
-# 選択（一般ユーザー:指定日）
+# 選択（一般ユーザー: 日付指定）
 @log_decorator
 async def select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
     """
@@ -284,14 +171,10 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
     結果を pydantic の OrderModel オブジェクトのリストとして返します。
     注文が存在しなければ [] を返します。
     """
-    from datetime import time
+    # from datetime import time
     try:
         async with AsyncSessionLocal() as session:
-            # start_dt = f"{target_date.isoformat()} 00:00:00"
-            # end_dt = f"{target_date.isoformat()} 23:59:59"
-            # 00:00:00 と 23:59:59.999999 の datetime を作成
-            start_dt = datetime.combine(target_date, time.min)
-            end_dt = datetime.combine(target_date, time.max)
+            start_dt, end_dt = get_datetime_range_for_date(target_date)
             
             stmt = (
                 select(
@@ -345,11 +228,88 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
 
+
+# 選択（一般ユーザー:開始日から終了日まで）
+@log_decorator
+async def select_orders_by_user_at_date_range(username: str, start: datetime, end: datetime) -> Optional[List[OrderModel]]:
+    """
+    指定された username と start ~ end 期間に該当する注文レコードを取得します。
+    CompanyおよびMenuテーブルとJOINして、company_name や menu_name など必要な情報を取得し、
+    結果を pydantic の OrderModel オブジェクトのリストとして返します。
+    注文が存在しなければ [] を返します。
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(
+                    Order.username == username,
+                    Order.created_at.between(start, end)
+                )
+            )
+
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            if not rows:
+                logger.warning(f"No order found for user: {username} between {start} and {end}")
+                return []
+
+            order_models: List[OrderModel] = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))
+                order_models.append(OrderModel(**row_dict))
+
+            return order_models
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました: {e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
 from utils.utils import get_datetime_range
+from datetime import time
 
 # 選択（一般ユーザー:日付遡及）
 @log_decorator
 async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
+
+    # 遡及日を求める
+    now = datetime.now()
+    start = now - timedelta(days=days_ago)
+    end = now
+    
+    start_dt = datetime.combine(start, time.min)
+    end_dt = datetime.combine(end, time.max)
+    
+    return await select_orders_by_user_at_date_range(username, start_dt, end_dt)
+
+@log_decorator
+async def select_orders_by_user_ago_old(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
     """
     指定された username の注文レコードを、本日から指定日数前から本日までの期間に絞り込んで取得します。
     例）days_ago=3 → 本日から３日前～本日の期間の注文を取得する。
@@ -413,10 +373,12 @@ async def select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optiona
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
 
+
 '''-----------------------------------------------------------'''
 from models.company import Company
 from models.menu import Menu
 
+# 選択（契約企業ユーザー:全件）
 @log_decorator
 async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
     """
@@ -478,8 +440,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
         logger.error(f"Unexpected error: {e}")
 
 
-
-
+# 選択（契約企業ユーザー: 日付指定）
 @log_decorator
 async def select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
     """
@@ -495,8 +456,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
     try:
         async with AsyncSessionLocal() as session:
             # target_date をもとに期間文字列を生成
-            start_datetime = f"{target_date.isoformat()} 00:00:00"
-            end_datetime   = f"{target_date.isoformat()} 23:59:59"
+            start_dt, end_dt = get_datetime_range_for_date(target_date)
 
             stmt = (
                 select(
@@ -514,7 +474,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 .join(Company, Order.company_id == Company.company_id)
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.company_id == company_id)
-                .where(Order.created_at.between(start_datetime, end_datetime))
+                .where(Order.created_at.between(start_dt, end_dt))
             )
             
             logger.debug(f"{stmt=}")
@@ -552,9 +512,80 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
         return order_models
 
 
+# 選択（契約企業ユーザー:開始日から終了日まで）
+@log_decorator
+async def select_orders_by_company_at_date_range(company_id: int, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    """
+    指定された company_id と日付範囲（start_date ~ end_date）の注文レコードを取得します。
+    """
+    start_datetime = datetime.combine(start_date, time.min)
+    end_datetime = datetime.combine(end_date, time.max)
 
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(Order.company_id == company_id)
+                .where(Order.created_at.between(start_datetime, end_datetime))
+            )
+            
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            if not rows:
+                logger.warning(f"No order found for company_id: {company_id} between {start_date} and {end_date}")
+                return []
+
+            order_models: List[OrderModel] = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))
+                order_models.append(OrderModel(**row_dict))
+
+            return order_models
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"DatabaseError: {e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（契約企業ユーザー:日付遡及）
 @log_decorator
 async def select_orders_by_company_ago(company_id: int, days_ago: int = 0) -> Optional[List[OrderModel]]:
+    """
+    指定された company_id の注文レコードを、days_ago日前から本日までの期間で取得します。
+    """
+    now = datetime.now().date()
+    start_date = now - timedelta(days=days_ago)
+    end_date = now
+
+    return await select_orders_by_company_at_date_range(company_id, start_date, end_date)
+
+@log_decorator
+async def select_orders_by_company_ago_old(company_id: int, days_ago: int = 0) -> Optional[List[OrderModel]]:
     """
     指定された company_id の注文レコードを、Company および Menu テーブルとJOINして取得します。
     days_ago が指定されている場合、created_at が指定期間内の注文に絞り込みます。
@@ -630,6 +661,7 @@ from schemas.order_schemas import OrderModel
 
 logger = logging.getLogger(__name__)
 
+# 選択（店舗ユーザー:全件）
 @log_decorator
 async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]]:
     """
@@ -708,9 +740,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
         return order_models
 
 
-
-
-
+# 選択（店舗ユーザー:店舗・契約企業指定）
 @log_decorator
 async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Optional[List[OrderModel]]:
     """
@@ -780,7 +810,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
         return order_models
 
 
-
+# 選択（店舗ユーザー:日付指定）
 @log_decorator
 async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Optional[List[OrderModel]]:
     """
@@ -795,9 +825,8 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
     try:
         async with AsyncSessionLocal() as session:
             # target_dateから期間文字列を生成
-            start_datetime = f"{target_date.isoformat()} 00:00:00"
-            end_datetime = f"{target_date.isoformat()} 23:59:59"
-            
+            start_dt, end_dt = get_datetime_range_for_date(target_date)
+                        
             stmt = (
                 select(
                     Order.order_id,
@@ -814,7 +843,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 .join(Company, Order.company_id == Company.company_id)
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(Order.shop_name == shop_name)
-                .where(Order.created_at.between(start_datetime, end_datetime))
+                .where(Order.created_at.between(start_dt, end_dt))
             )
 
             result = await session.execute(stmt)
@@ -858,9 +887,80 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
         return order_models
 
 
+# 選択（店舗ユーザー:開始日から終了日まで）
+@log_decorator
+async def select_orders_by_shop_at_date_range(shop_name: str, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    """
+    指定された shop_name と日付範囲（start_date ~ end_date）の注文レコードを取得します。
+    """
+    start_datetime = datetime.combine(start_date, time.min)
+    end_datetime = datetime.combine(end_date, time.max)
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(Order.shop_name == shop_name)
+                .where(Order.created_at.between(start_datetime, end_datetime))
+            )
+            
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            if not rows:
+                logger.warning(f"No orders found for shop: {shop_name} between {start_date} and {end_date}")
+                return []
 
+            order_models: List[OrderModel] = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))
+                order_models.append(OrderModel(**row_dict))
+
+            return order_models
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"DatabaseError: {e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（店舗ユーザー:日付遡及）
 @log_decorator
 async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
+    """
+    指定された shop_name の注文レコードを、days_ago日前から本日までの期間で取得します。
+    """
+    now = datetime.now().date()
+    start_date = now - timedelta(days=days_ago)
+    end_date = now
+
+    return await select_orders_by_shop_at_date_range(shop_name, start_date, end_date)
+
+
+@log_decorator
+async def select_orders_by_shop_ago_old(shop_name: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
     """
     指定された shop_name の注文レコードを、Company および Menu テーブルとJOINして取得します。
     days_ago が指定されている場合、本日から指定日数前（例：days_ago=3 → 3日前）の開始日から本日までの
@@ -948,6 +1048,300 @@ async def select_orders_by_shop_ago(shop_name: str, days_ago: int = 0) -> Option
         return order_models
 
 
+'''-----------------------------------------------------------'''
+# 管理者ユーザーの場合
+# 選択（管理者ユーザー:１件）
+@log_decorator
+async def select_single_order(order_id: int) -> Optional[OrderModel]:
+    """
+    指定されたorder_idに該当するOrdersレコードを、
+    Company、MenuテーブルとJOINして必要な情報を取得し、pydanticのOrderModelオブジェクトとして返します。
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(Order.order_id == order_id)
+            )
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            row = result.first()
+
+            if row is None:
+                logger.warning("No order found")
+                return []
+
+            # Rowオブジェクトは _mapping 属性で辞書のように変換可能です
+            row_dict = dict(row._mapping)
+            # checkedは整数型の場合があるので、明示的にbool型に変換
+            row_dict["checked"] = bool(row_dict["checked"])
+            order_model = OrderModel(**row_dict)
+            return order_model
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（管理者ユーザー:全件）
+@log_decorator
+async def select_all_orders() -> Optional[List[OrderModel]]:
+    """
+    全てのOrdersレコードを取得し、pydanticのOrderModelのリストとして返します。
+    (注文が存在しない場合は [] を返します)
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            # CompanyおよびMenuテーブルとJOINして、必要なカラムを取得します
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+            )
+            logger.debug(f"{stmt=}")
+
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            if not rows:
+                logger.warning("No order found")
+                return []# return None
+
+
+            order_models: List[OrderModel] = []
+            for row in rows:
+                # SQLAlchemyのRowオブジェクトは _mapping 属性で辞書のようにアクセス可能です
+                row_dict = dict(row._mapping)
+                # checkedは整数型になっている場合があるため、bool型に変換
+                row_dict["checked"] = bool(row_dict["checked"])
+                # 取得した辞書データをもとに、pydanticモデルOrderModelを生成します
+                order_model = OrderModel(**row_dict)
+                order_models.append(order_model)
+
+            return order_models
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（管理者ユーザー:日付指定）
+@log_decorator
+async def select_orders_by_admin_at_date(target_date: date) -> Optional[List[OrderModel]]:
+    """
+    管理者用。指定日の全注文を取得。
+    """
+    start_dt, end_dt = get_datetime_range_for_date(target_date)
+
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(Order.created_at.between(start_dt, end_dt))
+            )
+            
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            if not rows:
+                logger.warning(f"No orders found on {target_date}")
+                return []
+
+            # order_models = [OrderModel(**dict(row._mapping), checked=bool(dict(row._mapping).get("checked", False))) for row in rows]
+            order_models = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
+
+            return order_models
+
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（管理者ユーザー:開始日から終了日まで）
+@log_decorator
+async def select_orders_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    """
+    管理者用。指定日付範囲内の全注文を取得。
+    """
+    start_datetime = datetime.combine(start_date, time.min)
+    end_datetime = datetime.combine(end_date, time.max)
+    
+    try:
+        async with AsyncSessionLocal() as session:
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+                .where(Order.created_at.between(start_datetime, end_datetime))
+            )
+            
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+            
+            if not rows:
+                logger.warning(f"No orders found between {start_date} and {end_date}")
+                return []
+
+            # order_models = [OrderModel(**dict(row._mapping), checked=bool(dict(row._mapping).get("checked", False))) for row in rows]
+            order_models = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
+                order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
+
+            return order_models
+
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+
+
+# 選択（管理者ユーザー:日付遡及）
+@log_decorator
+async def select_orders_ago(days_ago: int = 0) -> Optional[List[OrderModel]]:
+    """
+    管理者用。days_ago日前から本日までの全注文を取得。
+    """
+    now = datetime.now().date()
+    start_date = now - timedelta(days=days_ago)
+    end_date = now
+
+    return await select_orders_at_date_range(start_date, end_date)
+
+
+@log_decorator
+async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[OrderModel]]:
+    """
+    管理者用。usernameフィルタを行わず、指定日数前から本日までの全注文レコードを取得します。
+    CompanyおよびMenuテーブルとJOINして、必要な情報を取得し、
+    pydantic の OrderModel オブジェクトのリストとして返します。
+    注文が存在しなければ [] を返します。
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            # username フィルタ無し
+            stmt = (
+                select(
+                    Order.order_id,
+                    Company.name.label("company_name"),
+                    Order.username,
+                    Order.shop_name,
+                    Menu.name.label("menu_name"),
+                    Order.amount,
+                    Order.created_at,
+                    Order.expected_delivery_date,
+                    Order.checked
+                )
+                .select_from(Order)
+                .join(Company, Order.company_id == Company.company_id)
+                .join(Menu, Order.menu_id == Menu.menu_id)
+            )
+
+            # 日付範囲フィルタのみ適用
+            start_dt, end_dt = await get_datetime_range(days_ago)
+            stmt = stmt.where(Order.created_at.between(start_dt, end_dt))
+
+            logger.debug(f"{stmt=}")
+            result = await session.execute(stmt)
+            rows = result.all()
+
+            if not rows:
+                logger.warning(f"No orders found within the specified period days_ago: {days_ago}")
+                return []
+
+            order_models: List[OrderModel] = []
+            for row in rows:
+                row_dict = dict(row._mapping)
+                row_dict["checked"] = bool(row_dict.get("checked", False))
+                order_model = OrderModel(**row_dict)
+                order_models.append(order_model)
+
+            return order_models
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました:{e}")
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
 
 '''-------------------------------------------------------------'''
 # 追加
@@ -1148,3 +1542,15 @@ async def delete_all_orders():
             "ORDER",
             f"全ての注文を削除しました。"
         )
+
+from datetime import date, datetime, time
+from typing import Tuple
+
+def get_datetime_range_for_date(target_date: date) -> Tuple[datetime, datetime]:
+    """
+    指定された日付 (date) から 00:00:00 ～ 23:59:59.999999 の datetime 範囲を返す。
+    例: 2025-05-19 → (2025-05-19 00:00:00, 2025-05-19 23:59:59.999999)
+    """
+    start_datetime = datetime.combine(target_date, time.min)
+    end_datetime = datetime.combine(target_date, time.max)
+    return start_datetime, end_datetime
