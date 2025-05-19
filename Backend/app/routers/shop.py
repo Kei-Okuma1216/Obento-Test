@@ -1,5 +1,6 @@
 # routers/shop.py
 # ../shops/4になる
+# 引数が固定順に並べている
 '''
     1. order_json(request: Request, days_ago: str = Query("0")):
     2. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
@@ -30,7 +31,7 @@ shop_router = APIRouter()
 
 
 
-
+# JSON注文情報を取得する
 @shop_router.get("/me/order_json", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
@@ -49,6 +50,7 @@ async def order_json(request: Request, days_ago: str = Query("0")):
 from fastapi import BackgroundTasks, Query
 from fastapi.responses import JSONResponse
 
+# 注文ログを店舗名でフィルタする
 @shop_router.get("/filter_order_logs", tags=["shops"])
 async def filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
     def run_log_filter():
@@ -87,6 +89,7 @@ async def list_combined_order_logs():
     links = [f"<li><a href='/shops/order_logs/{file}'>{file}</a></li>" for file in log_files]
     return f"<h1>結合注文ログ一覧</h1><ul>{''.join(links)}</ul>"
 
+# 注文ログを結合する
 @shop_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["shops"])
 async def view_combined_order_log(filename: str):
     """選択された結合ログファイルを表示"""
@@ -105,6 +108,7 @@ async def view_combined_order_log(filename: str):
 
 from fastapi.responses import HTMLResponse
 
+# 注文ログを表示する
 @shop_router.get("/order_logs", response_class=HTMLResponse, tags=["shops"])
 async def list_combined_order_logs():
     """combined_ログファイルのみを表示する（店舗ユーザー専用）"""
@@ -125,6 +129,7 @@ async def list_combined_order_logs():
     return f"<h1>注文ログ（店舗用）</h1><ul>{''.join(links)}</ul>"
 
 
+# 注文ログを表示する
 @shop_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["shops"])
 async def view_combined_order_log(filename: str):
     """指定されたログファイルを表示"""
@@ -140,11 +145,18 @@ async def view_combined_order_log(filename: str):
 
 from models.user import select_user_by_id
 
+# 店舗メイン画面
 @shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
 @shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
 @log_decorator
 async def shop_view(request: Request, response: Response, shop_id: str):
     try:
+        # 🚨 不正なID防御（Noneや非数値チェック）
+        if not shop_id or shop_id.lower() == "none" or not shop_id.isdigit():
+            logger.error("不正な shop_id が指定されました")
+            return HTMLResponse("<html><p>不正な店舗IDが指定されました</p></html>", status_code=400)
+        
+        # 権限確認
         if await check_permission(request, [10, 99]) == False:
             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
 
@@ -200,7 +212,7 @@ async def shop_view(request: Request, response: Response, shop_id: str):
             detail="注文情報の取得中にサーバーエラーが発生しました"
         )
 
-
+# 店舗メイン画面コンテキスト取得
 async def get_shop_context(request: Request, orders):
     try:
         shop_context = {
