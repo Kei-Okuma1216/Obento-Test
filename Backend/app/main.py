@@ -35,7 +35,8 @@ from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
 from routers.user import user_router
-from routers import order
+from routers.order import order_api_router
+from routers.log import log_router
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -57,8 +58,8 @@ app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
 app.include_router(user_router, prefix="/users")
-app.include_router(order.order_api_router)
-
+app.include_router(order_api_router)
+app.include_router(log_router)
 
 # エントリポイントの選択
 from database.local_postgresql_database import endpoint

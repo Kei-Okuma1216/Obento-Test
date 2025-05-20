@@ -115,6 +115,9 @@ class UserResponse(UserCreate):
     def get_shop_id(self) -> int:
         return self.user_id
 
+    @property
+    def is_admin(self) -> bool:
+        return self.permission == 99  # 99が管理者なら
 
 
 

@@ -87,7 +87,6 @@ async def get_order_range(user_id=None, company_id=None, shop_id=None, is_admin=
 
         orders = await select_orders_by_user_at_date_range(user.username, begin_date, end_date)
 
-
     elif user_id and company_id and not shop_id:
         from models.order import select_orders_by_company_at_date_range
         orders = await select_orders_by_company_at_date_range(company_id, begin_date, end_date)
