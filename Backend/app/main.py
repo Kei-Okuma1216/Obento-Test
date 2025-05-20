@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 2.4 アカウントタブの表示完了
+# 2.5 注文JSONの実装完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
     2. login_get(request: Request):
@@ -305,7 +305,6 @@ async def login_post(request: Request,
         input_password = form_data.password
 
         # ユーザー取得・認証
-        # user = await get_user(input_username, input_password, "")
         user = await get_user(input_username)
         if user is None:
             return redirect_login_failure(request, error="ユーザーが存在しません")
@@ -326,14 +325,17 @@ async def login_post(request: Request,
 
         # 権限確認
         permission = user.get_permission()
-        # main_url = await get_main_url(permission)
-        main_url = await get_main_url(
-            permission,
-            user_id=user.get_id() if permission == "1" else None,
-            manager_id=user.get_manager_id() if permission == "2" else None,
-            shop_id=user.get_shop_id() if permission == "10" else None
-        )
+        kwargs = {}
+        if str(permission) == "1":
+            kwargs["user_id"] = str(user.get_id())
+        elif str(permission) == "2":
+            kwargs["manager_id"] = user.get_id()
+        elif str(permission) == "10":
+            kwargs["shop_id"] = user.get_id()
 
+        main_url = await get_main_url(permission, **kwargs)
+
+        logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
 
         return await create_auth_response(
             user.get_username(), permission, main_url)

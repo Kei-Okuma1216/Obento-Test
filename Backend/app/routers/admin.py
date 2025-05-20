@@ -75,42 +75,42 @@ async def update_existing_passwords(request: Request):
         return redirect_login_success(request, f"ユーザー {user.username} のパスワードをハッシュ化しました")
 
 
-from fastapi.responses import JSONResponse
-from datetime import datetime
-from models.order import select_orders_by_admin_at_date
+# from fastapi.responses import JSONResponse
+# from datetime import datetime
+# from models.order import select_orders_by_admin_at_date
 
 
-# 注文ログファイルの内容JSONを表示するエンドポイント
-@admin_router.get("/orders/admin", tags=["admin"])
-async def get_admin_orders(begin: str):
-    """
-    管理者用 注文JSON取得API
-    パラメータ begin は yyyy-mm-dd 形式の日付文字列
-    """
-    try:
-        # if not begin:
-        #     return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
-        if not begin or begin.lower() in ["", "null", "none"]:
-            return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
+# # 注文ログファイルの内容JSONを表示するエンドポイント
+# @admin_router.get("/orders/admin", tags=["admin"])
+# async def get_admin_orders(begin: str):
+#     """
+#     管理者用 注文JSON取得API
+#     パラメータ begin は yyyy-mm-dd 形式の日付文字列
+#     """
+#     try:
+#         # if not begin:
+#         #     return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
+#         if not begin or begin.lower() in ["", "null", "none"]:
+#             return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
 
-        try:
-            target_date = datetime.strptime(begin, "%Y-%m-%d").date()
-        except ValueError:
-            return JSONResponse({"error": "開始日フォーマットが不正です (yyyy-mm-dd 形式)"}, status_code=400)
+#         try:
+#             target_date = datetime.strptime(begin, "%Y-%m-%d").date()
+#         except ValueError:
+#             return JSONResponse({"error": "開始日フォーマットが不正です (yyyy-mm-dd 形式)"}, status_code=400)
 
-        # 管理者用の注文取得関数を呼び出し
-        orders = await select_orders_by_admin_at_date(target_date)
+#         # 管理者用の注文取得関数を呼び出し
+#         orders = await select_orders_by_admin_at_date(target_date)
 
-        if not orders:
-            return JSONResponse({"message": "注文が見つかりません"}, status_code=404)
+#         if not orders:
+#             return JSONResponse({"message": "注文が見つかりません"}, status_code=404)
 
-        # Pydanticモデルから辞書リストに変換
-        orders_json = [order.model_dump() for order in orders]
+#         # Pydanticモデルから辞書リストに変換
+#         orders_json = [order.model_dump() for order in orders]
 
-        return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
+#         return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
 
-    except Exception as e:
-        return JSONResponse({"error": f"サーバーエラー: {str(e)}"}, status_code=500)
+#     except Exception as e:
+#         return JSONResponse({"error": f"サーバーエラー: {str(e)}"}, status_code=500)
 
 
 '''

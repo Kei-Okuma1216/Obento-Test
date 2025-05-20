@@ -37,6 +37,7 @@
     24. delete_all_orders():
     
     25. get_datetime_range_for_date(target_date) -> start_dt, end_dt
+    26. select_order_summary(conditions: Dict) -> Dict:
 '''
 from sqlalchemy import Column, Integer, String, DateTime, Date, func
 from database.local_postgresql_database import Base, engine
@@ -162,7 +163,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
     else:
-        return order_list
+        return order_models#order_list
 
 
 # 選択（一般ユーザー: 日付指定）
@@ -215,14 +216,6 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 row_dict = dict(row._mapping)
                 row_dict["checked"] = bool(row_dict.get("checked", False))  # ここで変換
                 order_models.append(OrderModel(**row_dict))  # ここでは重複指定しない
-            # order_models: List[OrderModel] = []
-            # for row in rows:
-            #     row_dict = dict(row._mapping)
-            #     # checkedカラムが整数等の場合、boolに変換
-            #     row_dict["checked"] = bool(row_dict.get("checked", False))
-            #     order_model = OrderModel(**row_dict)
-            #     order_models.append(order_model)
-
 
     except IntegrityError as e:
         await session.rollback()
@@ -249,6 +242,9 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
     注文が存在しなければ [] を返します。
     """
     try:
+        start_datetime = datetime.combine(start, time.min)
+        end_datetime = datetime.combine(end, time.max)
+        
         async with AsyncSessionLocal() as session:
             stmt = (
                 select(
@@ -267,7 +263,7 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
                 .join(Menu, Order.menu_id == Menu.menu_id)
                 .where(
                     Order.username == username,
-                    Order.created_at.between(start, end)
+                    Order.created_at.between(start_datetime, end_datetime)
                 )
             )
 
@@ -279,11 +275,6 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
                 logger.warning(f"No order found for user: {username} between {start} and {end}")
                 return []
 
-            # order_models: List[OrderModel] = []
-            # for row in rows:
-            #     row_dict = dict(row._mapping)
-            #     row_dict["checked"] = bool(row_dict.get("checked", False))
-            #     order_models.append(OrderModel(**row_dict))
             order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
@@ -652,15 +643,7 @@ async def select_orders_by_company_ago_old(company_id: int, days_ago: int = 0) -
             if not rows:
                 logger.warning(f"No order found for the given company_id: {company_id}")
                 return []# return None
-            
-            # order_models: List[OrderModel] = []
-            # for row in rows:
-            #     # Rowオブジェクトは _mapping 属性で辞書に変換可能
-            #     row_dict = dict(row._mapping)
-            #     # checked が数値の場合があるので、明示的に bool に変換
-            #     row_dict["checked"] = bool(row_dict.get("checked", False))
-            #     order_model = OrderModel(**row_dict)
-            #     order_models.append(order_model)
+
             order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
@@ -867,7 +850,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
         async with AsyncSessionLocal() as session:
             # target_dateから期間文字列を生成
             start_dt, end_dt = get_datetime_range_for_date(target_date)
-                        
+            print(f"{start_dt=},{end_dt=}")
             stmt = (
                 select(
                     Order.order_id,
@@ -894,18 +877,6 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 logger.warning(f"No order found for the given shop_name: {shop_name} and target_date: {target_date}")
                 return []# return None
 
-            # order_models: List[OrderModel] = []
-            # とりあえず複雑なので、動作家訓までまだ消さない。
-            # for row in rows:
-            #     # Rowオブジェクトは _mapping 属性を利用して辞書に変換できます
-            #     row_dict = dict(row._mapping)
-            #     # order_id, amount を明示的に int型へ変換
-            #     row_dict["order_id"] = int(row_dict["order_id"])
-            #     row_dict["amount"] = int(row_dict["amount"])
-            #     # checked カラムは整数型等の場合があるため、bool型に変換
-            #     row_dict["checked"] = bool(row_dict.get("checked", False))
-            #     order_model = OrderModel(**row_dict)
-            #     order_models.append(order_model)
             order_models = []
             for row in rows:
                 row_dict = dict(row._mapping)
@@ -1433,9 +1404,6 @@ async def insert_order(
             logger.debug(f"insert_order() - 使用する created_at: {created_at} (tzinfo={created_at.tzinfo})")
             # 配達予定日を取得し、printで確認
             delivery_date = await skip_holiday(created_at)
-            # create_date = datetime.strptime(created_at, "%Y-%m-%d")
-            # delivery_date = await skip_holiday(create_date)
-
 
             new_order = Order(
                 company_id=company_id,
@@ -1599,8 +1567,10 @@ async def delete_all_orders():
             f"全ての注文を削除しました。"
         )
 
+'''-------------------------------------------------------------'''
 from datetime import date, datetime, time
 from typing import Tuple
+
 
 def get_datetime_range_for_date(target_date: date) -> Tuple[datetime, datetime]:
     """
@@ -1610,3 +1580,44 @@ def get_datetime_range_for_date(target_date: date) -> Tuple[datetime, datetime]:
     start_datetime = datetime.combine(target_date, time.min)
     end_datetime = datetime.combine(target_date, time.max)
     return start_datetime, end_datetime
+
+
+# 概要出力：本日の注文件数を返す
+from typing import Dict
+@log_decorator
+async def select_order_summary(conditions: Dict) -> Dict:
+    """
+    今日の注文合計数を返す。
+    条件に基づいて user_id, company_id, shop_id, is_admin で絞り込み。
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            # 基本クエリ：注文件数をカウント
+            stmt = select(func.count()).select_from(Order)
+
+            # 日付範囲絞り込み
+            begin_date = conditions.get("begin_date")
+            end_date = conditions.get("end_date")
+            if begin_date and end_date:
+                stmt = stmt.where(Order.created_at.between(f"{begin_date} 00:00:00", f"{end_date} 23:59:59"))
+
+            # 各種条件追加
+            if conditions.get("user_id"):
+                stmt = stmt.where(Order.username == conditions["user_id"])
+            if conditions.get("company_id"):
+                stmt = stmt.where(Order.company_id == conditions["company_id"])
+            if conditions.get("shop_id"):
+                stmt = stmt.where(Order.shop_name == conditions["shop_id"])
+            # is_admin は全件なので条件追加なし
+
+            logger.debug(f"Order Summary SQL: {stmt}")
+
+            result = await session.execute(stmt)
+            total_orders = result.scalar() or 0
+
+            return {"total_orders": total_orders}
+
+    except Exception as e:
+        logger.exception(f"select_order_summary error: {e}")
+        return {"total_orders": 0}
+

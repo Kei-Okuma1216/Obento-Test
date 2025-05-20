@@ -50,6 +50,10 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="account-tab" data-bs-toggle="tab" data-bs-target="#account" type="button" role="tab" aria-controls="account" aria-selected="false">アカウント</button>
           </li>
+          <!-- 注文JSONタブ -->
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="orderjson-tab" data-bs-toggle="tab" data-bs-target="#orderjson" type="button" role="tab" aria-controls="orderjson" aria-selected="false">注文JSON</button>
+          </li>
         </ul>
 
         <!-- タブコンテンツ -->
@@ -156,6 +160,19 @@
             <pre id="account-info">読み込み中...</pre>
           </div>
 
+          <!-- 注文JSONタブ -->
+          <!-- 注文JSONタブ -->
+          <div class="tab-pane fade" id="orderjson" role="tabpanel" aria-labelledby="orderjson-tab">
+            <h1 class="mt-3">注文JSON取得</h1>
+
+            <div class="mt-3 d-flex align-items-end">
+              <label for="beginDate" class="form-label me-2 mb-0">開始日</label>
+              <input type="date" id="beginDate" class="form-control me-2" style="width: 200px;" />
+              <button id="fetchOrderJsonButton" class="btn btn-primary">注文JSON</button>
+            </div>
+            <pre id="orderJsonResult" class="mt-3">ここに取得結果が表示されます</pre>
+          </div>
+
         </div>
       </div>
 
@@ -189,43 +206,44 @@
 
     <!-- JavaScript: JSON取得処理とリンク更新 -->
     <script>
-  const saveButton = document.getElementById("save-changes-button");
-  if (saveButton) {
-    saveButton.addEventListener("click", function() {
-      const checkboxes = document.querySelectorAll('input.cancel-checkbox');
-      const updates = [];
+      // チェックボックスの値を保存する
+      const saveButton = document.getElementById("save-changes-button");
+        if (saveButton) {
+          saveButton.addEventListener("click", function() {
+            const checkboxes = document.querySelectorAll('input.cancel-checkbox');
+            const updates = [];
 
-      checkboxes.forEach(function(checkbox) {
-        const orderId = checkbox.getAttribute("data-order-id");
-        const checked = checkbox.checked;
-        updates.push({
-          order_id: Number(orderId),
-          checked: checked
-        });
-        // alert(orderId + ' ' + checked); // 修正済み
-      });  // ← ここで forEach を閉じる
+            checkboxes.forEach(function(checkbox) {
+              const orderId = checkbox.getAttribute("data-order-id");
+              const checked = checkbox.checked;
+              updates.push({
+                order_id: Number(orderId),
+                checked: checked
+              });
+              // alert(orderId + ' ' + checked); // 修正済み
+            });  // ← ここで forEach を閉じる
 
-      fetch("/update_cancel_status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ updates: updates })
-      })
-      .then(response => {
-        if (!response.ok) throw new Error("保存に失敗しました");
-        return response.json();
-      })
-      .then(data => {
-        alert("保存が完了しました");
-      })
-      .catch(error => {
-        console.error("Error:", error);
-        alert("エラーが発生しました");
-      });
+            fetch("/update_cancel_status", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ updates: updates })
+            })
+            .then(response => {
+              if (!response.ok) throw new Error("保存に失敗しました");
+              return response.json();
+            })
+            .then(data => {
+              alert("保存が完了しました");
+            })
+            .catch(error => {
+              console.error("Error:", error);
+              alert("エラーが発生しました");
+            });
 
-    });  // ← ここで addEventListener を閉じる
-  }  // ← if 文を閉じる
+          });  // ← ここで addEventListener を閉じる
+        }  // ← if 文を閉じる
 
       // JSON取得ボタンの処理
       document.getElementById("fetch-json-btn").addEventListener("click", function(){
@@ -241,6 +259,7 @@
         // リンクのhrefを更新
         document.getElementById("jsonLink").href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
       });
+
       // クリック時にもリンクのhrefを更新（念のため）
       document.getElementById("jsonLink").addEventListener("click", function(){
         var days = document.getElementById("daysAgoInput").value.trim();
@@ -286,6 +305,7 @@
           alert("これ以上戻る操作はできません。");
         }
       }
+
       // ログイン画面に戻るのを防ぐ
       window.addEventListener("popstate", function (event) {
         if (location.pathname.includes("/login")) {
@@ -329,12 +349,12 @@
 
         checkAndAlert(dateObj);
       });
+
       // アカウントタブの表示
       document.addEventListener("DOMContentLoaded", function() {
         const accountTab = document.getElementById('account-tab');
         accountTab.addEventListener('shown.bs.tab', function () {
-          // fetch('/api/v1/account/shop')
-        const user_id = "{{ username }}";
+        const user_id = "{{ shop_id }}";
         fetch('/api/v1/account/shop?user_id=' + encodeURIComponent(user_id))
           .then(response => response.json())
             .then(data => {
@@ -345,6 +365,65 @@
             });
         });
       });
-      </script>
+
+      // 注文JSONタブ - 日付別注文情報の取得
+      document.getElementById("fetchOrderJsonButton").addEventListener("click", function() {
+        const beginDate = document.getElementById("beginDate").value;
+        const shopName = "shop01";  // 必要に応じて動的取得
+        const url = `/api/v1/orders/shop?shop_name=${encodeURIComponent(shopName)}&target_date=${encodeURIComponent(beginDate)}`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("orderJsonResult").textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                document.getElementById("orderJsonResult").textContent = "エラー: " + error;
+            });
+    });
+
+      // document.addEventListener("DOMContentLoaded", function() {
+      //   const fetchOrderJsonButton = document.getElementById('fetchOrderJsonButton');
+      //   const beginDateInput = document.getElementById('beginDate');
+
+      //   fetchOrderJsonButton.addEventListener('click', function() {
+      //     const beginDateValue = beginDateInput.value;
+      //     if (!beginDateValue) {
+      //       alert('開始日を選択してください');
+      //       return;
+      //     }
+
+      //     const shopName = "{{ username }}";
+      //     const url = `/api/v1/orders/shop?shop_name=${encodeURIComponent(shopName)}&target_date=${encodeURIComponent(beginDateValue)}`;
+      //     fetch(url)
+      //       .then(response => response.json())
+      //       .then(data => {
+      //         if (data.length === 0) {
+      //           document.getElementById('orderJsonResult').textContent = 'データは見つかりませんでした';
+      //         } else {
+      //           document.getElementById('orderJsonResult').textContent = JSON.stringify(data, null, 2);
+      //         }
+      //       })
+      //       .catch(error => {
+      //         document.getElementById('orderJsonResult').textContent = '取得に失敗しました: ' + error.message;
+      //       });
+
+      //     // fetch(url)
+      //     //   .then(response => {
+      //     //     if (!response.ok) {
+      //     //       throw new Error(`サーバーエラー: ${response.status}`);
+      //     //     }
+      //     //     return response.json();
+      //     //   })
+      //     //   .then(data => {
+      //     //     document.getElementById('orderJsonResult').textContent = JSON.stringify(data, null, 2);
+      //     //   })
+      //     //   .catch(error => {
+      //     //     document.getElementById('orderJsonResult').textContent = '取得に失敗しました: ' + error.message;
+      //     //   });
+      //   });
+      // });
+    </script>
+
   </body>
 </html>

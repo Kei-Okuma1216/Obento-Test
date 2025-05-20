@@ -1,17 +1,8 @@
 # services/order_view.py
 '''
     1. order_table_view(request: Request, response: Response):
-        orderリストを降順にソートし、チェックされた件数をカウント。
-        company_nameごとに注文件数を集計。
-        ２件以上の注文がある会社のみを抽出。
-        テンプレートをレンダリングして返す。
     2. get_order_json(request: Request, days_ago: str = Query(None)):
-        ユーザー情報を取得し、days_agoの値を検証。
-        履歴を取得してJSON形式で返す。
     3. batch_update_orders(updates: list[dict]):
-        注文のキャンセル状態を更新する。
-        SQL文を実行して、変更をコミット。
-        エラーが発生した場合はログに記録。
 '''
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
 from utils.utils import log_decorator, get_all_cookies
@@ -133,9 +124,8 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
         orders_dict = [order.model_dump() for order in orders]
-        orders_json = json.dumps(orders_dict, default=str)
-
-        # return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
+        # orders_json = json.dumps(orders_dict, default=str)
+        orders_json = [json.loads(order.model_dump_json()) for order in orders]
 
     except Exception as e:
         logger.warning(f"get_order_json Error: {str(e)=}")

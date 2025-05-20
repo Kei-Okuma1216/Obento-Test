@@ -425,4 +425,3 @@ async def create_all_tables_in_order(retry_count: int = 3, retry_delay: int = 2)
             logger.error(f"❌ 予期せぬエラー発生: {e}")
             print(f"❌ 予期せぬエラー発生: {e}")
 
-        

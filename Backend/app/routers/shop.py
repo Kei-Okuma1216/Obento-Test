@@ -3,10 +3,12 @@
 # 引数が固定順に並べている
 '''
     1. order_json(request: Request, days_ago: str = Query("0")):
+
     2. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
     3. list_combined_order_logs():
     4. view_combined_order_log(filename: str):
     5. list_combined_order_logs():
+
     6. shop_view(request: Request, response: Response, shop_id: str):
     7. get_shop_context(request: Request, orders):
 '''
@@ -169,24 +171,6 @@ async def shop_view(request: Request, response: Response, shop_id: str):
         # username（shop01）を取得
         shop_code = user_info.username
 
-        # cookies = get_all_cookies(request)
-        # if not cookies:
-        #     logger.warning("shop_view - Cookieが取得できません")
-        #     raise HTTPException(
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         detail=ERROR_ILLEGAL_COOKIE#"Cookieが不正または取得できません"
-        #     )
-
-        # クッキーからユーザーID（shop_id）取得
-        # shop_id = cookies.get("sub")
-        # 上書きしない、URLパラメータの shop_id をそのまま使う
-        # 注意：このshop_idはuser_idと共用している
-        # print(f"shop_view - URLパラメータ shop_id: {shop_id}")
-
-        # if not shop_id:
-        #     logger.warning("shop_view - Cookie 'sub' が取得できません")
-        #     return redirect_login_failure(request, "ログイン情報が取得できません。再度ログインしてください。")
-
         orders = await select_orders_by_shop_all(shop_code)
         if orders is None:
             logger.debug('shop_view - 注文がありません')
@@ -194,11 +178,11 @@ async def shop_view(request: Request, response: Response, shop_id: str):
 
 
         shop_context = await get_shop_context(request, orders)
-        shop_context.update({"username": shop_id})  # ここでユーザー名をテンプレートへ
 
-        print(f"shop_view - context username: {shop_id}")
-        shop_context.update({"username": shop_id, "shop_id": shop_id})
+        # username（shop01）を取得
+        shop_code = user_info.username
 
+        shop_context.update({"username": shop_code, "shop_id": shop_id})
 
         return await order_table_view(request, response, orders, "shop.html", shop_context)
 
@@ -240,3 +224,8 @@ async def get_shop_context(request: Request, orders):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="注文情報取得中にサーバーエラーが発生しました"
         )
+
+@shop_router.get("/{shop_id}/summary", tags=["shops"])
+async def shop_summary_bridge(shop_id: int):
+    from routers.order import get_order_summary_by_shop
+    return await get_order_summary_by_shop(shop_id)

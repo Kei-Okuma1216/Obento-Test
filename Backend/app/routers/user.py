@@ -2,7 +2,7 @@
 # ../users/me
 '''
     1. regist_complete(request: Request, response: Response): 
-    2. get_user_shop_menu(request: Request, response: Response):
+    2. get_user_context(request: Request, orders, user_id: int):
 '''
 from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
@@ -25,8 +25,10 @@ user_router = APIRouter()
 
 
 # お弁当の注文完了　ユーザーのみ
+# @log_decorator
 @user_router.get("/{user_id}/order_complete/", response_class=HTMLResponse, tags=["users"])
 async def regist_complete(request: Request, response: Response, user_id: str):
+
     try:
         permits = [1, 2, 10, 99]  # ユーザーの権限
         if not await check_permission(request, permits):
@@ -60,7 +62,7 @@ async def regist_complete(request: Request, response: Response, user_id: str):
 
         set_last_order(response, last_order_date)  # ここで注文の重複を防止
 
-        user_context = await get_user_context(request, orders)
+        user_context = await get_user_context(request, orders, int(user.get_id()))
 
         return await order_table_view(request, response, orders, "order_complete.html", user_context)
 
@@ -70,7 +72,7 @@ async def regist_complete(request: Request, response: Response, user_id: str):
 
 
 
-async def get_user_context(request: Request, orders):
+async def get_user_context(request: Request, orders, user_id: int):
     user_context = {
         'request': request,
         'base_url': endpoint,
@@ -78,9 +80,11 @@ async def get_user_context(request: Request, orders):
     order_context = {
         'orders': orders,
         'order_count': len(orders),
-        "order_details": orders[-1].model_dump() if orders else None
+        "order_details": orders[-1].model_dump() if orders else None,
+        "user_id": user_id
     }
     user_context.update(order_context)
+    
     return user_context
 
 

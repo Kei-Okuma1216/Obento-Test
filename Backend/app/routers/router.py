@@ -1,7 +1,15 @@
 # routers/router.py
 '''
+    1. get_account_or_404_response(username: str):
+    2. get_account_by_id_or_404_response(user_id: int):
 
-------------------------------------------------------------'''
+    3. get_admin_account(request: Request):
+    4. get_manager_account(request: Request, user_id: int = Query(...)):
+    5. get_shop_account(request: Request, user_id: str = Query(...)):
+
+    6. check_holiday(date: str):
+    7. delivery_date_view(date_str: str):
+'''
 from fastapi import APIRouter
 
 sample_router = APIRouter(

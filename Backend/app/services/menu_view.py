@@ -84,7 +84,9 @@ async def get_menu_json(request: Request, shop_id: str = Query(None)):
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
         orders_dict = [order.model_dump() for order in orders]
-        orders_json = json.dumps(orders_dict, default=str)
+        # orders_json = json.dumps(orders_dict, default=str)
+        orders_json = [json.loads(order.model_dump_json()) for order in orders]
+
 
         return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
 

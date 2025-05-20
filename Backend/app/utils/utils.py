@@ -4,8 +4,8 @@
     2. deprecated(func):
 
     3. get_naive_jst_now() -> datetime:
-    4. get_today_datetime(offset: int = 0) -> date:
-    5. get_today_date(offset: int = 0) -> datetime:
+    4. get_today_datetime(offset: int = 0) -> datetime:
+    5. get_today_date(offset: int = 0) -> date:
     6. get_datetime_range(days_ago: int) -> Tuple[datetime, datetime]:
 
     7. set_all_cookies(response: Response, user: Dict):
@@ -20,6 +20,9 @@
     15. check_permission_and_stop_order(request: Request, response: Response):
     16. check_permission(request: Request, permits: list):
 
+    17. check_holiday(date: str):
+    18. delivery_date_view(date_str: str):
+    19. get_username_from_userid()
 '''
     
 from datetime import datetime, timezone, timedelta, date
@@ -144,7 +147,7 @@ def get_today_datetime(offset: int = 0) -> date:
 
 # 今日の日付取得 update_datetime用
 # @log_decorator
-def get_today_date(offset: int = 0) -> datetime:
+def get_today_date(offset: int = 0) -> date:
     """
     今日の日付 (date型) を取得する関数。
     オプションで日数オフセットを指定可能。

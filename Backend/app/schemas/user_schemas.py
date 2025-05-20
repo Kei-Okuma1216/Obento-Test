@@ -112,5 +112,9 @@ class UserResponse(UserCreate):
     def set_exp(self, exp: str):
         self.exp = exp
 
+    def get_shop_id(self) -> int:
+        return self.user_id
+
+
 
 

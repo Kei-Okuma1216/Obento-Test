@@ -227,7 +227,7 @@ def redirect_login_success(request: Request, message: str = "ようこそ"):
 def redirect_login_failure(request: Request, error: str, e: Exception = None):
     """ログイン失敗時に login.html へリダイレクト（例外対応付き）"""
     try:
-        logger.error(f"Redirect Login Failure - {error}")
+        logger.info(f"Redirect Login Failure - {error}")
         if e:
             detail_message = getattr(e, "detail", str(e))
             logger.error(f"Error detail: {detail_message}")
