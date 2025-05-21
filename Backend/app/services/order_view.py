@@ -123,7 +123,7 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         # 日時で逆順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
 
-        orders_dict = [order.model_dump() for order in orders]
+        # orders_dict = [order.model_dump() for order in orders]
         # orders_json = json.dumps(orders_dict, default=str)
         orders_json = [json.loads(order.model_dump_json()) for order in orders]
 

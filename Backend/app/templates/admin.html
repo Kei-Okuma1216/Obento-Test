@@ -221,7 +221,7 @@
       document.addEventListener("DOMContentLoaded", function() {
         const fetchOrderJsonButton = document.getElementById('fetchOrderJsonButton');
         fetchOrderJsonButton.addEventListener('click', function() {
-          fetch('/api/v1/orders/admin')
+          fetch('/api/v1/order/admin')
             .then(response => response.json())
             .then(data => {
               document.getElementById('orderJsonResult').textContent = JSON.stringify(data, null, 2);
@@ -246,7 +246,9 @@
           }
 
           // パラメータ付きURL生成
-          const url = `/api/v1/orders/admin?begin=${encodeURIComponent(beginDateValue)}`;
+          // const url = `/api/v1/order/admin/date_range/orders?target_date=${encodeURIComponent(beginDateValue)}`;
+          const url = `/api/v1/order/admin/date_range/orders?begin=${encodeURIComponent(beginDateValue)}&end=${encodeURIComponent(beginDateValue)}`;
+
           fetch(url)
             .then(response => {
               if (!response.ok) {

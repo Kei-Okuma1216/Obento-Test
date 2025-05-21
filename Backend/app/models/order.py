@@ -28,7 +28,7 @@
     16. select_single_order(order_id: int) -> OrderModel:
     17. select_all_orders() -> Optional[List[OrderModel]]:
     18. select_orders_by_admin_at_date(target_date: date) -> Optional[List[OrderModel]]:
-    19. select_orders_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+    19. select_orders_by_admin_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
     20. select_orders_by_admin_ago(days_ago: int = 0) -> Optional[List[OrderModel]]:
 
     21. insert_order(company_id: int, username: str, shop_name: str, menu_id: int, amount: int, created_at: Optional[str] = None) -> int:
@@ -1246,7 +1246,7 @@ async def select_orders_by_admin_at_date(target_date: date) -> Optional[List[Ord
 
 # 選択（管理者ユーザー:開始日から終了日まで）
 @log_decorator
-async def select_orders_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+async def select_orders_by_admin_at_date_range(start_date: date, end_date: date) -> Optional[List[OrderModel]]:
     """
     管理者用。指定日付範囲内の全注文を取得。
     """

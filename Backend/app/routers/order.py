@@ -20,71 +20,234 @@ from fastapi import APIRouter
 
 
 order_api_router = APIRouter(
-    prefix="/api/v1/orders",
+    # prefix="/api/v1/orders",
+    prefix="/api/v1/order",
     tags=["order"]
     )
 
 from log_unified import logger
+from fastapi import Query
+from datetime import date
+from typing import List
+from schemas.order_schemas import OrderModel
 
-# 1. 一般ユーザー注文一覧
-@order_api_router.get("/user/{user_id}")
-async def get_orders_by_user(user_id: int, begin: str = None, end: str = None):
+'''-------------------------------------------------------------------'''
+# 注文一覧（日付指定）
+from fastapi import Query, HTTPException
+from datetime import date
+from typing import List
+from schemas.order_schemas import OrderModel  # ← Pydanticモデル
+from models.order import (
+    select_orders_by_admin_at_date,
+    select_orders_by_shop_at_date
+)
+
+# 1. 管理者ユーザー
+@order_api_router.get(
+    "/admin/orders",
+    summary="注文一覧取得（指定日）：管理者ユーザー",
+    description="指定した日付の全注文一覧を取得します（管理者専用）。",
+    response_model=List[OrderModel],
+    tags=["admin"]
+)
+async def get_admin_orders(
+    target_date: date = Query(..., description="注文日（YYYY-MM-DD形式）")
+):
+    try:
+        orders = await select_orders_by_admin_at_date(target_date)
+    except Exception as e:
+        logger.exception("注文取得中にサーバーエラー")
+        raise HTTPException(status_code=500, detail="注文の取得に失敗しました")
+
+    if not orders:
+        raise HTTPException(status_code=404, detail="注文が見つかりません")
+
+    return orders
+
+
+from models.order import select_orders_by_shop_at_date
+# 2. 店舗ユーザー
+@order_api_router.get(
+    "/shop/orders",
+    summary="注文一覧取得（指定日）：店舗ユーザー",
+    description="指定した店舗名と日付に該当する注文一覧を取得します。",
+    response_model=List[OrderModel],
+    tags=["shops"]
+)
+async def get_orders_by_shop(
+    shop_name: str = Query(..., description="店舗名（例: shop01）"),
+    target_date: date = Query(..., description="注文日（YYYY-MM-DD形式）")
+):
+    try:
+        orders = await select_orders_by_shop_at_date(shop_name, target_date)
+    except Exception as e:
+        logger.exception("注文取得中にサーバーエラーが発生しました")
+        raise HTTPException(status_code=500, detail="注文の取得中にエラーが発生しました")
+
+    # 注文がない場合でも FastAPI は空リストを 200 OK で返す
+    return orders
+
+
+from models.order import select_orders_by_company_at_date
+# 3. 契約企業ユーザー
+@order_api_router.get(
+    "/manager/{company_id}/orders",
+    summary="注文一覧取得（指定日）：契約企業ユーザー",
+    description="指定された企業IDと注文日から、契約企業の注文一覧を取得します。",
+    response_model=List[OrderModel],
+    tags=["manager"]
+)
+async def get_orders_by_manager_company_date(
+    company_id: int,
+    target_date: date = Query(..., description="注文日（YYYY-MM-DD形式）")
+):
+    try:
+        orders = await select_orders_by_company_at_date(company_id, target_date)
+    except Exception as e:
+        logger.exception("契約企業の注文取得中にサーバーエラーが発生しました")
+        raise HTTPException(status_code=500, detail="注文の取得中にエラーが発生しました")
+
+    return orders  # 空リストも200で返却（自然なREST挙動）
+
+
+from models.order import select_orders_by_user_at_date
+# 4. 一般ユーザー
+# 注意：ここは{user_id}に書き直す必要がある。
+@order_api_router.get(
+    "/user/{username}/orders",
+    summary="注文一覧取得（指定日）：一般ユーザー",
+    description="指定されたユーザー名と注文日から、該当ユーザーの注文一覧を取得します。",
+    response_model=List[OrderModel],
+    tags=["users"]
+)
+async def get_orders_by_username_date(
+    username: str,
+    target_date: date = Query(..., description="注文日（YYYY-MM-DD形式）")
+):
+    try:
+        orders = await select_orders_by_user_at_date(username, target_date)
+    except Exception as e:
+        logger.exception("ユーザーの注文取得中にサーバーエラーが発生しました")
+        raise HTTPException(status_code=500, detail="注文の取得中にエラーが発生しました")
+
+    return orders
+
+'''-------------------------------------------------------------------'''
+# 注文一覧（日付範囲で取得） クエリオブジェクトで条件指定する
+# 1. 一般ユーザー
+@order_api_router.get(
+    "/user/{user_id}/date_range/orders",
+    summary="注文一覧取得（日付範囲）：一般ユーザー",
+    description="指定されたユーザーIDの注文一覧を、日付範囲で取得します（begin, end はオプション）",
+    response_model=List[OrderModel]
+)
+async def get_orders_by_user(
+    user_id: int,
+    begin: date = Query(None, description="開始日（YYYY-MM-DD）"),
+    end: date = Query(None, description="終了日（YYYY-MM-DD）")
+):
     return await get_order_range(user_id=user_id, begin=begin, end=end)
 
-# 2. 契約企業ユーザー注文一覧
-@order_api_router.get("/manager/{user_id}/company/{company_id}")
-async def get_orders_by_manager_company(user_id: int, company_id: int, begin: str = None, end: str = None):
+# 2. 契約企業ユーザー
+@order_api_router.get(
+    "/manager/{user_id}/company/{company_id}/date_range/orders",
+    summary="注文一覧取得（日付範囲）：契約企業ユーザー",
+    description="契約企業の担当者が、自社の注文一覧を取得します。日付範囲（begin, end）は任意です。",
+    response_model=List[OrderModel]
+)
+async def get_orders_by_manager_company(
+    user_id: int,
+    company_id: int,
+    begin: date = Query(None, description="開始日（YYYY-MM-DD）"),
+    end: date = Query(None, description="終了日（YYYY-MM-DD）")
+):
     return await get_order_range(user_id=user_id, company_id=company_id, begin=begin, end=end)
 
-# 3. 店舗ユーザー注文一覧
-@order_api_router.get("/shop/{shop_id}")
-async def get_orders_range_by_shop(shop_id: int, begin: str = None, end: str = None):
+
+# 3. 店舗ユーザー
+@order_api_router.get(
+    "/shop/{shop_id}/date_range/orders",
+    summary="注文一覧取得（日付範囲）：店舗ユーザー",
+    description="指定された店舗IDの注文一覧を、日付範囲（begin, end）で取得します。",
+    response_model=List[OrderModel]
+)
+async def get_orders_range_by_shop(
+    shop_id: int,
+    begin: date = Query(None, description="開始日（YYYY-MM-DD）"),
+    end: date = Query(None, description="終了日（YYYY-MM-DD）")
+):
     return await get_order_range(shop_id=shop_id, begin=begin, end=end)
 
-# 4. 管理者ユーザー注文一覧
-@order_api_router.get("/admin")
-async def get_orders_range_by_admin(begin: str = None, end: str = None):
+
+# schemas/order_schemas.py
+from pydantic import BaseModel
+from typing import List
+
+class OrderListResponse(BaseModel):
+    orders: List[OrderModel]
+
+# 4. 管理者ユーザー
+@order_api_router.get(
+    "/admin/date_range/orders",
+    summary="注文一覧取得（日付範囲）：管理者ユーザー",
+    description="管理者が全体の注文一覧を取得します。日付範囲（begin, end）でフィルタリング可能です。",
+    # response_model=List[OrderModel]
+    response_model=OrderListResponse
+)
+async def get_orders_range_by_admin(
+    begin: date = Query(None, description="開始日（YYYY-MM-DD）"),
+    end: date = Query(None, description="終了日（YYYY-MM-DD）")
+):
     return await get_order_range(is_admin=True, begin=begin, end=end)
 
-
-
 from datetime import datetime
+
 
 # 5. 共通：パラメータによる注文一覧取得
 async def get_order_range(user_id=None, company_id=None, shop_id=None, is_admin=False, begin=None, end=None):
     import datetime
-    today_date = datetime.date.today()
-    today_str = today_date.strftime("%Y-%m-%d")
 
-    # デフォルト値設定
-    end_date_str = end or today_str # もしif end <> end_str: の場合は、何かする必要がある。いまはおかしい。
-    begin_date_str = begin or today_str
+    today = datetime.date.today()
+
+    # begin の型チェックと変換
+    if isinstance(begin, datetime.date):
+        begin_date = begin
+    elif isinstance(begin, str):
+        begin_date = datetime.datetime.strptime(begin, "%Y-%m-%d").date()
+    else:
+        begin_date = today
+
+    # end の型チェックと変換
+    if isinstance(end, datetime.date):
+        end_date = end
+    elif isinstance(end, str):
+        end_date = datetime.datetime.strptime(end, "%Y-%m-%d").date()
+    else:
+        end_date = today
 
     # 検索期間ログ出力
-    print(f"[DEBUG] 検索期間: begin={begin_date_str}, end={end_date_str}")
+    print(f"[DEBUG] 検索期間: begin={begin_date}, end={end_date}")
 
-    # 日付計算
-    try:
-        end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date()
-        begin_date = datetime.datetime.strptime(begin_date_str, "%Y-%m-%d").date()
-        days_ago = (end_date - begin_date).days
-    except ValueError:
-        raise ValueError("日付形式は 'YYYY-MM-DD' で指定してください")
-
-    # 分岐実行
+    # 日数差を計算（shop や is_admin 用）
+    days_ago = (end_date - begin_date).days
+    print(f"{days_ago=}")
+    # 実行分岐
     if is_admin:
-        from models.order import select_orders_ago
-        orders = await select_orders_ago(days_ago)
+        from models.order import select_orders_by_admin_at_date_range
+        orders = await select_orders_by_admin_at_date_range(begin_date, end_date)
+
 
     elif user_id and not company_id and not shop_id:
         from models.user import select_user_by_id
         from models.order import select_orders_by_user_at_date_range
 
-        user = await select_user_by_id(user_id)  # user_id → username 変換
+        user = await select_user_by_id(user_id)
+        print(f"[DEBUG] username resolved to: {user.username}")
         if not user:
-            print(f"if not user:{user}")
+            print(f"if not user: {user}")
             return {"orders": []}
 
+        print(user.username, begin_date, end_date)
         orders = await select_orders_by_user_at_date_range(user.username, begin_date, end_date)
 
     elif user_id and company_id and not shop_id:
@@ -103,31 +266,108 @@ async def get_order_range(user_id=None, company_id=None, shop_id=None, is_admin=
 
     return {"orders": order_dicts}
 
+# async def get_order_range(user_id=None, company_id=None, shop_id=None, is_admin=False, begin=None, end=None):
+#     import datetime
+#     today_date = datetime.date.today()
+#     today_str = today_date.strftime("%Y-%m-%d")
+
+#     # デフォルト値設定
+#     end_date_str = end or today_str # もしif end <> end_str: の場合は、何かする必要がある。いまはおかしい。
+#     begin_date_str = begin or today_str
+
+#     # 検索期間ログ出力
+#     print(f"[DEBUG] 検索期間: begin={begin_date_str}, end={end_date_str}")
+
+#     # 日付計算
+#     try:
+#         end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date()
+#         begin_date = datetime.datetime.strptime(begin_date_str, "%Y-%m-%d").date()
+#         days_ago = (end_date - begin_date).days
+#     except ValueError:
+#         raise ValueError("日付形式は 'YYYY-MM-DD' で指定してください")
+
+#     # 分岐実行
+#     if is_admin:
+#         from models.order import select_orders_ago
+#         orders = await select_orders_ago(days_ago)
+
+#     elif user_id and not company_id and not shop_id:
+#         from models.user import select_user_by_id
+#         from models.order import select_orders_by_user_at_date_range
+
+#         user = await select_user_by_id(user_id)  # user_id → username 変換
+#         if not user:
+#             print(f"if not user:{user}")
+#             return {"orders": []}
+
+#         orders = await select_orders_by_user_at_date_range(user.username, begin_date, end_date)
+
+#     elif user_id and company_id and not shop_id:
+#         from models.order import select_orders_by_company_at_date_range
+#         orders = await select_orders_by_company_at_date_range(company_id, begin_date, end_date)
+
+#     elif shop_id:
+#         from models.order import select_orders_by_shop_ago
+#         orders = await select_orders_by_shop_ago(shop_id, days_ago)
+
+#     else:
+#         orders = []
+
+#     # モデルを辞書に変換
+#     order_dicts = [order.model_dump() for order in orders] if orders else []
+
+#     return {"orders": order_dicts}
+
+'''-------------------------------------------------------------------'''
+# 注文概要（FAX送信用）
+from typing import Any, Dict
+from schemas.order_schemas import BaseModel
+
+class OrderSummaryResponse(BaseModel):
+    summary: Dict[str, Any]  # または適切な構造がわかれば詳細に指定も可
 
 
-# 6. 注文概要API 設計（FAX送信用）
-
-# 1. 一般ユーザーの注文概要
-@order_api_router.get("/user/{user_id}/summary")
+# 1. 一般ユーザー
+@order_api_router.get(
+    "/user/{user_id}/summary",
+    summary="注文概要取得：一般ユーザー",
+    description="指定されたユーザーIDの当日の注文概要を取得します。",
+    response_model=OrderSummaryResponse
+)
 async def get_order_summary_by_user(user_id: int):
     return await get_order_summary(user_id=user_id)
 
-# 2. 契約企業ユーザーの注文概要
-@order_api_router.get("/manager/{user_id}/company/{company_id}/summary")
+# 2. 契約企業ユーザー
+@order_api_router.get(
+    "/manager/{user_id}/company/{company_id}/summary",
+    summary="注文概要取得：契約企業ユーザー",
+    description="契約企業の担当者が、自社の注文概要（当日）を取得します。",
+    response_model=OrderSummaryResponse
+)
 async def get_order_summary_by_manager_company(user_id: int, company_id: int):
     return await get_order_summary(user_id=user_id, company_id=company_id)
 
-# 3. 店舗ユーザーの注文概要
-@order_api_router.get("/shop/{shop_id}/summary")
+# 3. 店舗ユーザー
+@order_api_router.get(
+    "/shop/{shop_id}/summary",
+    summary="注文概要取得：店舗ユーザー",
+    description="指定された店舗の当日の注文概要を取得します。",
+    response_model=OrderSummaryResponse
+)
 async def get_order_summary_by_shop(shop_id: int):
     return await get_order_summary(shop_id=shop_id)
 
-# 4. 管理者の注文概要
-@order_api_router.get("/admin/summary")
+# 4. 管理者ユーザー
+@order_api_router.get(
+    "/admin/summary",
+    summary="注文概要取得：管理者ユーザー",
+    description="管理者が全体の当日の注文概要を取得します。",
+    response_model=OrderSummaryResponse
+)
 async def get_order_summary_by_admin():
     return await get_order_summary(is_admin=True)
 
-# 5. 共通処理
+# 5. 共通処理　注文概要
 from models.order import select_order_summary
 import datetime
 
@@ -145,79 +385,4 @@ async def get_order_summary(user_id=None, company_id=None, shop_id=None, is_admi
     return {"summary": summary_data}
 
 
-from fastapi.responses import JSONResponse
-from models.order import select_orders_by_admin_at_date
-from datetime import datetime
-import json
-        
-# 注文ログファイルの内容JSONを表示するエンドポイント
-@order_api_router.get("/orders/admin", tags=["admin"])
-async def get_admin_orders(target_date: str):
-    """
-    管理者用 注文JSON取得API
-    パラメータ target_date は yyyy-mm-dd 形式の日付文字列
-    """
-    try:
-        if not target_date or target_date.lower() in ["", "null", "none"]:
-            return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
 
-        try:
-            target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
-        except ValueError:
-            return JSONResponse({"error": "開始日フォーマットが不正です (yyyy-mm-dd 形式)"}, status_code=400)
-
-        # 管理者用の注文取得関数を呼び出し
-        orders = await select_orders_by_admin_at_date(target_date)
-
-        if not orders:
-            return JSONResponse({"message": "注文が見つかりません"}, status_code=404)
-
-        # Pydanticモデルから辞書リストに変換
-        # orders_json = [order.model_dump() for order in orders]
-        orders_json = [json.loads(order.model_dump_json()) for order in orders]
-
-
-        return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
-
-    except Exception as e:
-        logger.exception("注文取得API実行中にサーバーエラー発生")
-        return JSONResponse({"error": f"サーバーエラー: {str(e)}"}, status_code=500)
-
-
-
-from models.order import select_orders_by_shop_at_date
-
-@order_api_router.get("/shop", tags=["shops"])
-async def get_orders_by_shop(shop_name: str, target_date: str):
-    """
-    店舗用 注文JSON取得API
-    パラメータ:
-      - shop_name: 店舗名 (例: shop01)
-      - target_date: yyyy-mm-dd 形式の日付文字列
-    """
-    try:
-        if not target_date or target_date.lower() in ["", "null", "none"]:
-            return JSONResponse({"error": "開始日が指定されていません"}, status_code=400)
-
-        try:
-            target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
-        except ValueError:
-            return JSONResponse({"error": "開始日フォーマットが不正です (yyyy-mm-dd 形式)"}, status_code=400)
-
-        # 店舗用の注文取得関数を呼び出し
-        orders = await select_orders_by_shop_at_date(shop_name, target_date)
-
-        # if not orders:
-            # return JSONResponse({"message": "注文が見つかりません"}, status_code=404)
-        if not orders:
-            return JSONResponse([], media_type="application/json; charset=utf-8")
-
-        # Pydanticモデルから辞書リストに変換
-        # orders_json = [order.model_dump() for order in orders]
-        orders_json = [json.loads(order.model_dump_json()) for order in orders]
-        
-        return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
-
-    except Exception as e:
-        logger.exception("注文取得API実行中にサーバーエラー発生")
-        return JSONResponse({"error": f"サーバーエラー: {str(e)}"}, status_code=500)

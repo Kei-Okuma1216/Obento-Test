@@ -1,8 +1,7 @@
 # schemas/order_schemas.py
 # pydantic用クラス
-from dataclasses import Field
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import Optional
 
 
