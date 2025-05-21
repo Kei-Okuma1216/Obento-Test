@@ -163,11 +163,13 @@
 
       document.getElementById("fetchOrderJsonButton").addEventListener("click", function () {
         const beginDate = document.getElementById("beginDate").value;
+      
+        if (!beginDate) {
+          document.getElementById("orderJsonResult").textContent = "日付を選択してください。";
+          return;
+        }
 
-        // const url = `/api/v1/orders/user/${userId}?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
         const url = `/api/v1/order/user/${userId}/date_range/orders?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
-
-
         fetch(url)
           .then(response => response.json())
           .then(data => {

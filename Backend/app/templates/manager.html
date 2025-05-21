@@ -140,7 +140,10 @@
               <!-- ８．お届け日：年、月は静的表示。日は入力欄、曜日はプルダウンに変更 -->
               <div class="form-group mb-2">
                 <div style="background-color: #e6f4ea; padding: 10px; border-radius: 4px; display: inline-block;">
-                  <label for="delivery">お届け日： </label>
+                  <label for="delivery-date">希望お届け日：</label>
+                  <input type="date" id="delivery-date" name="delivery_date" />
+                  <span id="delivery-weekday-text" class="ms-2"></span>
+                  <!-- <label for="delivery">お届け日： </label>
                   <span id="delivery-year" class="static-date">2025</span> 年
                   <span id="delivery-month" class="static-date">04</span> 月
                   <input type="number" id="delivery-day" name="delivery_date_day" min="1" max="31" style="width: 65px;"> 日
@@ -152,7 +155,7 @@
                     <option value="木">木</option>
                     <option value="金">金</option>
                     <option value="土">土</option>
-                  </select>
+                  </select> -->
                 </div>
               </div>
 
@@ -205,8 +208,24 @@
     });
 
     // FAX送信ボタンをクリックしたときにモーダルを開く関数
+    const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+
+    // 日付ピッカー変更時に曜日を表示
+    document.addEventListener("DOMContentLoaded", function () {
+      const deliveryInput = document.getElementById("delivery-date");
+      const weekdayText = document.getElementById("delivery-weekday-text");
+
+      deliveryInput.addEventListener("change", function () {
+        const selectedDate = new Date(deliveryInput.value);
+        const weekday = weekdays[selectedDate.getDay()];
+        weekdayText.textContent = `(${weekday})`;
+      });
+    });
+
     function openFaxOrderSheet() {
       const base_url = "{{ base_url }}";
+      const selectedDate = new Date(document.getElementById("delivery-date").value);
+      const weekday = weekdays[selectedDate.getDay()];
 
       const faxContext = {
         shop_name: "{{ shop_name }}",
@@ -216,11 +235,27 @@
         total_amount: document.getElementById('total-amount').value,
         facility_name: document.getElementById('facility-name').value,
         POC: document.getElementById('POC').value,
-        delivery_year: document.getElementById("delivery-year").textContent,
-        delivery_month: document.getElementById("delivery-month").textContent,
-        delivery_day: document.getElementById("delivery-day").value,
-        delivery_weekday: document.getElementById("delivery-weekday").value
+        delivery_year: selectedDate.getFullYear(),
+        delivery_month: selectedDate.getMonth() + 1,
+        delivery_day: selectedDate.getDate(),
+        delivery_weekday: weekday
       };
+    // function openFaxOrderSheet() {
+    //   const base_url = "{{ base_url }}";
+
+    //   const faxContext = {
+    //     shop_name: "{{ shop_name }}",
+    //     menu_name: "{{ menu_name }}",
+    //     price: "{{ price }}",
+    //     order_count: document.getElementById('bento-count').value,
+    //     total_amount: document.getElementById('total-amount').value,
+    //     facility_name: document.getElementById('facility-name').value,
+    //     POC: document.getElementById('POC').value,
+    //     delivery_year: document.getElementById("delivery-year").textContent,
+    //     delivery_month: document.getElementById("delivery-month").textContent,
+    //     delivery_day: document.getElementById("delivery-day").value,
+    //     delivery_weekday: document.getElementById("delivery-weekday").value
+    //   };
 
       const params = new URLSearchParams(faxContext).toString();
       const url = base_url + "/manager/me/fax_order_sheet?" + params;
@@ -274,7 +309,6 @@
     // 注文JSONタブ - 日付別注文情報の取得
     document.getElementById("fetchOrderJsonButton").addEventListener("click", function() {
       const beginDate = document.getElementById("beginDate").value;
-
       if (!beginDate) {
         document.getElementById("orderJsonResult").textContent = "日付を選択してください。";
         return;

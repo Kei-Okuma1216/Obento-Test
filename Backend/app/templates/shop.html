@@ -369,10 +369,13 @@
       // 注文JSONタブ - 日付別注文情報の取得
       document.getElementById("fetchOrderJsonButton").addEventListener("click", function() {
         const beginDate = document.getElementById("beginDate").value;
+        if (!beginDate) {
+          document.getElementById("orderJsonResult").textContent = "日付を選択してください。";
+          return;
+        }
+
         const shopName = "shop01";  // 必要に応じて動的取得
         const url = `/api/v1/order/shop/orders?shop_name=${encodeURIComponent(shopName)}&target_date=${encodeURIComponent(beginDate)}`;
-
-
         fetch(url)
             .then(response => response.json())
             .then(data => {
