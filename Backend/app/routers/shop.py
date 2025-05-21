@@ -49,86 +49,9 @@ async def order_json(request: Request, days_ago: str = Query("0")):
         return HTMLResponse("注文データ取得中に予期せぬエラーが発生しました", status_code=500)
 
 
-from fastapi import BackgroundTasks, Query
-from fastapi.responses import JSONResponse
-
-# 注文ログを店舗名でフィルタする
-# @shop_router.get("/filter_order_logs", tags=["shops"])
-# async def filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
-#     def run_log_filter():
-#         import subprocess
-#         subprocess.run(
-#             ["python", "order_log_filter_config.py", "order_logs", shop],
-#             stdout=subprocess.DEVNULL,
-#             stderr=subprocess.DEVNULL
-#         )
-
-#     background_tasks.add_task(run_log_filter)
-
-#     return JSONResponse(content={"message": "ログ抽出処理をバックグラウンドで開始しました"})
-
-
-
+from fastapi import Query
 from fastapi.responses import HTMLResponse
 import os
-
-# @shop_router.get("/order_logs", response_class=HTMLResponse, tags=["shops"])
-# async def list_combined_order_logs():
-#     """combined_ログのみをリスト表示"""
-#     log_dir = "order_logs"
-#     if not os.path.exists(log_dir):
-#         return "<h1>注文ログディレクトリが存在しません</h1>"
-
-#     # combined_ で始まるファイルだけ抽出
-#     log_files = sorted(
-#         [f for f in os.listdir(log_dir) if f.startswith("combined_")],
-#         reverse=True
-#     )
-
-#     if not log_files:
-#         return "<h1>表示可能な注文ログがありません</h1>"
-
-#     links = [f"<li><a href='/shops/order_logs/{file}'>{file}</a></li>" for file in log_files]
-#     return f"<h1>結合注文ログ一覧</h1><ul>{''.join(links)}</ul>"
-
-# # 注文ログを結合する
-# @shop_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["shops"])
-# async def view_combined_order_log(filename: str):
-#     """選択された結合ログファイルを表示"""
-#     log_path = os.path.join("order_logs", filename)
-
-#     try:
-#         if os.path.exists(log_path):
-#             with open(log_path, "r", encoding="utf-8") as f:
-#                 content = f.read().replace('\n', '<br>')
-#             return f"<h1>{filename}</h1><pre>{content}</pre>"
-#         else:
-#             return HTMLResponse("ログファイルが存在しません。", status_code=404)
-
-#     except Exception as e:
-#         return HTMLResponse(f"読み込み中にエラーが発生しました: {str(e)}", status_code=500)
-
-from fastapi.responses import HTMLResponse
-
-# # 注文ログを表示する
-# @shop_router.get("/order_logs", response_class=HTMLResponse, tags=["shops"])
-# async def list_combined_order_logs():
-#     """combined_ログファイルのみを表示する（店舗ユーザー専用）"""
-#     log_dir = "order_logs"
-#     if not os.path.exists(log_dir):
-#         return "<h1>注文ログディレクトリが存在しません</h1>"
-
-#     # combined_で始まるファイルのみ抽出
-#     log_files = sorted(
-#         [f for f in os.listdir(log_dir) if f.startswith("combined_")],
-#         reverse=True
-#     )
-
-#     if not log_files:
-#         return "<h1>結合注文ログは見つかりませんでした</h1>"
-
-#     links = [f"<li><a href='/shops/order_logs/{f}'>{f}</a></li>" for f in log_files]
-#     return f"<h1>注文ログ（店舗用）</h1><ul>{''.join(links)}</ul>"
 
 
 # 注文ログを表示する

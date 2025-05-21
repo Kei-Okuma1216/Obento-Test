@@ -275,18 +275,39 @@
     document.getElementById("fetchOrderJsonButton").addEventListener("click", function() {
       const beginDate = document.getElementById("beginDate").value;
 
+      if (!beginDate) {
+        document.getElementById("orderJsonResult").textContent = "日付を選択してください。";
+        return;
+      }
+
       const managerId = "{{ manager_id }}";      // Python側 context から展開
       const companyId = "1";                     // 固定値、必要なら context から取得可能
-      const url = `/api/v1/orders/manager/${managerId}/company/${companyId}?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
+      // const url = `/api/v1/order/manager/${managerId}/company/${companyId}?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
+      const url = `/api/v1/order/manager/${managerId}/company/${companyId}/date_range/orders?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
 
       fetch(url)
-        .then(response => response.json())
+        .then(async (response) => {
+          if (!response.ok) {
+            const text = await response.text(); // JSONでない場合も考慮
+            throw new Error(`HTTP ${response.status} - ${text}`);
+          }
+          return response.json();
+        })
         .then(data => {
           document.getElementById("orderJsonResult").textContent = JSON.stringify(data, null, 2);
         })
         .catch(error => {
-          document.getElementById("orderJsonResult").textContent = "エラー: " + error;
+          document.getElementById("orderJsonResult").textContent = "エラー: " + error.message;
         });
+
+      // fetch(url)
+      //   .then(response => response.json())
+      //   .then(data => {
+      //     document.getElementById("orderJsonResult").textContent = JSON.stringify(data, null, 2);
+      //   })
+      //   .catch(error => {
+      //     document.getElementById("orderJsonResult").textContent = "エラー: " + error;
+      //   });
     });
   </script>
   

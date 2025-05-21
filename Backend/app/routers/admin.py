@@ -10,7 +10,6 @@
     5. admin_order_logs_redirect():
 '''
 import bcrypt
-import os
 from fastapi import Request, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
