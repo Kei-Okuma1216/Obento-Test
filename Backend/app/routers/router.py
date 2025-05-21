@@ -128,7 +128,8 @@ async def check_holiday(date: str):
     return JSONResponse(content={"holiday_name": holiday_name or ""})
 
 
-# 配達可能曜日決定辞書
+# 配達可能曜日決定辞書 
+# １店のみなのでconfigファイルにしなかった
 delivery_mapping = {
     0: 1, # 月 -> 火
     1: 2, # 火 -> 水

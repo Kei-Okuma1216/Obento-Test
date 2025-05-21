@@ -5,12 +5,9 @@
     1. order_json(request: Request, days_ago: str = Query("0")):
 
     2. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
-    3. list_combined_order_logs():
-    4. view_combined_order_log(filename: str):
-    5. list_combined_order_logs():
 
-    6. shop_view(request: Request, response: Response, shop_id: str):
-    7. get_shop_context(request: Request, orders):
+    3. shop_view(request: Request, response: Response, shop_id: str):
+    4. get_shop_context(request: Request, orders):
 '''
 from fastapi import HTTPException, Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
@@ -19,7 +16,7 @@ from venv import logger
 from utils.helper import redirect_login_failure, redirect_unauthorized
 from utils.utils import get_all_cookies, check_permission, log_decorator
 
-from services.order_view import order_table_view, get_order_json
+
 from models.order import select_orders_by_shop_all
 
 from database.local_postgresql_database import endpoint, default_shop_name
@@ -32,9 +29,14 @@ shop_router = APIRouter()
 
 
 
+from services.order_view import get_order_json
 
 # JSON注文情報を取得する
-@shop_router.get("/me/order_json", response_class=HTMLResponse, tags=["shops"])
+@shop_router.get(
+    "/me/order_json",
+    response_class=HTMLResponse,
+    tags=["shops"]
+)
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
     try:
@@ -49,26 +51,30 @@ async def order_json(request: Request, days_ago: str = Query("0")):
         return HTMLResponse("注文データ取得中に予期せぬエラーが発生しました", status_code=500)
 
 
-from fastapi import Query
-from fastapi.responses import HTMLResponse
-import os
+# from fastapi import Query
+# from fastapi.responses import HTMLResponse
+# import os
 
 
-# 注文ログを表示する
-@shop_router.get("/order_logs/{filename}", response_class=HTMLResponse, tags=["shops"])
-async def view_combined_order_log(filename: str):
-    """指定されたログファイルを表示"""
-    log_path = os.path.join("order_logs", filename)
-    if not os.path.exists(log_path):
-        return HTMLResponse("ログファイルが存在しません", status_code=404)
+# # 注文ログを表示する
+# @shop_router.get(
+#     "/order_logs/{filename}",
+#     response_class=HTMLResponse,
+#     tags=["shops"]
+# )
+# async def view_combined_order_log(filename: str):
+#     """指定されたログファイルを表示"""
+#     log_path = os.path.join("order_logs", filename)
+#     if not os.path.exists(log_path):
+#         return HTMLResponse("ログファイルが存在しません", status_code=404)
 
-    with open(log_path, "r", encoding="utf-8") as f:
-        content = f.read().replace("\n", "<br>")
-    return f"<h1>{filename}</h1><pre>{content}</pre>"
-
+#     with open(log_path, "r", encoding="utf-8") as f:
+#         content = f.read().replace("\n", "<br>")
+#     return f"<h1>{filename}</h1><pre>{content}</pre>"
 
 
 from models.user import select_user_by_id
+from services.order_view import order_table_view
 
 # 店舗メイン画面
 @shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
@@ -82,7 +88,7 @@ async def shop_view(request: Request, response: Response, shop_id: str):
             return HTMLResponse("<html><p>不正な店舗IDが指定されました</p></html>", status_code=400)
         
         # 権限確認
-        if await check_permission(request, [10, 99]) == False:
+        if await check_permission(request, [10]) == False:
             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
 
         # ユーザー情報取得
@@ -148,7 +154,13 @@ async def get_shop_context(request: Request, orders):
             detail="注文情報取得中にサーバーエラーが発生しました"
         )
 
-@shop_router.get("/{shop_id}/summary", tags=["shops"])
+
+from routers.order import get_orders_summary_by_shop
+
+@shop_router.get(
+    "/{shop_id}/summary",
+    tags=["shops"]
+)
 async def shop_summary_bridge(shop_id: int):
-    from routers.order import get_order_summary_by_shop
-    return await get_order_summary_by_shop(shop_id)
+    # 注意：ここは更にリダイレクトしている
+    return await get_orders_summary_by_shop(shop_id)

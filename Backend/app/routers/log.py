@@ -85,13 +85,7 @@ def list_order_logs():
     links = [f"<li><a href='/api/v1/order_log_html/{f}'>{f}</a></li>" for f in files]
     html = f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
     return HTMLResponse(content=html)
-# @log_router.get("/order_log_html", response_class=HTMLResponse)
-# def list_order_logs():
-#     if not os.path.exists(ORDER_LOG_DIR):
-#         return "<h1>注文ログディレクトリが存在しません</h1>"
-#     files = sorted(os.listdir(ORDER_LOG_DIR), reverse=True)
-#     links = [f"<li><a href='/api/v1/order_log_html/{f}'>{f}</a></li>" for f in files]
-#     return f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
+
 
 @log_router.get(
     "/order_log_html/{filename}",

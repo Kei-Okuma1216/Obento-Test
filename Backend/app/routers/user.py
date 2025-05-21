@@ -26,12 +26,14 @@ user_router = APIRouter()
 
 # お弁当の注文完了　ユーザーのみ
 # @log_decorator
-@user_router.get("/{user_id}/order_complete/", response_class=HTMLResponse, tags=["users"])
+@user_router.get(
+    "/{user_id}/order_complete/",
+    response_class=HTMLResponse,
+    tags=["users"])
 async def regist_complete(request: Request, response: Response, user_id: str):
 
     try:
-        permits = [1, 2, 10, 99]  # ユーザーの権限
-        if not await check_permission(request, permits):
+        if not await check_permission(request, [1]): # ユーザーの権限
             return templates.TemplateResponse(
                 "Unauthorized.html", {"request": request})
 

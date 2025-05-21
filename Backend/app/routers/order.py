@@ -52,7 +52,7 @@ from models.order import (
     summary="注文一覧取得（指定日）：管理者ユーザー",
     description="指定した日付の全注文一覧を取得します（管理者専用）。",
     response_model=List[OrderModel],
-    tags=["admin"]
+    tags=["order"]
 )
 async def get_orders_date_by_admin(
     target_date: date = Query(..., description="注文日（YYYY-MM-DD形式）")
@@ -76,7 +76,7 @@ from models.order import select_orders_by_shop_at_date
     summary="注文一覧取得（指定日）：店舗ユーザー",
     description="指定した店舗名と日付に該当する注文一覧を取得します。",
     response_model=List[OrderModel],
-    tags=["shops"]
+    tags=["order"]
 )
 async def get_orders_date_by_shop(
     shop_name: str = Query(..., description="店舗名（例: shop01）"),
@@ -99,7 +99,7 @@ from models.order import select_orders_by_company_at_date
     summary="注文一覧取得（指定日）：契約企業ユーザー",
     description="指定された企業IDと注文日から、契約企業の注文一覧を取得します。",
     response_model=List[OrderModel],
-    tags=["manager"]
+    tags=["order"]
 )
 async def get_orders_date_by_manager_company_date(
     company_id: int,
@@ -122,7 +122,7 @@ from models.order import select_orders_by_user_at_date
     summary="注文一覧取得（指定日）：一般ユーザー",
     description="指定されたユーザー名と注文日から、該当ユーザーの注文一覧を取得します。",
     response_model=List[OrderModel],
-    tags=["users"]
+    tags=["order"]
 )
 async def get_orders_date_by_username(
     username: str,
@@ -150,7 +150,8 @@ class OrderListResponse(BaseModel):
     "/user/{user_id}/date_range/orders",
     summary="注文一覧取得（日付範囲）：一般ユーザー",
     description="指定されたユーザーIDの注文一覧を、日付範囲で取得します（begin, end はオプション）",
-    response_model=OrderListResponse#List[OrderModel]
+    response_model=OrderListResponse,
+    tags=["order"]
 )
 async def get_orders_range_by_user(
     user_id: int,
@@ -164,7 +165,8 @@ async def get_orders_range_by_user(
     "/manager/{user_id}/company/{company_id}/date_range/orders",
     summary="注文一覧取得（日付範囲）：契約企業ユーザー",
     description="契約企業の担当者が、自社の注文一覧を取得します。日付範囲（begin, end）は任意です。",
-    response_model=OrderListResponse
+    response_model=OrderListResponse,
+    tags=["order"]
 )
 async def get_orders_range_by_manager_company(
     user_id: int,
@@ -180,7 +182,9 @@ async def get_orders_range_by_manager_company(
     "/shop/{shop_id}/date_range/orders",
     summary="注文一覧取得（日付範囲）：店舗ユーザー",
     description="指定された店舗IDの注文一覧を、日付範囲（begin, end）で取得します。",
-    response_model=List[OrderModel]
+    # response_model=List[OrderModel],
+    response_model=OrderListResponse,
+    tags=["order"]
 )
 async def get_orders_range_by_shop(
     shop_id: int,
@@ -197,7 +201,8 @@ async def get_orders_range_by_shop(
     "/admin/date_range/orders",
     summary="注文一覧取得（日付範囲）：管理者ユーザー",
     description="管理者が全体の注文一覧を取得します。日付範囲（begin, end）でフィルタリング可能です。",
-    response_model=OrderListResponse
+    response_model=OrderListResponse,
+    tags=["order"]
 )
 async def get_orders_range_by_admin(
     begin: date = Query(None, description="開始日（YYYY-MM-DD）"),
@@ -271,57 +276,6 @@ async def get_order_range_common(user_id=None, company_id=None, shop_id=None, is
 
     return {"orders": order_dicts}
 
-# async def get_order_range_common(user_id=None, company_id=None, shop_id=None, is_admin=False, begin=None, end=None):
-#     import datetime
-#     today_date = datetime.date.today()
-#     today_str = today_date.strftime("%Y-%m-%d")
-
-#     # デフォルト値設定
-#     end_date_str = end or today_str # もしif end <> end_str: の場合は、何かする必要がある。いまはおかしい。
-#     begin_date_str = begin or today_str
-
-#     # 検索期間ログ出力
-#     print(f"[DEBUG] 検索期間: begin={begin_date_str}, end={end_date_str}")
-
-#     # 日付計算
-#     try:
-#         end_date = datetime.datetime.strptime(end_date_str, "%Y-%m-%d").date()
-#         begin_date = datetime.datetime.strptime(begin_date_str, "%Y-%m-%d").date()
-#         days_ago = (end_date - begin_date).days
-#     except ValueError:
-#         raise ValueError("日付形式は 'YYYY-MM-DD' で指定してください")
-
-#     # 分岐実行
-#     if is_admin:
-#         from models.order import select_orders_ago
-#         orders = await select_orders_ago(days_ago)
-
-#     elif user_id and not company_id and not shop_id:
-#         from models.user import select_user_by_id
-#         from models.order import select_orders_by_user_at_date_range
-
-#         user = await select_user_by_id(user_id)  # user_id → username 変換
-#         if not user:
-#             print(f"if not user:{user}")
-#             return {"orders": []}
-
-#         orders = await select_orders_by_user_at_date_range(user.username, begin_date, end_date)
-
-#     elif user_id and company_id and not shop_id:
-#         from models.order import select_orders_by_company_at_date_range
-#         orders = await select_orders_by_company_at_date_range(company_id, begin_date, end_date)
-
-#     elif shop_id:
-#         from models.order import select_orders_by_shop_ago
-#         orders = await select_orders_by_shop_ago(shop_id, days_ago)
-
-#     else:
-#         orders = []
-
-#     # モデルを辞書に変換
-#     order_dicts = [order.model_dump() for order in orders] if orders else []
-
-#     return {"orders": order_dicts}
 
 '''-------------------------------------------------------------------'''
 # 注文概要（FAX送信用）
@@ -337,7 +291,8 @@ class OrderSummaryResponse(BaseModel):
     "/user/{user_id}/summary",
     summary="注文概要取得：一般ユーザー",
     description="指定されたユーザーIDの当日の注文概要を取得します。",
-    response_model=OrderSummaryResponse
+    response_model=OrderSummaryResponse,
+    tags=["order"]
 )
 async def get_orders_summary_by_user(user_id: int):
     return await get_orders_summary_common(user_id=user_id)
@@ -347,7 +302,8 @@ async def get_orders_summary_by_user(user_id: int):
     "/manager/{user_id}/company/{company_id}/summary",
     summary="注文概要取得：契約企業ユーザー",
     description="契約企業の担当者が、自社の注文概要（当日）を取得します。",
-    response_model=OrderSummaryResponse
+    response_model=OrderSummaryResponse,
+    tags=["order"]
 )
 async def get_orders_summary_by_manager_company(user_id: int, company_id: int):
     return await get_orders_summary_common(user_id=user_id, company_id=company_id)
@@ -357,7 +313,8 @@ async def get_orders_summary_by_manager_company(user_id: int, company_id: int):
     "/shop/{shop_id}/summary",
     summary="注文概要取得：店舗ユーザー",
     description="指定された店舗の当日の注文概要を取得します。",
-    response_model=OrderSummaryResponse
+    response_model=OrderSummaryResponse,
+    tags=["order"]
 )
 async def get_orders_summary_by_shop(shop_id: int):
     return await get_orders_summary_common(shop_id=shop_id)
@@ -367,7 +324,8 @@ async def get_orders_summary_by_shop(shop_id: int):
     "/admin/summary",
     summary="注文概要取得：管理者ユーザー",
     description="管理者が全体の当日の注文概要を取得します。",
-    response_model=OrderSummaryResponse
+    response_model=OrderSummaryResponse,
+    tags=["order"]
 )
 async def get_orders_summary_by_admin():
     return await get_orders_summary_common(is_admin=True)

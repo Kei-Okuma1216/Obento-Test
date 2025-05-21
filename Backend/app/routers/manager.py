@@ -31,7 +31,7 @@ manager_router = APIRouter()
 @log_decorator
 async def manager_view(request: Request, response: Response, manager_id: str):
     try:
-        if await check_permission(request, [2, 99]) == False:
+        if await check_permission(request, [2]) == False:
             return redirect_unauthorized(request, "契約企業ユーザー権限がありません。")
 
         cookies = get_all_cookies(request)
