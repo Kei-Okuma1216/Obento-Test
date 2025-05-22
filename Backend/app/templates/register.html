@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <!-- register.html -->
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/favicon.png">
@@ -10,7 +9,6 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 
   <style>
-    /* 既存CSSをそのまま活用 */
     :root { --vh: 1vh; }
     html, body { height: calc(var(--vh, 1vh) * 100); margin: 0; font-family: Arial, sans-serif; background-color: #f8f9fa; }
     .hero { background: url('/static/shops/1/title/ランチ01.jpg') no-repeat center center; background-size: cover; height: 100%; }
@@ -28,9 +26,7 @@
       <div class="col-md-6 col-12 login-container">
         <div class="login-card">
           <h2 class="mb-4 text-center">新規ユーザー登録</h2>
-            <p class="text-center mb-3">
-              未登録の方はユーザー登録をしてください。
-            </p>
+            <p class="text-center mb-3">未登録の方はユーザー登録をしてください。</p>
 
           {% if message %}
             <div class="alert alert-info">{{ message }}</div>
@@ -42,41 +38,22 @@
           <form action="/register" method="post">
             <div class="mb-3">
               <label for="username" class="form-label">ユーザー名</label>
-              <input 
-                type="text" 
-                id="username" 
-                name="username" 
-                class="form-control" 
-                required
-                placeholder="例:  abc@gmail.com"
-              >
+              <input type="text" id="username" name="username" class="form-control" required placeholder="例: abc@gmail.com">
             </div>
 
             <div class="mb-3">
               <label for="password" class="form-label">パスワード</label>
-                <input 
-                  type="password" 
-                  id="password" 
-                  name="password" 
-                  class="form-control" 
-                  required
-                  placeholder="例: 15文字以内半角英数字"
-                >
+              <input type="password" id="password" name="password" class="form-control" required placeholder="例: 15文字以内半角英数字">
             </div>
 
             <div class="mb-3">
               <label for="nickname" class="form-label">ニックネーム</label>
-              <input 
-                type="text" 
-                id="nickname" 
-                name="nickname" 
-                class="form-control" 
-                required 
-                placeholder="例: たろう"
+              <input type="text" id="nickname" name="nickname" class="form-control" required placeholder="例: たろう"
                 oninvalid="this.setCustomValidity('任意の呼び出し名')"
-                oninput="this.setCustomValidity('')"
-              >
+                oninput="this.setCustomValidity('')">
             </div>
+
+            <div id="error" class="text-danger text-center mt-2"></div>
 
             <div class="d-grid">
               <button type="submit" class="btn btn-success">登録する</button>
@@ -90,9 +67,8 @@
     </div>
   </div>
 
-  <!-- {% include 'components/footer.html' %} -->
-
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
   <script>
     function setVhUnit() {
       const vh = window.innerHeight * 0.01;
@@ -101,20 +77,78 @@
     window.addEventListener('load', setVhUnit);
     window.addEventListener('resize', setVhUnit);
   </script>
+
   <script>
     function toggleFooterVisibility() {
       const footer = document.querySelector("footer");
       if (!footer) return;
       const windowHeight = window.innerHeight;
       const threshold = 600;
-      if (windowHeight < threshold) {
-        footer.style.display = "none";
-      } else {
-        footer.style.display = "";
-      }
+      footer.style.display = windowHeight < threshold ? "none" : "";
     }
     window.addEventListener("load", toggleFooterVisibility);
     window.addEventListener("resize", toggleFooterVisibility);
+  </script>
+
+  <script>
+    const VALID_USERNAME_MSG = "ユーザー名は有効です。";
+    const VALID_PASSWORD_MSG = "パスワードは有効です。";
+
+    function validateLoginID(loginID) {
+      const allowedRegex = /^[-0-9a-z@_.]+$/;
+      const lengthRegex = /^[-0-9a-z@_.]{8,50}$/;
+      // const lengthRegex = /^[0-9a-z@]{8,50}$/;
+
+      if (!lengthRegex.test(loginID)) {
+        return "ユーザー名は8～50文字で入力してください。";
+      }
+
+      if (!allowedRegex.test(loginID)) {
+        return "ユーザー名として使用できるのは、半角英小文字（a-z）、数字（0-9）、@-_. のみです。";
+      }
+
+      return VALID_USERNAME_MSG;
+    }
+
+    function validatePassword(password) {
+      const allowedRegex = /^[0-9a-z!?¥_.@]+$/;
+      const lengthRegex = /^[0-9a-z!?¥_.@]{8,12}$/;
+
+      if (!lengthRegex.test(password)) {
+        return "パスワードは8～12文字で入力してください。";
+      }
+
+      if (!allowedRegex.test(password)) {
+        return "パスワードは指定された文字のみ使用してください。（0-9, a-z, !?¥_.@）";
+      }
+
+      return VALID_PASSWORD_MSG;
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.querySelector("form");
+
+      form.addEventListener("submit", function (event) {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const usernameMessage = validateLoginID(username);
+        if (usernameMessage !== VALID_USERNAME_MSG) {
+          document.getElementById("error").textContent = usernameMessage;
+          event.preventDefault();
+          return;
+        }
+
+        const passwordMessage = validatePassword(password);
+        if (passwordMessage !== VALID_PASSWORD_MSG) {
+          document.getElementById("error").textContent = passwordMessage;
+          event.preventDefault();
+          return;
+        }
+
+        document.getElementById("error").textContent = "";
+      });
+    });
   </script>
 </body>
 </html>

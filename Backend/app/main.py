@@ -86,7 +86,9 @@ from requests.exceptions import ConnectionError
 import requests
 
 # エントリポイント
-@app.get("/", response_class=HTMLResponse, tags=["users"])
+@app.get("/",
+         response_class=HTMLResponse,
+         tags=["login"])
 @log_decorator
 async def root(request: Request):
 
@@ -196,7 +198,11 @@ async def root(request: Request):
 
 
 # 新規登録画面
-@app.get("/register", response_class=HTMLResponse)
+@app.get(
+    "/register",
+    response_class=HTMLResponse,
+    tags=["login"]
+    )
 async def register_get(request: Request):
     return templates.TemplateResponse(
         "register.html", {"request": request})
@@ -210,7 +216,11 @@ from utils.helper import redirect_register
 from models.user import register_or_get_user
 
 # 新規登録画面
-@app.post("/register", response_class=HTMLResponse)
+@app.post(
+    "/register",
+    response_class=HTMLResponse,
+    tags=["login"]
+)
 @log_decorator
 async def register_post(
     request: Request,
@@ -254,7 +264,11 @@ async def register_post(
 
 
 # ログイン画面を表示するエンドポイント
-@app.get("/login", response_class=HTMLResponse, tags=["users"])
+@app.get(
+    "/login",
+    response_class=HTMLResponse,
+    tags=["login"]
+)
 @log_decorator
 async def login_get(request: Request):
     try:
@@ -296,7 +310,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
-@app.post("/login", response_class=HTMLResponse, tags=["users"])
+@app.post("/login", response_class=HTMLResponse, tags=["login"])
 @log_decorator
 async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
@@ -367,7 +381,10 @@ async def login_post(request: Request,
 
 
 # cookieを削除してログアウト
-@app.get("/clear", tags=["users"])
+@app.get(
+    "/clear",
+    tags=["login"]
+)
 @log_decorator
 async def clear_cookie(response: Response):
     response = RedirectResponse(url="/")
@@ -423,37 +440,37 @@ if __name__ == "__main__":
     LOGS_DIR = "./logs"
 
 
-@app.get("/logs", response_class=HTMLResponse, tags=["admin"])
-async def list_logs():
-    # 入力例 https://127.0.0.0.1:8000/logs/2025-03-10
-    # 備考　現在誰でもログにアクセスできる
-    """logs フォルダ内のログファイル一覧を表示"""
-    if not os.path.exists(LOGS_DIR):
-        return "<h1>No logs found</h1>"
+# @app.get("/logs", response_class=HTMLResponse, tags=["admin"])
+# async def list_logs():
+#     # 入力例 https://127.0.0.0.1:8000/logs/2025-03-10
+#     # 備考　現在誰でもログにアクセスできる
+#     """logs フォルダ内のログファイル一覧を表示"""
+#     if not os.path.exists(LOGS_DIR):
+#         return "<h1>No logs found</h1>"
 
-    files = sorted(os.listdir(LOGS_DIR), reverse=True)  # 最新のログを上に
-    file_links = [f'<a href="/logs/{file}">{file}</a><br>' for file in files]
+#     files = sorted(os.listdir(LOGS_DIR), reverse=True)  # 最新のログを上に
+#     file_links = [f'<a href="/logs/{file}">{file}</a><br>' for file in files]
 
-    return "<h1>Log Files</h1>" + "".join(file_links)
+#     return "<h1>Log Files</h1>" + "".join(file_links)
 
-from fastapi.responses import HTMLResponse, PlainTextResponse
+# from fastapi.responses import HTMLResponse, PlainTextResponse
 
-@app.get("/logs/{filename}", tags=["admin"])
-async def read_log(filename: str):
-    """指定されたログファイルの内容をHTMLで表示"""
-    filepath = os.path.join(LOGS_DIR, filename)
+# @app.get("/logs/{filename}", tags=["admin"])
+# async def read_log(filename: str):
+#     """指定されたログファイルの内容をHTMLで表示"""
+#     filepath = os.path.join(LOGS_DIR, filename)
 
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Log file not found")
+#     if not os.path.exists(filepath):
+#         raise HTTPException(status_code=404, detail="Log file not found")
 
-    # 空ファイルチェック（0バイト）
-    if os.path.getsize(filepath) == 0:
-        return PlainTextResponse("ログファイルは空です。", status_code=204)  # または HTML 表示にする場合はHTMLResponseを使ってもOK
+#     # 空ファイルチェック（0バイト）
+#     if os.path.getsize(filepath) == 0:
+#         return PlainTextResponse("ログファイルは空です。", status_code=204)  # または HTML 表示にする場合はHTMLResponseを使ってもOK
     
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f"<h1>{filename}</h1><pre>{f.read()}</pre>"
+#     with open(filepath, "r", encoding="utf-8") as f:
+#         content = f"<h1>{filename}</h1><pre>{f.read()}</pre>"
 
-    return HTMLResponse(content)
+#     return HTMLResponse(content)
 
 # 現在登録しているルート一覧を表示する
 # これはデバッグに有用なので絶対に消さない！

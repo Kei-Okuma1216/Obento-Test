@@ -83,7 +83,10 @@ async def update_existing_passwords(request: Request):
 # 例外テスト
 # 備考：例外ハンドラとこれをmain.py以外に移動すると、JSON表示のみになる。
 '''
-@admin_router.get("/test_exception")
+@admin_router.get(
+    "/test_exception",
+    tags=["admin"]
+)
 async def test_exception(request: Request):
     # raise CustomException(400, "test_exception()", "これはテストエラーです")
     logger.exception("管理者によるテスト例外")

@@ -14,7 +14,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse
 import os
 
-log_router = APIRouter(prefix="/api/v1", tags=["logs"])
+log_router = APIRouter(prefix="/api/v1", tags=["log"])
 
 LOG_DIR = "./logs"
 ORDER_LOG_DIR = "./order_logs"
@@ -25,7 +25,8 @@ ORDER_LOG_DIR = "./order_logs"
     "/log_html",
     response_class=HTMLResponse,
     summary="ログ一覧のHTML表示：管理者ユーザー",
-    description="ログディレクトリ内のファイル一覧をHTMLリンクで表示します。"
+    description="ログディレクトリ内のファイル一覧をHTMLリンクで表示します。",
+    tags=["log"]
 )
 def list_logs():
     if not os.path.exists(LOG_DIR):
@@ -47,7 +48,8 @@ def list_logs():
     "/log_html/{filename}",
     response_class=HTMLResponse,
     summary="ログファイル内容表示：管理者ユーザー",
-    description="指定されたログファイルの内容をHTMLとして表示します。"
+    description="指定されたログファイルの内容をHTMLとして表示します。",
+    tags=["log"]
 )
 def view_log(filename: str):
     path = os.path.join(LOG_DIR, filename)
@@ -76,6 +78,7 @@ def view_log(filename: str):
     response_class=HTMLResponse,
     summary="注文ログファイル一覧（HTML）：管理者ユーザー",
     description="`order_logs` ディレクトリ内にある注文ログファイルの一覧を HTML 形式で表示します。",
+    tags=["log"]
 )
 def list_order_logs():
     if not os.path.exists(ORDER_LOG_DIR):
@@ -91,7 +94,8 @@ def list_order_logs():
     "/order_log_html/{filename}",
     response_class=HTMLResponse,
     summary="注文ログファイル表示：管理者ユーザー",
-    description="指定された注文ログファイルの内容を HTML 形式で表示します。"
+    description="指定された注文ログファイルの内容を HTML 形式で表示します。",
+    tags=["log"]
 )
 def view_order_log(filename: str):
     path = os.path.join(ORDER_LOG_DIR, filename)
@@ -127,7 +131,7 @@ from fastapi.responses import JSONResponse
     "/filter_order_logs",
     summary="注文ログの抽出処理：店舗ユーザー",
     description="指定された店舗名に基づいて、注文ログを抽出します（バックグラウンド処理）。",
-    tags=["logs"]
+    tags=["log"]
 )
 async def filter_order_logs(
     background_tasks: BackgroundTasks,
@@ -160,7 +164,8 @@ async def filter_order_logs(
     "/order_log_html/combined",
     response_class=HTMLResponse,
     summary="結合注文ログ一覧表示：店舗ユーザー",
-    description="`order_logs` ディレクトリ内の `combined_` から始まる結合ログファイルを HTML リストで表示します。"
+    description="`order_logs` ディレクトリ内の `combined_` から始まる結合ログファイルを HTML リストで表示します。",
+    tags=["log"]
 )
 async def list_combined_order_logs():
     if not os.path.exists(ORDER_LOG_DIR):
@@ -192,7 +197,8 @@ async def list_combined_order_logs():
     "/order_log_html/combined/{filename}",
     response_class=HTMLResponse,
     summary="結合注文ログファイル表示：店舗ユーザー",
-    description="指定された結合ログファイルの内容を HTML として表示します。"
+    description="指定された結合ログファイルの内容を HTML として表示します。",
+    tags=["log"]
 )
 async def view_combined_order_log(filename: str):
     log_path = os.path.join(ORDER_LOG_DIR, filename)
