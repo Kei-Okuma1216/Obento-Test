@@ -97,7 +97,6 @@
     function validateLoginID(loginID) {
       const allowedRegex = /^[-0-9a-z@_.]+$/;
       const lengthRegex = /^[-0-9a-z@_.]{8,50}$/;
-      // const lengthRegex = /^[0-9a-z@]{8,50}$/;
 
       if (!lengthRegex.test(loginID)) {
         return "ユーザー名は8～50文字で入力してください。";

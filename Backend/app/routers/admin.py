@@ -30,7 +30,13 @@ from venv import logger
 from models.user import select_user
 # 管理者画面
 # 注意：エンドポイントにprefix:adminはつけない
-@admin_router.get("/me", response_class=HTMLResponse, tags=["admin"])
+@admin_router.get(
+    "/me",
+    summary="メイン画面：管理者ユーザー",
+    description="",
+    response_class=HTMLResponse,
+    tags=["admin"]
+)
 @log_decorator
 async def admin_view(request: Request):    
     try:
@@ -55,7 +61,12 @@ async def admin_view(request: Request):
         )
 
 @log_decorator
-@admin_router.get("/me/update_existing_passwords", response_class=HTMLResponse, tags=["admin"])
+@admin_router.get(
+    "/me/update_existing_passwords",
+    summary="ユーザーパスワードの暗号化：管理者ユーザー",
+    description="すべてのユーザーパスワードの暗号化する。",
+    response_class=HTMLResponse,
+    tags=["admin"])
 async def update_existing_passwords(request: Request):
     """既存ユーザーの全パスワードをハッシュ化"""
     from utils.helper import redirect_login_success
@@ -85,6 +96,8 @@ async def update_existing_passwords(request: Request):
 '''
 @admin_router.get(
     "/test_exception",
+    summary="テスト例外発生：管理者ユーザー",
+    description="管理者画面でテスト例外を発生する。",
     tags=["admin"]
 )
 async def test_exception(request: Request):
@@ -97,7 +110,12 @@ from fastapi.responses import RedirectResponse
 
 # logsディレクトリ内のファイル一覧を取得
 # logsページへリダイレクト
-@admin_router.get("/logs", include_in_schema=False)
+@admin_router.get(
+    "/logs",
+    summary="ログ表示画面：管理者ユーザー",
+    description="管理者画面のログタブで、一般ログを表示する。",
+    include_in_schema=False,
+)
 async def admin_logs_redirect(request: Request):
     if not (await check_permission(request, [99])):
             return redirect_unauthorized(request, "管理者権限がありません。")
@@ -105,7 +123,11 @@ async def admin_logs_redirect(request: Request):
 
 
 # order_logsページへリダイレクト
-@admin_router.get("/order_logs", include_in_schema=False)
+@admin_router.get(
+    "/order_logs",
+    summary="注文ログ表示画面：管理者ユーザー",
+    description="管理者画面のログタブで、すべての注文ログを表示する。",
+    include_in_schema=False)
 async def admin_order_logs_redirect(request: Request):
     if not (await check_permission(request, [99])):
             return redirect_unauthorized(request, "管理者権限がありません。")

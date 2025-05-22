@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 2.5 注文JSONの実装完了
+# 2.6 新規登録ユーザー検証の実装完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
     2. login_get(request: Request):
@@ -10,13 +10,7 @@
     5. class CancelUpdate(BaseModel):
         updates: List[dict]  # 各辞書は {"order_id": int, "checked": bool} の形式
     6. update_cancel_status(update: CancelUpdate):
-
-    7. custom_exception_handler(request: Request, exc: CustomException):
-    8. test_exception():
-
-    9. favicon():
-    10. list_logs():
-    11. read_log(filename: str):
+    7. favicon():
 '''
 from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -30,7 +24,7 @@ from utils.utils import *
 from sqlalchemy.exc import DatabaseError
 from log_unified import logger
 
-from routers.router import sample_router
+from routers.router import account_router
 from routers.admin import admin_router
 from routers.manager import manager_router
 from routers.shop import shop_router
@@ -53,7 +47,7 @@ app.add_middleware(
     allow_headers=["*"],  # すべてのヘッダーを許可
 )
 
-app.include_router(sample_router, prefix="/api")
+app.include_router(account_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router, prefix="/shops")
@@ -88,6 +82,8 @@ import requests
 # エントリポイント
 @app.get("/",
          response_class=HTMLResponse,
+         summary="アプリケーションのエントリポイント",
+         description="二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
          tags=["login"])
 @log_decorator
 async def root(request: Request):
@@ -200,6 +196,8 @@ async def root(request: Request):
 # 新規登録画面
 @app.get(
     "/register",
+    summary="ユーザー新規登録画面（入力前）",
+    description="二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
     response_class=HTMLResponse,
     tags=["login"]
     )
@@ -218,6 +216,8 @@ from models.user import register_or_get_user
 # 新規登録画面
 @app.post(
     "/register",
+    summary="ユーザー新規登録画面（入力後）",
+    description="既存ユーザーを確認して、なければ登録。その後リダイレクトする。",
     response_class=HTMLResponse,
     tags=["login"]
 )
@@ -266,6 +266,8 @@ async def register_post(
 # ログイン画面を表示するエンドポイント
 @app.get(
     "/login",
+    summary="ログイン画面（入力前）",
+    description="二重注文をチェック後、リダイレクトする。",
     response_class=HTMLResponse,
     tags=["login"]
 )
@@ -275,7 +277,6 @@ async def login_get(request: Request):
         has_order, response = await check_order_duplex(request)
         if has_order:
             return response
-        
         
         # ログイン成功画面にリダイレクト
         return redirect_login_success(request)
@@ -310,7 +311,12 @@ from sqlalchemy.exc import SQLAlchemyError
 
 # ログイン画面入力を受け付けるエンドポイント
 ''' ログインPOST '''
-@app.post("/login", response_class=HTMLResponse, tags=["login"])
+@app.post(
+    "/login",
+    summary="ログイン画面（入力後）",
+    description="ユーザー認証と二重注文をチェック後、ユーザーメイン画面にリダイレクトする。",
+    response_class=HTMLResponse,
+    tags=["login"])
 @log_decorator
 async def login_post(request: Request,
     form_data: OAuth2PasswordRequestForm = Depends()):
@@ -383,6 +389,8 @@ async def login_post(request: Request,
 # cookieを削除してログアウト
 @app.get(
     "/clear",
+    summary="Cookieをクリアする",
+    description="Cookieクリアにより強制的にログアウト状態になる。",
     tags=["login"]
 )
 @log_decorator
@@ -396,7 +404,12 @@ async def clear_cookie(response: Response):
 from schemas.order_schemas import OrderUpdateList
 from services.order_view import batch_update_orders
 
-@app.post("/update_cancel_status")
+@app.post(
+    "/update_cancel_status",
+    summary="チェックボックス更新",
+    description="注文テーブルのチェックボックス更新する。",
+    tags=["login"]
+)
 async def update_cancel_status(update: OrderUpdateList):
     logger.info(f"受信内容: {update.updates}")
 
@@ -439,38 +452,6 @@ if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, timeout_keep_alive=10, loop="asyncio")
     LOGS_DIR = "./logs"
 
-
-# @app.get("/logs", response_class=HTMLResponse, tags=["admin"])
-# async def list_logs():
-#     # 入力例 https://127.0.0.0.1:8000/logs/2025-03-10
-#     # 備考　現在誰でもログにアクセスできる
-#     """logs フォルダ内のログファイル一覧を表示"""
-#     if not os.path.exists(LOGS_DIR):
-#         return "<h1>No logs found</h1>"
-
-#     files = sorted(os.listdir(LOGS_DIR), reverse=True)  # 最新のログを上に
-#     file_links = [f'<a href="/logs/{file}">{file}</a><br>' for file in files]
-
-#     return "<h1>Log Files</h1>" + "".join(file_links)
-
-# from fastapi.responses import HTMLResponse, PlainTextResponse
-
-# @app.get("/logs/{filename}", tags=["admin"])
-# async def read_log(filename: str):
-#     """指定されたログファイルの内容をHTMLで表示"""
-#     filepath = os.path.join(LOGS_DIR, filename)
-
-#     if not os.path.exists(filepath):
-#         raise HTTPException(status_code=404, detail="Log file not found")
-
-#     # 空ファイルチェック（0バイト）
-#     if os.path.getsize(filepath) == 0:
-#         return PlainTextResponse("ログファイルは空です。", status_code=204)  # または HTML 表示にする場合はHTMLResponseを使ってもOK
-    
-#     with open(filepath, "r", encoding="utf-8") as f:
-#         content = f"<h1>{filename}</h1><pre>{f.read()}</pre>"
-
-#     return HTMLResponse(content)
 
 # 現在登録しているルート一覧を表示する
 # これはデバッグに有用なので絶対に消さない！

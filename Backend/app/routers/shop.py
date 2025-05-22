@@ -34,8 +34,10 @@ from services.order_view import get_order_json
 # JSON注文情報を取得する
 @shop_router.get(
     "/me/order_json",
+    summary="JSON注文情報を取得する：店舗ユーザー",
+    description="days_ago:intより指定日数前の注文情報を取得後、JSON形式で表示する。",
     response_class=HTMLResponse,
-    tags=["shops"]
+    tags=["shop"]
 )
 @log_decorator
 async def order_json(request: Request, days_ago: str = Query("0")):
@@ -51,34 +53,19 @@ async def order_json(request: Request, days_ago: str = Query("0")):
         return HTMLResponse("注文データ取得中に予期せぬエラーが発生しました", status_code=500)
 
 
-# from fastapi import Query
-# from fastapi.responses import HTMLResponse
-# import os
 
-
-# # 注文ログを表示する
-# @shop_router.get(
-#     "/order_logs/{filename}",
-#     response_class=HTMLResponse,
-#     tags=["shops"]
-# )
-# async def view_combined_order_log(filename: str):
-#     """指定されたログファイルを表示"""
-#     log_path = os.path.join("order_logs", filename)
-#     if not os.path.exists(log_path):
-#         return HTMLResponse("ログファイルが存在しません", status_code=404)
-
-#     with open(log_path, "r", encoding="utf-8") as f:
-#         content = f.read().replace("\n", "<br>")
-#     return f"<h1>{filename}</h1><pre>{content}</pre>"
 
 
 from models.user import select_user_by_id
 from services.order_view import order_table_view
 
 # 店舗メイン画面
-@shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
-@shop_router.get("/{shop_id}", response_class=HTMLResponse, tags=["shops"])
+@shop_router.get(
+    "/{shop_id}",
+    summary="メイン画面：店舗ユーザー",
+    description="shop_id設定よりorder_table_view()を表示する。",
+    response_class=HTMLResponse,
+    tags=["shop"])
 @log_decorator
 async def shop_view(request: Request, response: Response, shop_id: str):
     try:
@@ -159,7 +146,10 @@ from routers.order import get_orders_summary_by_shop
 
 @shop_router.get(
     "/{shop_id}/summary",
-    tags=["shops"]
+    summary="注文概要取得へのリダイレクト用：店舗ユーザー",
+    description="店舗の注文概要取得へのリダイレクト用。",
+    include_in_schema=False,
+    tags=["shop"]
 )
 async def shop_summary_bridge(shop_id: int):
     # 注意：ここは更にリダイレクトしている

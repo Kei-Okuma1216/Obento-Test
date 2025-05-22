@@ -27,7 +27,13 @@ manager_router = APIRouter()
 
 # 契約企業(お弁当担当者)画面
 # 注意：エンドポイントにprefix:managerはつけない
-@manager_router.get("/{manager_id}", response_class=HTMLResponse, tags=["manager"])
+@manager_router.get(
+    "/{manager_id}",
+    summary="メイン画面：契約企業ユーザー",
+    description="days_ago:intより指定日数前の注文情報を取得後、JSON形式で表示する。",
+    response_class=HTMLResponse,
+    tags=["manager"]
+)
 @log_decorator
 async def manager_view(request: Request, response: Response, manager_id: str):
     try:
@@ -109,7 +115,12 @@ async def get_manager_context(request: Request, orders):
         return manager_context
 
 
-@manager_router.get("/me/fax_order_sheet", response_class=HTMLResponse, tags=["manager"])
+@manager_router.get(
+    "/me/fax_order_sheet",
+    summary="FAX注文用紙表示画面：契約企業ユーザー",
+    description="メイン画面のFAX注文タブの入力を元にして、FAX注文用紙をプレビュー形式で表示する。",
+    response_class=HTMLResponse,
+    tags=["manager"])
 @log_decorator
 async def fax_order_sheet_view(request: Request):
     try:

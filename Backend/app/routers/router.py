@@ -1,25 +1,30 @@
 # routers/router.py
 '''
-    1. get_account_or_404_response(username: str):
-    2. get_account_by_id_or_404_response(user_id: int):
-
-    3. get_admin_account(request: Request):
-    4. get_manager_account(request: Request, user_id: int = Query(...)):
-    5. get_shop_account(request: Request, user_id: str = Query(...)):
+    1. get_admin_account(request: Request):
+    2. get_account_or_404_response(username: str):
+    3. get_manager_account(request: Request, user_id: int = Query(...)):
+    4. get_shop_account(request: Request, user_id: str = Query(...)):
+    5. get_account_by_id_or_404_response(user_id: int):
 
     6. check_holiday(date: str):
     7. delivery_date_view(date_str: str):
 '''
 from fastapi import APIRouter
 
-sample_router = APIRouter(
-    tags=["sample"]
+account_router = APIRouter(
+    tags=["account"]
 )
 
 
 # 呼び方 お試しエンドポイント
 # https://127.0.0.1:8000/api/items
-@sample_router.get("/items/", tags=["sample"])
+@account_router.get(
+    "/items/",
+    include_in_schema=False,
+    summary="表示テスト用エンドポイント",
+    description="表示テストに使用する。お試しエンドポイント",
+    tags=["account"]
+)
 async def read_items():
     return [{"item": "Foo"}, {"item": "Bar"}]
 
@@ -34,10 +39,24 @@ from models.user import select_user
 from fastapi import HTTPException, Query
 from fastapi import Request, HTTPException
 
-# ヘルパー
+# 管理者アカウント情報の取得
+@account_router.get(
+    "/v1/account/admin",
+    summary="アカウント情報の取得：管理者ユーザー",
+    description="",
+    response_model=UserResponse,
+    tags=["account"]
+)
+async def get_admin_account(request: Request):
+
+    if not await check_permission(request, [99]):
+        return redirect_unauthorized(request, "管理者権限がありません。")
+
+    return await get_account_or_404_response("admin")
+
 async def get_account_or_404_response(username: str):
     """
-    ユーザー取得＆JSON返却を共通化。存在しない場合は404エラー。
+    ユーザー取得&JSON返却を共通化。存在しない場合は404エラー。
     """
     user_info = await select_user(username)
     if user_info is None:
@@ -54,38 +73,15 @@ async def get_account_or_404_response(username: str):
     )
     return JSONResponse(content=response_data.model_dump())
 
-from models.user import select_user_by_id
-
-# 共通
-async def get_account_by_id_or_404_response(user_id: int):
-    user_info = await select_user_by_id(user_id)  # user_id で検索
-    if user_info is None:
-        raise HTTPException(status_code=404, detail=f"ユーザーID {user_id} が見つかりません")
-    print(f"{user_info=}")
-    response_data = UserResponse(
-        user_id=user_info.user_id,
-        username=user_info.username,
-        name=user_info.name,
-        company_id=user_info.company_id,
-        shop_name=user_info.shop_name,
-        menu_id=user_info.menu_id,
-        permission=user_info.permission
-    )
-    return JSONResponse(content=response_data.model_dump())
-
-
-# 管理者アカウント情報の取得
-@sample_router.get("/v1/account/admin", response_model=UserResponse)
-async def get_admin_account(request: Request):
-
-    if not await check_permission(request, [99]):
-        return redirect_unauthorized(request, "管理者権限がありません。")
-
-    return await get_account_or_404_response("admin")
-
 
 # 契約企業ユーザー情報の取得
-@sample_router.get("/v1/account/manager", response_model=UserResponse)
+@account_router.get(
+    "/v1/account/manager",
+    summary="アカウント情報の取得：契約企業ユーザー",
+    description="",
+    response_model=UserResponse,
+    tags=["account"]
+)
 async def get_manager_account(request: Request, user_id: int = Query(...)):
 
     if not await check_permission(request, [2]):
@@ -95,7 +91,13 @@ async def get_manager_account(request: Request, user_id: int = Query(...)):
 
 
 # 店舗ユーザー情報の取得
-@sample_router.get("/v1/account/shop", response_model=UserResponse)
+@account_router.get(
+    "/v1/account/shop",
+    summary="アカウント情報の取得：店舗ユーザー",
+    description="",
+    response_model=UserResponse,
+    tags=["account"]
+)
 async def get_shop_account(request: Request, user_id: str = Query(...)):
 
     if not await check_permission(request, [10]):
@@ -109,14 +111,35 @@ async def get_shop_account(request: Request, user_id: str = Query(...)):
     return await get_account_by_id_or_404_response(user_id_int)
 
 
+from models.user import select_user_by_id
+# 共通
+async def get_account_by_id_or_404_response(user_id: int):
+    user_info = await select_user_by_id(user_id)  # user_id で検索
+    if user_info is None:
+        raise HTTPException(status_code=404, detail=f"ユーザーID {user_id} が見つかりません")
+    # print(f"{user_info=}")
+    response_data = UserResponse(
+        user_id=user_info.user_id,
+        username=user_info.username,
+        name=user_info.name,
+        company_id=user_info.company_id,
+        shop_name=user_info.shop_name,
+        menu_id=user_info.menu_id,
+        permission=user_info.permission
+    )
+    return JSONResponse(content=response_data.model_dump())
 
 
 '''--------------------------------------------------------------------------'''
 from fastapi.responses import JSONResponse
 from config.config_loader import load_holiday_map
 
-
-@sample_router.get("/check_holiday")
+@account_router.get(
+    "/check_holiday",
+    summary="祝日名の取得：共通",
+    description=f"指定された日付が祝日かどうかを判定し、祝日名を返すAPI 例: /api/check_holiday?date=2025/1/1",
+    tags=["account"]
+)
 async def check_holiday(date: str):
     """
     指定された日付が祝日かどうかを判定し、祝日名を返すAPI
@@ -140,13 +163,16 @@ delivery_mapping = {
     6: 0 # 日 -> 月
 }
 
-
 from datetime import datetime
 from utils.utils import log_decorator
 from config.config_loader import skip_holiday
 
-
-@sample_router.get("/delivery_date/{date_str}")
+@account_router.get(
+    "/delivery_date/{date_str}",
+    summary="配達可能日の取得：共通",
+    description=f"指定された日付（YYYY-MM-DD）から配達可能日を判定するAPI 例: /api/delivery_date?date=2025/1/1",
+    tags=["account"]
+)
 @log_decorator
 async def delivery_date_view(date_str: str):
     """

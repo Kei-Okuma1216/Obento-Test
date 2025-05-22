@@ -28,8 +28,10 @@ user_router = APIRouter()
 # @log_decorator
 @user_router.get(
     "/{user_id}/order_complete/",
+    summary="お弁当の注文完了画面：一般ユーザー",
+    description="一般ユーザーがお弁当を注文完了直後の画面",
     response_class=HTMLResponse,
-    tags=["users"])
+    tags=["user"])
 async def regist_complete(request: Request, response: Response, user_id: str):
 
     try:
@@ -91,8 +93,8 @@ async def get_user_context(request: Request, orders, user_id: int):
 
 
 ''' 開発中止する ユーザーのメニュー選択 '''
-'''@user_router.post("/me", response_class=HTMLResponse, tags=["users"])
-@user_router.get("/me", response_class=HTMLResponse, tags=["users"])
+'''@user_router.post("/me", response_class=HTMLResponse, tags=["user"])
+@user_router.get("/me", response_class=HTMLResponse, tags=["user"])
 @log_decorator
 async def get_user_shop_menu(request: Request, response: Response):
     # ユーザーお弁当屋のメニュー選択
