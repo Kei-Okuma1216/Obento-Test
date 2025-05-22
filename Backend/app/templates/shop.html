@@ -192,7 +192,7 @@
             <div class="modal-body p-0">
               <!-- /admin/order_logs の内容を iframe で表示 -->
               <!-- <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe> -->
-              <iframe src="/shops/order_logs" width="100%" height="500" frameborder="0"></iframe>
+              <iframe src="/api/v1/order_log_html/combined" width="100%" height="500" frameborder="0"></iframe>
             </div>
           </div>
         </div>
@@ -270,8 +270,6 @@
       document.getElementById("my-order-log-button").addEventListener("click", function() {
         // 抽出対象のショップ名。必要に応じて他の値に変更可能
         var shopName = "shop01";
-        // fetch("/filter_order_logs?shop=" + encodeURIComponent(shopName))
-        // fetch("/shops/filter_order_logs?shop=" + encodeURIComponent(shopName))
           fetch("/api/v1/filter_order_logs?shop=" + encodeURIComponent(shopName))
           .then(response => response.json())
           .then(data => {
@@ -281,7 +279,8 @@
             alert("注文ログの抽出が完了しました。");
 
             // ★ ここに追記してください（iframeをリロード）
-            const iframe = document.querySelector('iframe[src="/api/v1/order_logs"]');
+            // const iframe = document.querySelector('iframe[src="/api/v1/order_logs"]');
+            const iframe = document.querySelector('iframe[src="/api/v1/order_log_html/combined"]');
             if (iframe) {
               iframe.contentWindow.location.reload();
             }

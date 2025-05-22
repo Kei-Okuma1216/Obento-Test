@@ -131,8 +131,8 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
         logger.warning(f"get_order_json Error: {str(e)=}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
     else:
-        return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
-
+        # return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
+        return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
 
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError

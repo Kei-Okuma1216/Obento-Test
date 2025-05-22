@@ -2,12 +2,11 @@
 # ../shops/4になる
 # 引数が固定順(パスパラメータが無い順)に並べている
 '''
-    1. order_json(request: Request, days_ago: str = Query("0")):
-
-    2. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
-
-    3. shop_view(request: Request, response: Response, shop_id: str):
+    1. order_json_me(request: Request, days_ago: str = Query("0")):
+    2. order_json_by_id(request: Request, shop_id: str, days_ago: str = Query("0")):
+    3. shop_view(request: Request, response: Response, shop_id: int):
     4. get_shop_context(request: Request, orders):
+    5. shop_summary_bridge(shop_id: int):
 '''
 from fastapi import HTTPException, Query, Request, Response, APIRouter, status
 from fastapi.responses import HTMLResponse
@@ -28,22 +27,36 @@ templates = Jinja2Templates(directory="templates")
 shop_router = APIRouter()
 
 
-
 from services.order_view import get_order_json
+from models.user import select_user_by_id
+
+# JSON/me注文情報を取得する
+@shop_router.get("/me/order_json")
+@log_decorator
+async def order_json_me(request: Request, days_ago: str = Query("0")):
+    return await get_order_json(request, days_ago)
+
 
 # JSON注文情報を取得する
 @shop_router.get(
-    "/me/order_json",
-    summary="JSON注文情報を取得する：店舗ユーザー",
-    description="days_ago:intより指定日数前の注文情報を取得後、JSON形式で表示する。",
+    "/{shop_id:int}/order_json",
+    summary="JSON注文情報を取得する：指定店舗ユーザー",
+    description="shop_idとdays_agoに基づいて注文情報をJSON形式で返す。",
     response_class=HTMLResponse,
     tags=["shop"]
 )
 @log_decorator
-async def order_json(request: Request, days_ago: str = Query("0")):
+async def order_json_by_id(request: Request, shop_id: str, days_ago: str = Query("0")):
     try:
-        return await get_order_json(request, days_ago)
+        user_info = await select_user_by_id(int(shop_id))
+        if user_info is None:
+            raise HTTPException(status_code=404, detail="店舗ユーザーが見つかりません")
 
+        return await get_order_json(request, days_ago, shop_code=user_info.username)
+        # shop_code = user_info.username
+
+        # # get_order_json を拡張 or 新たに shop_code 対応関数を用意する
+        # return await get_order_json(request, days_ago, shop_code=shop_code)
     except HTTPException as e:
         logger.exception(f"order_json - HTTPException: {e.detail}")
         return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)
@@ -55,22 +68,22 @@ async def order_json(request: Request, days_ago: str = Query("0")):
 
 
 
-
 from models.user import select_user_by_id
 from services.order_view import order_table_view
 
 # 店舗メイン画面
 @shop_router.get(
-    "/{shop_id}",
+    "/{shop_id:int}",
     summary="メイン画面：店舗ユーザー",
     description="shop_id設定よりorder_table_view()を表示する。",
     response_class=HTMLResponse,
     tags=["shop"])
 @log_decorator
-async def shop_view(request: Request, response: Response, shop_id: str):
+async def shop_view(request: Request, response: Response, shop_id: int):
     try:
         # 🚨 不正なID防御（Noneや非数値チェック）
-        if not shop_id or shop_id.lower() == "none" or not shop_id.isdigit():
+        # if not shop_id or shop_id.lower() == "none" or not shop_id.isdigit():
+        if not shop_id:
             logger.error("不正な shop_id が指定されました")
             return HTMLResponse("<html><p>不正な店舗IDが指定されました</p></html>", status_code=400)
         
@@ -79,7 +92,7 @@ async def shop_view(request: Request, response: Response, shop_id: str):
             return redirect_unauthorized(request, "店舗ユーザー権限がありません。")
 
         # ユーザー情報取得
-        user_info = await select_user_by_id(int(shop_id))
+        user_info = await select_user_by_id(shop_id)
         if user_info is None:
             logger.warning(f"ユーザーID {shop_id} が見つかりません")
             return HTMLResponse("<html><p>ユーザー情報が見つかりません</p></html>")

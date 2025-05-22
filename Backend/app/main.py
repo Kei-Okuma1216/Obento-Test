@@ -418,14 +418,18 @@ async def update_cancel_status(update: OrderUpdateList):
 
 
 
-
 @app.get('/favicon.ico', include_in_schema=False)
 def favicon():
     # ブラウザが要求するfaviconのエラーを防ぐ
     # https://github.com/fastapi/fastapi/discussions/11385
-    favicon_path = './static/favicon.ico'  # Adjust path to file
+    favicon_path = './static/images/favicon.ico'  # Adjust path to file
 
     return FileResponse(favicon_path)
+# もしくはこれで可能
+# @app.get("/favicon.ico", include_in_schema=False)
+# async def favicon():
+#     return Response(status_code=204)  # No Content
+
  
 # Mount the directory where favicon.ico is located 
 # faviconのマウント
@@ -457,3 +461,7 @@ if __name__ == "__main__":
 # これはデバッグに有用なので絶対に消さない！
 # for route in app.routes:
 #     print(route.path, route.name)
+
+@app.get("/debug_routes")
+async def debug_routes():
+    return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]

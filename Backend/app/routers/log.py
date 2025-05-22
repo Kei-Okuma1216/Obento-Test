@@ -1,18 +1,8 @@
-# routers/log.py
-'''
-# 管理者ユーザー用
-    1. list_logs():
-    2. view_log(filename: str):
-    3. list_order_logs():
-    4. view_order_log(filename: str):
-# 店舗ユーザー用
-    5. filter_order_logs(background_tasks: BackgroundTasks, shop: str = Query(...)):
-    6. list_combined_order_logs():
-    7. view_combined_order_log(filename: str):
-'''
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from fastapi.responses import HTMLResponse, JSONResponse
+from urllib.parse import quote
 import os
+import subprocess
 
 log_router = APIRouter(prefix="/api/v1", tags=["log"])
 
@@ -20,31 +10,20 @@ LOG_DIR = "./logs"
 ORDER_LOG_DIR = "./order_logs"
 
 
-# 管理者ユーザー用
-@log_router.get(
-    "/log_html",
-    response_class=HTMLResponse,
-    summary="ログファイル一覧表示：管理者ユーザー",
-    description="ログディレクトリ内のファイル一覧をHTMLリンクで表示します。",
-    tags=["log"]
-)
+# 管理者ユーザー用：ログ一覧
+@log_router.get("/log_html", response_class=HTMLResponse)
 def list_logs():
     if not os.path.exists(LOG_DIR):
         raise HTTPException(status_code=404, detail="ログディレクトリが存在しません")
     
     log_files = sorted(os.listdir(LOG_DIR), reverse=True)
-    links = [f"<li><a href='/api/v1/log_html/{file}'>{file}</a></li>" for file in log_files]
+    links = [f"<li><a href='/api/v1/log_html/{quote(file)}'>{file}</a></li>" for file in log_files]
     html = f"<h1>ログ一覧</h1><ul>{''.join(links)}</ul>"
     return HTMLResponse(content=html)
 
 
-@log_router.get(
-    "/log_html/{filename}",
-    response_class=HTMLResponse,
-    summary="ログファイル内容表示：管理者ユーザー",
-    description="指定されたログファイルの内容をHTMLとして表示します。",
-    tags=["log"]
-)
+# 管理者ユーザー用：ログファイル内容
+@log_router.get("/log_html/{filename}", response_class=HTMLResponse)
 def view_log(filename: str):
     path = os.path.join(LOG_DIR, filename)
     if not os.path.exists(path):
@@ -58,80 +37,8 @@ def view_log(filename: str):
         raise HTTPException(status_code=500, detail=f"ファイル読み込み中にエラーが発生しました: {str(e)}")
 
 
-
-@log_router.get(
-    "/order_log_html",
-    response_class=HTMLResponse,
-    summary="注文ログファイル一覧表示：管理者ユーザー",
-    description="`order_logs` ディレクトリ内にある注文ログファイルの一覧を HTML 形式で表示します。",
-    tags=["log"]
-)
-def list_order_logs():
-    if not os.path.exists(ORDER_LOG_DIR):
-        raise HTTPException(status_code=404, detail="注文ログディレクトリが存在しません")
-
-    files = sorted(os.listdir(ORDER_LOG_DIR), reverse=True)
-    links = [f"<li><a href='/api/v1/order_log_html/{f}'>{f}</a></li>" for f in files]
-    html = f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
-    return HTMLResponse(content=html)
-
-
-@log_router.get(
-    "/order_log_html/{filename}",
-    response_class=HTMLResponse,
-    summary="注文ログファイル内容表示：管理者ユーザー",
-    description="指定された注文ログファイルの内容を HTML 形式で表示します。",
-    tags=["log"]
-)
-def view_order_log(filename: str):
-    path = os.path.join(ORDER_LOG_DIR, filename)
-
-    if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail="注文ログファイルが存在しません")
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            content = f.read().replace("\n", "<br>")
-        return HTMLResponse(content=f"<h1>{filename}</h1><pre>{content}</pre>")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"ファイルの読み込み中にエラーが発生しました: {str(e)}")
-
-
-
-from fastapi import Query, BackgroundTasks
-from fastapi.responses import JSONResponse
-
-# 店舗ユーザー用
-@log_router.get(
-    "/filter_order_logs",
-    summary="注文ログの抽出処理（店舗名）：店舗ユーザー",
-    description="指定された店舗名に基づいて、注文ログを抽出します（バックグラウンド処理）。",
-    tags=["log"]
-)
-async def filter_order_logs(
-    background_tasks: BackgroundTasks,
-    shop: str = Query(..., description="対象店舗名")
-):
-    def run_log_filter():
-        import subprocess
-        subprocess.run(
-            ["python", "order_log_filter_config.py", "order_logs", shop],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    
-    background_tasks.add_task(run_log_filter)
-    return {"message": "ログ抽出処理をバックグラウンドで開始しました"}
-
-
-
-@log_router.get(
-    "/order_log_html/combined",
-    response_class=HTMLResponse,
-    summary="結合注文ログ一覧表示：店舗ユーザー",
-    description="`order_logs` ディレクトリ内の `combined_` から始まる結合ログファイルを HTML リストで表示します。",
-    tags=["log"]
-)
+# 店舗ユーザー用：結合ログ一覧（静的ルートを先に！）
+@log_router.get("/order_log_html/combined", response_class=HTMLResponse)
 async def list_combined_order_logs():
     if not os.path.exists(ORDER_LOG_DIR):
         raise HTTPException(status_code=404, detail="注文ログディレクトリが存在しません")
@@ -144,21 +51,14 @@ async def list_combined_order_logs():
     if not log_files:
         return HTMLResponse("<h1>表示可能な結合ログがありません</h1>", status_code=200)
 
-    links = [f"<li><a href='/api/v1/order_log_html/{file}'>{file}</a></li>" for file in log_files]
+    links = [f"<li><a href='/api/v1/order_log_html/{quote(file)}'>{file}</a></li>" for file in log_files]
     return HTMLResponse(content=f"<h1>結合注文ログ一覧</h1><ul>{''.join(links)}</ul>")
 
 
-
-@log_router.get(
-    "/order_log_html/combined/{filename}",
-    response_class=HTMLResponse,
-    summary="結合注文ログファイル表示：店舗ユーザー",
-    description="指定された結合ログファイルの内容を HTML として表示します。",
-    tags=["log"]
-)
+# 店舗ユーザー用：結合ログファイル表示
+@log_router.get("/order_log_html/combined/{filename}", response_class=HTMLResponse)
 async def view_combined_order_log(filename: str):
     log_path = os.path.join(ORDER_LOG_DIR, filename)
-
     if not os.path.exists(log_path):
         raise HTTPException(status_code=404, detail="ログファイルが存在しません")
 
@@ -170,4 +70,49 @@ async def view_combined_order_log(filename: str):
         raise HTTPException(status_code=500, detail=f"ファイルの読み込み中にエラーが発生しました: {str(e)}")
 
 
+# 管理者ユーザー用：注文ログファイル一覧
+@log_router.get("/order_log_html", response_class=HTMLResponse)
+def list_order_logs():
+    if not os.path.exists(ORDER_LOG_DIR):
+        raise HTTPException(status_code=404, detail="注文ログディレクトリが存在しません")
 
+    files = sorted(os.listdir(ORDER_LOG_DIR), reverse=True)
+    links = [f"<li><a href='/api/v1/order_log_html/{quote(f)}'>{f}</a></li>" for f in files]
+    html = f"<h1>注文ログ一覧</h1><ul>{''.join(links)}</ul>"
+    return HTMLResponse(content=html)
+
+
+# 管理者ユーザー用：注文ログファイル内容表示（汎用）
+@log_router.get("/order_log_html/{filename}", response_class=HTMLResponse)
+def view_order_log(filename: str):
+    path = os.path.join(ORDER_LOG_DIR, filename)
+    print(f"🔍 試行ファイル名: {filename}")
+    print(f"📂 絶対パス: {os.path.abspath(path)}")
+    print(f"📂 存在する?: {os.path.exists(path)}")
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="注文ログファイルが存在しません")
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            content = f.read().replace("\n", "<br>")
+        return HTMLResponse(content=f"<h1>{filename}</h1><pre>{content}</pre>")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ファイルの読み込み中にエラーが発生しました: {str(e)}")
+
+
+# 店舗ユーザー用：注文ログ抽出（バックグラウンド実行）
+@log_router.get("/filter_order_logs", summary="注文ログの抽出処理（店舗名）")
+async def filter_order_logs(
+    background_tasks: BackgroundTasks,
+    shop: str = Query(..., description="対象店舗名")
+):
+    def run_log_filter():
+        subprocess.run(
+            ["python", "order_log_filter_config.py", "order_logs", shop],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    
+    background_tasks.add_task(run_log_filter)
+    return {"message": "ログ抽出処理をバックグラウンドで開始しました"}
