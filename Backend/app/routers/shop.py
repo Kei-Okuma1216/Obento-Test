@@ -31,7 +31,13 @@ from services.order_view import get_order_json
 from models.user import select_user_by_id
 
 # JSON/me注文情報を取得する
-@shop_router.get("/me/order_json")
+@shop_router.get(
+    "/me/order_json",
+    summary="JSON注文情報を取得する：指定店舗ユーザー",
+    description="shop_idとdays_agoに基づいて注文情報をJSON形式で返す。",
+    tags=["shop"],
+    include_in_schema=False
+)
 @log_decorator
 async def order_json_me(request: Request, days_ago: str = Query("0")):
     return await get_order_json(request, days_ago)

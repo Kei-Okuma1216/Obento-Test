@@ -2,7 +2,7 @@
 # ../manager/meになる
 '''
     1. manager_view(request: Request, response: Response):
-    2. def get_manager_context(request: Request, orders):
+    2. get_manager_context(request: Request, orders):
     3. fax_order_sheet_view(request: Request):
     4. get_fax_sheet_context(request: Request):
 '''
@@ -58,7 +58,7 @@ async def manager_view(request: Request, response: Response, manager_id: str):
         # CookieからユーザーID（manager_id）取得
         cookies = get_all_cookies(request)
         
-        print(f"manager_view - context username: {manager_id}")
+        # print(f"manager_view - context username: {manager_id}")
         context.update({"username": manager_id,
                         "manager_id": manager_id
                         })
@@ -120,7 +120,8 @@ async def get_manager_context(request: Request, orders):
     summary="FAX注文用紙表示画面：契約企業ユーザー",
     description="メイン画面のFAX注文タブの入力を元にして、FAX注文用紙をプレビュー形式で表示する。",
     response_class=HTMLResponse,
-    tags=["manager"])
+    tags=["manager"],
+    include_in_schema=False)
 @log_decorator
 async def fax_order_sheet_view(request: Request):
     try:
@@ -136,9 +137,35 @@ async def fax_order_sheet_view(request: Request):
         return templates.TemplateResponse(
             "fax_order_sheet.html", {"request": request, **context})
 
+@manager_router.get(
+    "/{manager_id}/fax_order_sheet",
+    summary="FAX注文用紙表示画面：契約企業ユーザー",
+    description="契約企業IDに基づいてFAX注文用紙をプレビュー形式で表示する。",
+    response_class=HTMLResponse,
+    tags=["manager"]
+)
+@log_decorator
+async def fax_order_sheet_view(request: Request, manager_id: int):
+    try:
+        # manager_id を使うよう get_fax_sheet_context が対応しているなら引数に渡す
+        context = await get_fax_sheet_context(request, manager_id=manager_id)
+
+    except HTTPException as e:
+        logger.exception(f"fax_order_sheet_view - HTTPException: {e.detail}")
+        return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)
+
+    except Exception as e:
+        logger.exception("fax_order_sheet_view - 予期せぬエラーが発生しました")
+        return HTMLResponse("FAXシート表示中にエラーが発生しました", status_code=500)
+
+    else:
+        return templates.TemplateResponse(
+            "fax_order_sheet.html", {"request": request, **context}
+        )
 
 
-async def get_fax_sheet_context(request: Request):
+# async def get_fax_sheet_context(request: Request):
+async def get_fax_sheet_context(request: Request, manager_id: int):
     try:
         fax_context = {key: request.query_params.get(key) for key in [
             "shop_name", "menu_name", "price", "order_count", "total_amount",

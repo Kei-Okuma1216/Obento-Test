@@ -50,8 +50,8 @@ app.add_middleware(
 app.include_router(account_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
-app.include_router(shop_router, prefix="/shops")
-app.include_router(user_router, prefix="/users")
+app.include_router(shop_router, prefix="/shop")
+app.include_router(user_router, prefix="/user")
 app.include_router(order_api_router)
 app.include_router(log_router)
 
@@ -462,6 +462,6 @@ if __name__ == "__main__":
 # for route in app.routes:
 #     print(route.path, route.name)
 
-@app.get("/debug_routes")
+@app.get("/debug_routes", tags=["shop"], include_in_schema=False)
 async def debug_routes():
     return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]

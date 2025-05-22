@@ -279,7 +279,6 @@
             alert("注文ログの抽出が完了しました。");
 
             // ★ ここに追記してください（iframeをリロード）
-            // const iframe = document.querySelector('iframe[src="/api/v1/order_logs"]');
             const iframe = document.querySelector('iframe[src="/api/v1/order_log_html/combined"]');
             if (iframe) {
               iframe.contentWindow.location.reload();

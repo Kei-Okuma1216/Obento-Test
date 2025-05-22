@@ -227,25 +227,12 @@
         delivery_day: selectedDate.getDate(),
         delivery_weekday: weekday
       };
-    // function openFaxOrderSheet() {
-    //   const base_url = "{{ base_url }}";
 
-    //   const faxContext = {
-    //     shop_name: "{{ shop_name }}",
-    //     menu_name: "{{ menu_name }}",
-    //     price: "{{ price }}",
-    //     order_count: document.getElementById('bento-count').value,
-    //     total_amount: document.getElementById('total-amount').value,
-    //     facility_name: document.getElementById('facility-name').value,
-    //     POC: document.getElementById('POC').value,
-    //     delivery_year: document.getElementById("delivery-year").textContent,
-    //     delivery_month: document.getElementById("delivery-month").textContent,
-    //     delivery_day: document.getElementById("delivery-day").value,
-    //     delivery_weekday: document.getElementById("delivery-weekday").value
-    //   };
 
       const params = new URLSearchParams(faxContext).toString();
-      const url = base_url + "/manager/me/fax_order_sheet?" + params;
+      // const url = base_url + "/manager/me/fax_order_sheet?" + params;
+      const managerId = "{{ manager_id }}";  // Pythonテンプレート側からIDを埋め込む
+      const url = `${base_url}/manager/${managerId}/fax_order_sheet?${params}`;
 
       // デスクトップ画面サイズを取得
       const screenWidth = window.screen.availWidth;
@@ -303,7 +290,6 @@
 
       const managerId = "{{ manager_id }}";      // Python側 context から展開
       const companyId = "1";                     // 固定値、必要なら context から取得可能
-      // const url = `/api/v1/order/manager/${managerId}/company/${companyId}?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
       const url = `/api/v1/order/manager/${managerId}/company/${companyId}/date_range/orders?begin=${encodeURIComponent(beginDate)}&end=${encodeURIComponent(beginDate)}`;
 
       fetch(url)
@@ -320,15 +306,6 @@
         .catch(error => {
           document.getElementById("orderJsonResult").textContent = "エラー: " + error.message;
         });
-
-      // fetch(url)
-      //   .then(response => response.json())
-      //   .then(data => {
-      //     document.getElementById("orderJsonResult").textContent = JSON.stringify(data, null, 2);
-      //   })
-      //   .catch(error => {
-      //     document.getElementById("orderJsonResult").textContent = "エラー: " + error;
-      //   });
     });
   </script>
   

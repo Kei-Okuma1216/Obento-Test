@@ -135,7 +135,7 @@ from fastapi.responses import JSONResponse
 from config.config_loader import load_holiday_map
 
 @account_router.get(
-    "/check_holiday",
+    "/v1/check_holiday",
     summary="祝日名の取得：共通",
     description=f"指定された日付が祝日かどうかを判定し、祝日名を返すAPI 例: /api/check_holiday?date=2025/1/1",
     tags=["account"]
@@ -168,7 +168,7 @@ from utils.utils import log_decorator
 from config.config_loader import skip_holiday
 
 @account_router.get(
-    "/delivery_date/{date_str}",
+    "/v1/delivery_date/{date_str}",
     summary="配達可能日の取得：共通",
     description=f"指定された日付（YYYY-MM-DD）から配達可能日を判定するAPI 例: /api/delivery_date?date=2025/1/1",
     tags=["account"]
