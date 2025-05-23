@@ -86,16 +86,23 @@ from models.user import select_user
 from database.local_postgresql_database import AsyncSessionLocal
 
 @log_decorator
-async def get_order_json(request: Request, days_ago: str = Query(None)):
+async def get_order_json(request: Request, days_ago: str = Query(None), shop_code: str = None):
     try:
-        cookies = get_all_cookies(request)
-        if not cookies:
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+        # shop_code が指定されていればそれを使う（管理者・店舗ユーザーからのアクセス想定）
+        if shop_code:
+            shop_name = shop_code
+        else:
+            # 通常のログインユーザーから取得
+            cookies = get_all_cookies(request)
+            if not cookies:
+                return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
 
-        user = await select_user(cookies['sub'])
-        if user is None:
-            logger.debug(f"user:{user=} 取得に失敗しました")
-            return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+            user = await select_user(cookies['sub'])
+            if user is None:
+                logger.debug(f"user:{user=} 取得に失敗しました")
+                return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+            shop_name = user.shop_name
 
         # --- ✅ days_ago のバリデーション ---
         if days_ago is None or days_ago.strip() == "":
@@ -111,28 +118,70 @@ async def get_order_json(request: Request, days_ago: str = Query(None)):
             logger.debug(f"---days_ago: {days_ago_int=}")
         # -----------------------------------
 
-        # 履歴取得処理（days_ago_intを使って履歴を取得）
-        orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
+        # 履歴取得処理
+        orders = await select_orders_by_shop_ago(shop_name, days_ago_int)
 
-        print(f"orders.len(): {len(orders) if orders else '注文は0件です'}")
         if not orders:
-            logger.info("No orders found.")  # エラーではないため wording 修正
-            # logger.info("No orders found or error occurred.")
+            logger.info("No orders found.")
             return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
 
-        # 日時で逆順にソート
         orders.sort(key=lambda x: x.created_at, reverse=True)
-
-        # orders_dict = [order.model_dump() for order in orders]
-        # orders_json = json.dumps(orders_dict, default=str)
         orders_json = [json.loads(order.model_dump_json()) for order in orders]
 
     except Exception as e:
         logger.warning(f"get_order_json Error: {str(e)=}")
         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
     else:
-        # return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
         return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
+
+# @log_decorator
+# async def get_order_json(request: Request, days_ago: str = Query(None)):
+#     try:
+#         cookies = get_all_cookies(request)
+#         if not cookies:
+#             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+#         user = await select_user(cookies['sub'])
+#         if user is None:
+#             logger.debug(f"user:{user=} 取得に失敗しました")
+#             return JSONResponse({"error": "ユーザー情報が取得できませんでした。"}, status_code=400)
+
+#         # --- ✅ days_ago のバリデーション ---
+#         if days_ago is None or days_ago.strip() == "":
+#             logger.debug("days_ago の値が無効です（None または 空文字）")
+#             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+
+#         try:
+#             days_ago_int = int(days_ago)
+#         except ValueError:
+#             logger.debug("days_ago の値が数値でないため無効です")
+#             return JSONResponse({"error": "days_ago の値が無効です"}, status_code=400)
+#         else:
+#             logger.debug(f"---days_ago: {days_ago_int=}")
+#         # -----------------------------------
+
+#         # 履歴取得処理（days_ago_intを使って履歴を取得）
+#         orders = await select_orders_by_shop_ago(user.shop_name, days_ago_int)
+
+#         print(f"orders.len(): {len(orders) if orders else '注文は0件です'}")
+#         if not orders:
+#             logger.info("No orders found.")  # エラーではないため wording 修正
+#             # logger.info("No orders found or error occurred.")
+#             return JSONResponse({"message": "注文が見つかりません。"}, status_code=404)
+
+#         # 日時で逆順にソート
+#         orders.sort(key=lambda x: x.created_at, reverse=True)
+
+#         # orders_dict = [order.model_dump() for order in orders]
+#         # orders_json = json.dumps(orders_dict, default=str)
+#         orders_json = [json.loads(order.model_dump_json()) for order in orders]
+
+#     except Exception as e:
+#         logger.warning(f"get_order_json Error: {str(e)=}")
+#         return JSONResponse({"error": f"エラーが発生しました: {str(e)}"}, status_code=500)
+#     else:
+#         # return JSONResponse(content=json.loads(orders_json), media_type="application/json; charset=utf-8")
+#         return JSONResponse(content=orders_json, media_type="application/json; charset=utf-8")
 
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError

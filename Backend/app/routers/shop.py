@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 shop_router = APIRouter(
-    prefix="/shop",  # ← これを追加
+    prefix="/shop",
     tags=["shop"]
     )
 
@@ -56,9 +56,10 @@ async def order_json_me(request: Request, days_ago: str = Query("0")):
     tags=["shop"]
 )
 @log_decorator
-async def order_json_by_id(request: Request, shop_id: str, days_ago: str = Query("0")):
+async def order_json_by_id(request: Request, shop_id: int, days_ago: str = Query("0")):
     try:
-        user_info = await select_user_by_id(int(shop_id))
+        # user_info = await select_user_by_id(int(shop_id))
+        user_info = await select_user_by_id(shop_id)
         if user_info is None:
             raise HTTPException(status_code=404, detail="店舗ユーザーが見つかりません")
 
@@ -89,7 +90,6 @@ from services.order_view import order_table_view
 async def shop_view(request: Request, response: Response, shop_id: int):
     try:
         # 🚨 不正なID防御（Noneや非数値チェック）
-        # if not shop_id or shop_id.lower() == "none" or not shop_id.isdigit():
         if not shop_id:
             logger.error("不正な shop_id が指定されました")
             return HTMLResponse("<html><p>不正な店舗IDが指定されました</p></html>", status_code=400)
