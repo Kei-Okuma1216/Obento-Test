@@ -1,16 +1,21 @@
 # Backend/app/main.py
-# 2.6 新規登録ユーザー検証の実装完了
+# 2.7 UIのAPI整理完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
-    2. login_get(request: Request):
-    3. login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
+    2. register_get(request: Request):
+    3. is_user_exists(username: str) -> bool:
+    4. register_post(request: Request, username: str = Form(...), password: str = Form(...), nickname: str = Form(...)):
 
-    4. clear_cookie(response: Response):
+    5. login_get(request: Request):
+    6. login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
 
-    5. class CancelUpdate(BaseModel):
+    7. clear_cookie(response: Response):
+
+    8. class CancelUpdate(BaseModel):
         updates: List[dict]  # 各辞書は {"order_id": int, "checked": bool} の形式
-    6. update_cancel_status(update: CancelUpdate):
-    7. favicon():
+    9. update_cancel_status(update: CancelUpdate):
+    10. favicon():
+    11. debug_routes():
 '''
 from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse

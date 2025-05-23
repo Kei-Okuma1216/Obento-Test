@@ -1441,7 +1441,6 @@ async def insert_order(
         )
         return order_id
 
-
 '''-------------------------------------------------------------'''
 # 更新
 from sqlalchemy import update, text
@@ -1621,3 +1620,4 @@ async def select_order_summary(conditions: Dict) -> Dict:
         logger.exception(f"select_order_summary error: {e}")
         return {"total_orders": 0}
 
+'''-------------------------------------------------------------'''

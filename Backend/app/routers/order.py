@@ -347,4 +347,3 @@ async def get_orders_summary_common(user_id=None, company_id=None, shop_id=None,
     return {"summary": summary_data}
 
 
-
