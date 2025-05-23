@@ -386,7 +386,9 @@
           return;
         }
 
-        const shopName = "shop01";  // 必要に応じて動的取得
+        // const shopName = "shop01";  // 必要に応じて動的取得
+        const shopName = "{{ username }}";  // または {{ shop_code }} if renamed
+
         const url = `/api/v1/order/shop/orders?shop_name=${encodeURIComponent(shopName)}&target_date=${encodeURIComponent(beginDate)}`;
         fetch(url)
             .then(response => response.json())

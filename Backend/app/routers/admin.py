@@ -20,7 +20,8 @@ from utils.utils import check_permission, log_decorator
 
 templates = Jinja2Templates(directory="templates")
 
-admin_router = APIRouter()
+# admin_router = APIRouter()
+admin_router = APIRouter(tags=["admin"])
 
 
 from database.local_postgresql_database import endpoint

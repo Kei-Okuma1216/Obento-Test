@@ -230,7 +230,6 @@
 
 
       const params = new URLSearchParams(faxContext).toString();
-      // const url = base_url + "/manager/me/fax_order_sheet?" + params;
       const managerId = "{{ manager_id }}";  // Pythonテンプレート側からIDを埋め込む
       const url = `${base_url}/manager/${managerId}/fax_order_sheet?${params}`;
 

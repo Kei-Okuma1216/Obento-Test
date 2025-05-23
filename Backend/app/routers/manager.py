@@ -1,5 +1,4 @@
 # routers/manager.py
-# ../manager/meになる
 '''
     1. manager_view(request: Request, response: Response):
     2. get_manager_context(request: Request, orders):
@@ -10,20 +9,17 @@ from fastapi import Request, Response, APIRouter, status, HTTPException
 from fastapi.responses import HTMLResponse
 from venv import logger
 
-from utils.helper import redirect_unauthorized
-from utils.utils import check_permission, get_all_cookies, log_decorator
-
-from services.order_view import order_table_view
-from models.order import select_orders_by_company_all
-
-from database.local_postgresql_database import endpoint
-
-
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
 manager_router = APIRouter()
 
+
+from utils.helper import redirect_unauthorized
+from utils.utils import check_permission, get_all_cookies, log_decorator
+from services.order_view import order_table_view
+from models.order import select_orders_by_company_all
+from database.local_postgresql_database import endpoint
 
 # 契約企業(お弁当担当者)画面
 # 注意：エンドポイントにprefix:managerはつけない

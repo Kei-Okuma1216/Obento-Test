@@ -47,12 +47,15 @@ app.add_middleware(
     allow_headers=["*"],  # すべてのヘッダーを許可
 )
 
-app.include_router(account_router, prefix="/api")
-app.include_router(admin_router, prefix="/admin")
-app.include_router(manager_router, prefix="/manager")
+# UI表示系（HTMLを返す） → prefixなしで短く、直感的に
+app.include_router(admin_router)
+app.include_router(manager_router)
 app.include_router(shop_router)
-app.include_router(user_router, prefix="/user")
+app.include_router(user_router)
+# API専用系（JSONを返す） → prefix付きで明示的に
+app.include_router(account_router, prefix="/api")
 app.include_router(order_api_router)
+# app.include_router(order_api_router, prefix="/api/v1/order")　＃これで表示されていないので保留にしている。
 app.include_router(log_router)
 
 # エントリポイントの選択
