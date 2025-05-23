@@ -1,7 +1,6 @@
 # app/log_unified.py
+
 import logging
-from datetime import datetime, timedelta
-import pytz
 
 logger = logging.getLogger("uvicorn")
 

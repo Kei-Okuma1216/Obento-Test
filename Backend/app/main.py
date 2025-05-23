@@ -50,7 +50,7 @@ app.add_middleware(
 app.include_router(account_router, prefix="/api")
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
-app.include_router(shop_router, prefix="/shop")
+app.include_router(shop_router)
 app.include_router(user_router, prefix="/user")
 app.include_router(order_api_router)
 app.include_router(log_router)

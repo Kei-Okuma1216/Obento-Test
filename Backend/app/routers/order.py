@@ -24,7 +24,6 @@ from fastapi import APIRouter
 
 
 order_api_router = APIRouter(
-    # prefix="/api/v1/orders",
     prefix="/api/v1/order",
     tags=["order"]
     )

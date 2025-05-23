@@ -1,5 +1,5 @@
 # routers/shop.py
-# ../shops/4になる
+# ../shop/4になる
 # 引数が固定順(パスパラメータが無い順)に並べている
 '''
     1. order_json_me(request: Request, days_ago: str = Query("0")):
@@ -24,7 +24,11 @@ from core.constants import ERROR_ILLEGAL_COOKIE
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
 
-shop_router = APIRouter()
+shop_router = APIRouter(
+    prefix="/shop",  # ← これを追加
+    tags=["shop"]
+    )
+
 
 
 from services.order_view import get_order_json
@@ -59,10 +63,7 @@ async def order_json_by_id(request: Request, shop_id: str, days_ago: str = Query
             raise HTTPException(status_code=404, detail="店舗ユーザーが見つかりません")
 
         return await get_order_json(request, days_ago, shop_code=user_info.username)
-        # shop_code = user_info.username
 
-        # # get_order_json を拡張 or 新たに shop_code 対応関数を用意する
-        # return await get_order_json(request, days_ago, shop_code=shop_code)
     except HTTPException as e:
         logger.exception(f"order_json - HTTPException: {e.detail}")
         return HTMLResponse(f"エラー: {e.detail}", status_code=e.status_code)

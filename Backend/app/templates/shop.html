@@ -23,6 +23,12 @@
         }
       }
     </style>
+    <style>
+      /* モーダル全体を画面幅の90%にする */
+      .modal-dialog.custom-wide {
+        max-width: 120vw;
+      }
+    </style>
   </head>
   <body>
     <!-- ヘッダー -->
@@ -136,7 +142,7 @@
             <!-- JSON取得ボタン -->
             <button id="fetch-json-btn" class="btn btn-primary mb-3">JSON取得</button>
             <!-- JSON取得リンク -->
-            <a id="jsonLink" href="{{ base_url }}/shops/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
+            <a id="jsonLink" href="{{ base_url }}/api/v1/shop/me/order_json?days_ago=-5" target="_blank" class="btn btn-info mb-3">注文情報取得 (JSON rowデータ)</a>
             <!-- JSON表示エリア -->
             <pre id="jsonOutput" class="bg-light p-2" style="max-height: 300px; overflow-y: auto;"></pre>
           </div>
@@ -178,7 +184,8 @@
 
       <!-- 注文ログ Dialog -->
       <div class="modal fade" id="orderlogModal" tabindex="-1" aria-labelledby="orderlogModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <!-- <div class="modal-dialog modal-xl"> -->
+        <div class="modal-dialog modal-xl custom-wide">
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="orderlogModalLabel">注文ログ表示</h5>
@@ -191,7 +198,6 @@
             </div>
             <div class="modal-body p-0">
               <!-- /admin/order_logs の内容を iframe で表示 -->
-              <!-- <iframe src="/admin/order_logs" width="100%" height="500" frameborder="0"></iframe> -->
               <iframe src="/api/v1/order_log_html/combined" width="100%" height="500" frameborder="0"></iframe>
             </div>
           </div>
@@ -247,23 +253,29 @@
 
       // JSON取得ボタンの処理
       document.getElementById("fetch-json-btn").addEventListener("click", function(){
-        var days = document.getElementById("daysAgoInput").value.trim();
-        fetch("/shops/me/order_json?days_ago=" + encodeURIComponent(days))
+        const days = document.getElementById("daysAgoInput").value.trim();
+        const shopId = "{{ shop_id }}";  // ← Python側の context から埋め込む
+
+        const url = `/api/v1/shop/${shopId}/order_json?days_ago=${encodeURIComponent(days)}`;
+
+        fetch(url)
           .then(response => response.json())
           .then(data => {
             document.getElementById("jsonOutput").textContent = JSON.stringify(data, null, 2);
           })
           .catch(error => {
-            document.getElementById("jsonOutput").textContent = "エラー: " + error;
+            document.getElementById("jsonOutput").textContent = "エラーが発生しました: " + error.message;
           });
+
         // リンクのhrefを更新
-        document.getElementById("jsonLink").href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
+        document.getElementById("jsonLink").href = `{{ base_url }}/api/v1/shop/${shopId}/order_json?days_ago=${encodeURIComponent(days)}`;
       });
 
-      // クリック時にもリンクのhrefを更新（念のため）
+      // リンククリック時にも念のため href を更新
       document.getElementById("jsonLink").addEventListener("click", function(){
-        var days = document.getElementById("daysAgoInput").value.trim();
-        this.href = "{{ base_url }}/shops/me/order_json?days_ago=" + encodeURIComponent(days);
+        const days = document.getElementById("daysAgoInput").value.trim();
+        const shopId = "{{ shop_id }}";
+        this.href = `{{ base_url }}/api/v1/shop/${shopId}/order_json?days_ago=${encodeURIComponent(days)}`;
       });
 
       // 注文ログ抽出ボタンの処理
