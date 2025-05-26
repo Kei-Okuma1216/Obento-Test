@@ -10,14 +10,14 @@ ENDPOINT = settings.endpoint # "https://192.168.3.14:8000"
 endpoint = ENDPOINT
 
 # 非同期エンジン作成
-# engine = create_async_engine(DATABASE_URL, echo=False) # echo=Trueでログを出力する
 engine = create_async_engine(
     DATABASE_URL,
     pool_size=10,          # 最大接続数 (任意)
     max_overflow=20,       # 追加接続許容量 (任意)
     pool_timeout=30,       # 接続待機時間 (秒, 任意)
     pool_recycle=1800,     # 接続再作成時間 (秒, 30分)
-    pool_pre_ping=True     # 接続使用前に死活確認
+    pool_pre_ping=True,    # 接続使用前に死活確認
+    echo=False             # SQLログ出力を無効化
 )
 
 # セッションファクトリ

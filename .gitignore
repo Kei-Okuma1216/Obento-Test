@@ -1,25 +1,65 @@
-.env
-# すべての __pycache__ フォルダを無視する
-**.pytest_cache
+# Python バイトコードキャッシュ
 **/__pycache__/
+*.py[cod]
+*$py.class
+
+# 仮想環境
+venv/
+.venv/
+env/
+.env/
+.env
 **env
-**/不要
-**Obento-Test Prompt.lnk
+**.env
+.Python
+
+# IDE/エディタ用
+.vscode/
+**.vscode
+.idea/
+*.swp
+
+# ログ・実行履歴
+*.log
+*.sqlite3
+*.db
+v_*/app/logs/
+v_*/app/order_logs/
+**/app/logs/
+**/app/order_logs/
+
+# テストキャッシュ
+.pytest_cache/
+**.pytest_cache
+.mypy_cache/
+coverage.xml
+htmlcov/
+
+# パッケージング・ビルド
+build/
+dist/
+*.egg-info/
+
+# Docker等
+*.pid
+*.sock
+
+# coreフォルダ
+**/security.py
+**/app/core/
 **.key
 **.csr
 **.crt
 **.cnf
 **.pem
 **.ini
-**.DS_Store
-**.vscode
+
+# Obento-Test 特有の除外設定
 v_*/app/database/example.db
 v_*/app/database/_example.db
-v_*/app/logs/
-v_*/app/order_logs/
-**/app/logs/
-**/app/order_logs/
 Documents/
+**/不要
+**Obento-Test Prompt.lnk
 **/app/1. Obento-Test Prompt.lnk
 **/app/2. Obento-Test SmartPhone.lnk
 **/app/3. Obento-Test curl用.lnk
@@ -27,6 +67,7 @@ Documents/
 **/app/5. Obento-Test Prompt用.lnk
 **/DBBrowser/
 Obento-Test.git/
-**.env
-**/security.py
-**/app/core/
+
+# macOS 特有の除外設定
+**.DS_Store
+
