@@ -21,9 +21,7 @@ from config.config_loader import load_permission_map, load_holiday_map
 permission_map = load_permission_map()
 holiday_map = load_holiday_map()
 
-
-from config.config_loader import load_permission_map
-
+@log_decorator
 async def get_main_url(permission: str, **kwargs) -> str:
     permission_map = load_permission_map()
     url_template = permission_map.get(str(permission))
@@ -46,6 +44,7 @@ class DefaultDict(dict):
 from models.user import select_user_by_id
 from fastapi.responses import JSONResponse
 
+@log_decorator
 async def get_account_by_id_or_404_response(user_id: int):
 
     user_info = await select_user_by_id(user_id)  # user_id で検索
@@ -314,6 +313,18 @@ def redirect_unauthorized(request: Request, message: str, code: int = 403):
     try:
         logger.error(f"Unauthorized - {message}")
 
+    # else:
+        print("redirect_unauthorized() が呼び出されました")  # ← 追加
+        return templates.TemplateResponse(
+            "Unauthorized.html",
+            {
+                "request": request,
+                "status_code": code,
+                "message": message
+            },
+            status_code=code
+        )
+
     except TemplateNotFound:
         logger.exception("Unauthorized.html テンプレートが見つかりません")
         raise HTTPException(
@@ -333,16 +344,6 @@ def redirect_unauthorized(request: Request, message: str, code: int = 403):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="認可エラーページ表示中にサーバーエラーが発生しました"
-        )
-    else:
-        return templates.TemplateResponse(
-            "Unauthorized.html",
-            {
-                "request": request,
-                "status_code": code,
-                "message": message
-            },
-            status_code=code
         )
 
 def redirect_register(request: Request, username: str, error_message: str):

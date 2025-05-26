@@ -53,10 +53,10 @@ app.add_middleware(
 )
 
 # UI表示系（HTMLを返す） → prefixなしで短く、直感的に
-app.include_router(admin_router)
-app.include_router(manager_router)
+app.include_router(admin_router, prefix="/admin")
+app.include_router(manager_router, prefix="/manager")
 app.include_router(shop_router)
-app.include_router(user_router)
+app.include_router(user_router, prefix="/user")
 # API専用系（JSONを返す） → prefix付きで明示的に
 app.include_router(account_router, prefix="/api")
 app.include_router(order_api_router)
@@ -105,12 +105,13 @@ async def root(request: Request):
 
         # ここでCookieよりuserの有無をチェックする
         username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
-
+        
         if not username:
             # ログを出して処理を止める
             logger.info("Cookieから username が取得できませんでした。")
+            print("今からログインしてくださいに入ります。")
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
-
+        print("二重注文の禁止に入ります。")
         # 二重注文の禁止
         has_order, response = await check_order_duplex(request)
         if has_order:
@@ -148,7 +149,7 @@ async def root(request: Request):
             return redirect_login_failure(request, error="ユーザー情報が取得できません")
         # print(f"get_user()の動作確認 user_id (from get_id): {user}")
 
-        logger.debug(f"get_main_url() 呼び出し前 - permission: {permission}, user_id: {str(user.get_id())}")
+        # logger.debug(f"get_main_url() 呼び出し前 - permission: {permission}, user_id: {str(user.get_id())}")
 
         kwargs = {}
         if str(permission) == "1":
@@ -157,6 +158,9 @@ async def root(request: Request):
             kwargs["manager_id"] = user.get_id()
         elif str(permission) == "10":
             kwargs["shop_id"] = user.get_id()
+        # elif str(permission) == "0":
+        #     kwargs["shop_id"] = user.get_id()
+            
 
         main_url = await get_main_url(permission, **kwargs)
 
@@ -287,7 +291,9 @@ async def login_get(request: Request):
             return response
         
         # ログイン成功画面にリダイレクト
-        return redirect_login_success(request)
+        # return redirect_login_success(request)
+        # 通常はテンプレートを返す
+        return templates.TemplateResponse("login.html", {"request": request, "message": None, "error": None})
 
     except ConnectionError as e:
         logger.exception("データベースまたは外部接続失敗")
@@ -403,11 +409,27 @@ async def login_post(request: Request,
 )
 @log_decorator
 async def clear_cookie(response: Response):
-    response = RedirectResponse(url="/")
+    # /clear で cookie を削除しているが、response: Response 引数の上書きで削除が効いていない
+    # または、リダイレクト先 / が再度クッキー依存処理を実行してしまう設計の問題
+    # response = RedirectResponse(url="/")
+    response = RedirectResponse(url="/login")
 
     delete_all_cookies(response)
 
     return response
+
+from fastapi.responses import RedirectResponse
+
+@app.get("/logout", summary="ログアウト", tags=["login"])
+def logout():
+    response = RedirectResponse(url="/login")
+    delete_all_cookies(response)
+    return response
+
+# async def clear_cookie():
+#     response = RedirectResponse(url="/login", status_code=302)
+#     delete_all_cookies(response)
+#     return response
 
 from schemas.order_schemas import OrderUpdateList
 from services.order_view import batch_update_orders
