@@ -19,7 +19,9 @@ from venv import logger
 logging.basicConfig(level=logging.INFO)
 
 # 定数
-from utils.utils import log_decorator, get_today_datetime
+from utils.utils import log_decorator
+from utils.date_utils import get_today_datetime
+
 from core.constants import DEFAULT_COMPANY_NAME, DEFAULT_COMPANY_TEL, DEFAULT_SHOP_NAME, DEFAULT_LUNCH_NAME
 from sqlalchemy.exc import DatabaseError
 

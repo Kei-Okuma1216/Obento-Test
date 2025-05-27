@@ -139,7 +139,7 @@ async def select_all_company()-> Optional[List[CompanyModel]]:
         logger.error(f"Unexpected error: {e}")
 
 
-from utils.utils import get_today_datetime
+from utils.date_utils import get_today_datetime
 from sqlalchemy import func
 # 追加
 @log_decorator

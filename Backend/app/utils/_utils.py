@@ -13,7 +13,7 @@
     9. delete_all_cookies(response: Response):
     10. compare_expire_date(expires: str) -> bool:
     11. set_last_order(response: Response, last_order_date: datetime):
-    12. get_last_order(request: Request):
+    12. check_order_duplex(request: Request):
     13. get_end_of_today(tz : timezone = None) -> datetime:
     14. get_token_expires(request: Request) -> str:
 
@@ -79,6 +79,7 @@ def deprecated(func):
 
 
 
+from fastapi.responses import RedirectResponse
 import pytz
 
 # @log_decorator
@@ -90,7 +91,7 @@ def get_naive_jst_now() -> datetime:
         datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
         "%Y-%m-%d %H:%M:%S"
     )
-    # logger.debug(f"get_naive_jst_now() - 現在のナイーブなJST時刻: {time_now}")
+    print(f"get_naive_jst_now(): {time_now=}")
     return time_now
 
 
@@ -106,6 +107,7 @@ def get_today_datetime(offset: int = 0) -> date:
     例: offset=0 -> 今日の 00:00:00（タイムゾーンなし）
     """
     try:
+        from log_unified import logger
         # 型と値の検証
         if not isinstance(offset, int):
             logger.warning(f"get_today_datetime() - 無効な offset: {offset}")
@@ -124,29 +126,29 @@ def get_today_datetime(offset: int = 0) -> date:
             0, 0, 0
         )
 
+        print(f"get_today_datetime(): {naive_datetime}")
+        return naive_datetime
+
     except HTTPException:
         raise  # 既に投げた HTTPException はそのまま返す
+
     except (ValueError, TypeError) as e:
+        from log_unified import logger
+        logger.exception("get_today_datetime() - 型または値のエラー")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="日付計算中に不正なパラメータが指定されました"
         )
     except Exception as e:
+        from log_unified import logger        
+        logger.exception("get_today_datetime() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="日付計算中にサーバーエラーが発生しました"
         )
-    else:
-        from log_unified import logger
-        logger.debug(f"get_today_datetime(): {naive_datetime}")
-        return naive_datetime
-
 
 # 今日の日付取得 update_datetime用
 # @log_decorator
-from datetime import timedelta, date
-from fastapi import HTTPException, status
-
 def get_today_date(offset: int = 0) -> date:
     """
     今日の日付 (date型) を取得する関数。
@@ -162,53 +164,12 @@ def get_today_date(offset: int = 0) -> date:
     formatted = d.strftime("%Y/%m/%d")
     print(formatted)  # 例: 2025/05/14    
     """
-    try:
-        from log_unified import logger
-        from utils.utils import get_today_datetime  # 循環インポート注意
+    new_datetime = get_today_datetime() + timedelta(days=offset)
+    result_date = new_datetime.date()
 
-        if not isinstance(offset, int):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="offset は整数で指定してください"
-            )
+    print(f"get_today_date(): {result_date}")  # デバッグ出力
 
-        new_datetime = get_today_datetime() + timedelta(days=offset)
-        result_date = new_datetime.date()
-
-        logger.debug(f"get_today_date(): {result_date}")  # デバッグ出力
-
-        return result_date
-
-    except HTTPException:
-        raise
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="日付取得処理中にエラーが発生しました"
-        )
-# def get_today_date(offset: int = 0) -> date:
-#     """
-#     今日の日付 (date型) を取得する関数。
-#     オプションで日数オフセットを指定可能。
-
-#     :param offset: 今日からのオフセット日数 (例: 昨日は -1, 明日は +1)
-#     :return: date型の日付 (時刻なし)
-
-#     d = get_today_date()
-#     print(d)  # 例: 2025-05-14
-
-#     # 文字列にしたい場合
-#     formatted = d.strftime("%Y/%m/%d")
-#     print(formatted)  # 例: 2025/05/14    
-#     """
-#     new_datetime = get_today_datetime() + timedelta(days=offset)
-#     result_date = new_datetime.date()
-
-#     from log_unified import logger
-#     logger.debug(f"get_today_date(): {result_date}")  # デバッグ出力
-
-#     return result_date
+    return result_date
 
 
 from typing import NamedTuple
@@ -246,14 +207,20 @@ async def get_datetime_range(days_ago: int) -> Period:
         start_dt = datetime(start_target.year, start_target.month, start_target.day, 0, 0, 0)
         end_dt   = datetime(end_target.year, end_target.month, end_target.day, 23, 59, 59)
 
+        logger.debug(f"get_datetime_range() - start: {start_dt}, end: {end_dt}")
+
     except HTTPException:
         raise  # 既に投げた HTTPException はそのまま再スロー
+
     except (ValueError, TypeError) as e:
+            logger.exception("get_datetime_range() - 型または値のエラー")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="期間計算中に不正なパラメータが指定されました"
             )
+
     except Exception as e:
+        logger.exception("get_datetime_range() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="期間計算中にサーバーエラーが発生しました"
@@ -314,9 +281,9 @@ def set_all_cookies(response: Response, user: Dict):
         )
 
 
+
 from http.cookies import SimpleCookie
 
-@log_decorator
 def get_all_cookies(request: Request) -> Optional[Dict[str, str]]:
     try:
         username = request.cookies.get("sub")
@@ -398,6 +365,7 @@ def delete_all_cookies(response: Response):
         )
 
 
+
 @log_decorator
 def compare_expire_date(expires: str) -> bool:
     """
@@ -446,6 +414,7 @@ def compare_expire_date(expires: str) -> bool:
         )
 
 
+
 # 二重注文の禁止
 # 設定
 # regist_completeで使っている
@@ -456,6 +425,7 @@ def set_last_order(response: Response, last_order_date: datetime):
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     end_time = int(end_of_day.timestamp())
 
+    # current = get_today_datetime()
     current = get_naive_jst_now()
     current_time = int(current.timestamp())
 
@@ -513,7 +483,7 @@ def get_token_expires(request: Request) -> str:
             detail="expires取得中にサーバーエラーが発生しました"
         )
 
-# 備考：Cookieによる二重注文拒否をやめた
+# Cookieによる二重注文拒否をやめた
 @log_decorator
 async def check_permission_and_stop_order(request: Request, response: Response):
     try:
@@ -568,9 +538,10 @@ from core.constants import ERROR_FORBIDDEN_SECOND_ORDER
 from database.local_postgresql_database import endpoint
 from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="templates")
+from models.user import select_user
 
 @log_decorator
-async def get_last_order(request: Request):
+async def check_order_duplex(request: Request):
     username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
 
     if not username:
@@ -583,7 +554,7 @@ async def get_last_order(request: Request):
 
     if today_orders:
         last_order = today_orders[0]
-        logger.debug(f"get_last_order() - 既に注文が存在します: {last_order}")
+        logger.debug(f"check_order_duplex() - 既に注文が存在します: {last_order}")
         response = templates.TemplateResponse(
             "duplicate_order.html",
             {
@@ -596,7 +567,7 @@ async def get_last_order(request: Request):
         )
         return True, response
 
-    print("get_last_order() - 注文は存在しません")
+    print("check_order_duplex() - 注文は存在しません")
     return False, None
 
 

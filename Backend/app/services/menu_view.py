@@ -7,7 +7,9 @@ from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from database.local_postgresql_database import get_connection, select_shop_order, select_user
-from utils.utils import log_decorator, check_permission, get_all_cookies
+from utils.utils import log_decorator
+from utils.permission_helper import check_permission
+from utils.cookie_helper import get_all_cookies
 
 templates = Jinja2Templates(directory="templates")
 

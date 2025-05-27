@@ -43,6 +43,7 @@ dist/
 # Docker等
 *.pid
 *.sock
+Dockerfile
 
 # coreフォルダ
 **/security.py

@@ -11,7 +11,13 @@ ORDER_LOG_DIR = "./order_logs"
 
 
 # 管理者ユーザー用：ログ一覧
-@log_router.get("/log_html", response_class=HTMLResponse)
+@log_router.get(
+    "/log_html",
+    summary="一般ログ一覧取得",
+    description="一般ログの一覧を取得します。",
+    response_class=HTMLResponse,
+    tags=["log: admin"]
+)
 def list_logs():
     if not os.path.exists(LOG_DIR):
         raise HTTPException(status_code=404, detail="ログディレクトリが存在しません")
@@ -23,7 +29,13 @@ def list_logs():
 
 
 # 管理者ユーザー用：ログファイル内容
-@log_router.get("/log_html/{filename}", response_class=HTMLResponse)
+@log_router.get(
+    "/log_html/{filename}",
+    summary="一般ログ内容取得",
+    description="ファイル名を指定した一般ログの内容を取得します。",
+    response_class=HTMLResponse,
+    tags=["log: admin"]
+)
 def view_log(filename: str):
     path = os.path.join(LOG_DIR, filename)
     if not os.path.exists(path):
@@ -38,7 +50,13 @@ def view_log(filename: str):
 
 
 # 店舗ユーザー用：結合ログ一覧（静的ルートを先に！）
-@log_router.get("/order_log_html/combined", response_class=HTMLResponse)
+@log_router.get(
+    "/order_log_html/combined",
+    summary="結合注文ログ一覧取得",
+    description="結合された注文ログの一覧を取得します。",
+    response_class=HTMLResponse,
+    tags=["log: shop"]    
+)
 async def list_combined_order_logs():
     if not os.path.exists(ORDER_LOG_DIR):
         raise HTTPException(status_code=404, detail="注文ログディレクトリが存在しません")
@@ -56,7 +74,13 @@ async def list_combined_order_logs():
 
 
 # 店舗ユーザー用：結合ログファイル表示
-@log_router.get("/order_log_html/combined/{filename}", response_class=HTMLResponse)
+@log_router.get(
+    "/order_log_html/combined/{filename}",
+    response_class=HTMLResponse,
+    summary="結合注文ログ内容取得",
+    description="結合された注文ログファイルの内容を取得します。",
+    tags=["log: shop"]
+)
 async def view_combined_order_log(filename: str):
     log_path = os.path.join(ORDER_LOG_DIR, filename)
     if not os.path.exists(log_path):
@@ -71,7 +95,13 @@ async def view_combined_order_log(filename: str):
 
 
 # 管理者ユーザー用：注文ログファイル一覧
-@log_router.get("/order_log_html", response_class=HTMLResponse)
+@log_router.get(
+    "/order_log_html",
+    response_class=HTMLResponse,
+    summary="注文ログ一覧取得",
+    description="注文ログの一覧を取得します。",
+    tags=["log: admin"]
+)
 def list_order_logs():
     if not os.path.exists(ORDER_LOG_DIR):
         raise HTTPException(status_code=404, detail="注文ログディレクトリが存在しません")
@@ -83,7 +113,13 @@ def list_order_logs():
 
 
 # 管理者ユーザー用：注文ログファイル内容表示（汎用）
-@log_router.get("/order_log_html/{filename}", response_class=HTMLResponse)
+@log_router.get(
+    "/order_log_html/{filename}",
+    summary="注文ログ内容取得",
+    description="指定された注文ログファイルの内容を取得します。",
+    response_class=HTMLResponse,
+    tags=["log: admin"]
+)
 def view_order_log(filename: str):
     path = os.path.join(ORDER_LOG_DIR, filename)
     print(f"🔍 試行ファイル名: {filename}")
@@ -102,7 +138,12 @@ def view_order_log(filename: str):
 
 
 # 店舗ユーザー用：注文ログ抽出（バックグラウンド実行）
-@log_router.get("/filter_order_logs", summary="注文ログの抽出処理（店舗名）")
+@log_router.get(
+    "/filter_order_logs",
+    summary="注文ログの抽出処理（店舗名）",
+    description="指定した店舗名の注文ログを抽出する処理をバックグラウンドで実行します。",
+    tags=["log: shop"]
+)
 async def filter_order_logs(
     background_tasks: BackgroundTasks,
     shop: str = Query(..., description="対象店舗名")

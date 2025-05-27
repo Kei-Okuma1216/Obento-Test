@@ -82,10 +82,13 @@ from core.constants import (
 import jwt
 from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
-from utils.utils import delete_all_cookies, check_order_duplex
-from models.admin import init_database
+# from utils.utils import delete_all_cookies, get_last_order
+from utils.cookie_helper import delete_all_cookies
+from utils.permission_helper import get_last_order
 from requests.exceptions import ConnectionError
 import requests
+
+from models.admin import init_database
 
 # エントリポイント
 @app.get("/",
@@ -105,15 +108,14 @@ async def root(request: Request):
 
         # ここでCookieよりuserの有無をチェックする
         username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
-        
+
         if not username:
             # ログを出して処理を止める
             logger.info("Cookieから username が取得できませんでした。")
-            print("今からログインしてくださいに入ります。")
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
-        print("二重注文の禁止に入ります。")
+
         # 二重注文の禁止
-        has_order, response = await check_order_duplex(request)
+        has_order, response = await get_last_order(request)
         if has_order:
             return response
 
@@ -123,7 +125,7 @@ async def root(request: Request):
         if token is None:
             ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
                 理由：画面が停止するため
-            raise TokenExpiredException("check_cookie_token()")
+            raise TokenExpiredException("check_cookie_token()")ダメ！
             '''
             logger.debug("token: ありません")
             return redirect_login_success(request, message="ようこそ")
@@ -142,14 +144,11 @@ async def root(request: Request):
 
         username = payload['sub']
         permission = payload['permission']
-        
+
         # user情報を取得
         user = await get_user(username)
         if user is None:
             return redirect_login_failure(request, error="ユーザー情報が取得できません")
-        # print(f"get_user()の動作確認 user_id (from get_id): {user}")
-
-        # logger.debug(f"get_main_url() 呼び出し前 - permission: {permission}, user_id: {str(user.get_id())}")
 
         kwargs = {}
         if str(permission) == "1":
@@ -158,9 +157,6 @@ async def root(request: Request):
             kwargs["manager_id"] = user.get_id()
         elif str(permission) == "10":
             kwargs["shop_id"] = user.get_id()
-        # elif str(permission) == "0":
-        #     kwargs["shop_id"] = user.get_id()
-            
 
         main_url = await get_main_url(permission, **kwargs)
 
@@ -214,12 +210,14 @@ async def root(request: Request):
     tags=["login"]
     )
 async def register_get(request: Request):
+    logger.info("/register - 新規登録画面にアクセスしました")
     return templates.TemplateResponse(
         "register.html", {"request": request})
 
 # 重複ユーザーの有無確認
 async def is_user_exists(username: str) -> bool:
     existing_user = await select_user(username)
+    print(f"existing_user: {existing_user}")
     return existing_user is not None
 
 from utils.helper import redirect_register
@@ -286,10 +284,11 @@ async def register_post(
 @log_decorator
 async def login_get(request: Request):
     try:
-        has_order, response = await check_order_duplex(request)
+        has_order, response = await get_last_order(request)
         if has_order:
+            logger.info("二重注文が検出されました。")
             return response
-        
+
         # ログイン成功画面にリダイレクト
         # return redirect_login_success(request)
         # 通常はテンプレートを返す
@@ -338,24 +337,27 @@ async def login_post(request: Request,
     try:
         input_username = form_data.username
         input_password = form_data.password
+        logger.info(f"login_post() - ユーザー認証開始: {input_username}")
 
         # ユーザー取得・認証
         user = await get_user(input_username)
         if user is None:
+            logger.warning(f"ユーザーが存在しません: {input_username}")
             return redirect_login_failure(request, error="ユーザーが存在しません")
 
         user = await authenticate_user(user, input_password) 
         if user is None:
             logger.warning(f"ユーザー認証に失敗しました: {input_username}")
-            # ここでパスワード間違いのメッセージを表示
             return redirect_login_failure(request, error="パスワードが間違っています")
 
         # ここで認証成功後に username をセットして判定させる
+        logger.info(f"ユーザー認証成功: {input_username}（{user.get_name()}）")
         request._cookies["sub"] = user.get_username()  # Cookieをセットするか、別途パラメータとして渡す
 
         # 二重注文の拒否
-        has_order, response = await check_order_duplex(request)
+        has_order, response = await get_last_order(request)
         if has_order:
+            logger.info("二重注文が検出されました。")
             return response
 
         # 権限確認
@@ -369,11 +371,7 @@ async def login_post(request: Request,
             kwargs["shop_id"] = user.get_id()
 
         main_url = await get_main_url(permission, **kwargs)
-
         logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
-
-        return await create_auth_response(
-            user.get_username(), permission, main_url)
 
     except ConnectionError as e:
         logger.exception("DBまたは外部接続失敗")
@@ -397,6 +395,9 @@ async def login_post(request: Request,
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました")
         return await redirect_error(request, ERROR_UNEXPECTED_ERROR_MESSAGE, e)
+
+    else:
+        return await create_auth_response(user.get_username(), permission, main_url)
 
 
 
@@ -438,7 +439,7 @@ from services.order_view import batch_update_orders
     "/update_cancel_status",
     summary="チェックボックス更新",
     description="注文テーブルのチェックボックス更新する。",
-    tags=["login"]
+    tags=["util"]
 )
 async def update_cancel_status(update: OrderUpdateList):
     logger.info(f"受信内容: {update.updates}")

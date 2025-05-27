@@ -70,7 +70,6 @@ from core.security import get_access_token
 from utils.utils import set_all_cookies
 
 @log_decorator
-# ユースケース層に近い関数なので、ログ出力は必要
 async def create_auth_response(
     username: str,
     permission: int,
@@ -121,7 +120,7 @@ async def create_auth_response(
                 detail="Cookie設定に失敗しました"
             )
 
-        # return response
+        return response
 
     except (KeyError, TypeError, ValueError) as e:
         logger.exception("create_auth_response() - 入力データ形式エラー")
@@ -129,17 +128,17 @@ async def create_auth_response(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="トークン生成に必要なデータが不正です"
         )
+
     except HTTPException:
         raise  # 明示的に投げたHTTPExceptionはそのまま返す
+
     except Exception as e:
         logger.exception("create_auth_response() - 予期せぬエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="認証レスポンス生成中にサーバーエラーが発生しました"
         )
-    else:
-        logger.info(f"Auth success: user={username}, permission={permission}, redirect={redirect_url}")
-        return response
+
 
 
 from fastapi.templating import Jinja2Templates

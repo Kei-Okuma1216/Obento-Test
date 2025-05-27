@@ -2,19 +2,19 @@
 '''
     注文クエリ関数
 
-    1. class Order(Base):
-    2. create_orders_table():
+     1. class Order(Base):
+     2. create_orders_table():
 
     # 一般ユーザー(username) を指定して、注文を取得する
-    3. select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]:
-    4. select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
-    5. select_orders_by_user_at_date_range(username: str, start: datetime, end: datetime) -> Optional
-    6. select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
+     3. select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]:
+     4. select_orders_by_user_at_date(username: str, target_date: date) -> Optional[List[OrderModel]]:
+     5. select_orders_by_user_at_date_range(username: str, start: datetime, end: datetime) -> Optional
+     6. select_orders_by_user_ago(username: str, days_ago: int = 0) -> Optional[List[OrderModel]]:
 
     # 契約企業(company_id) を指定して、注文を取得する
-    7. select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
-    8. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
-    9. select_orders_by_company_at_date_range(company_id: int, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
+     7. select_orders_by_company_all(company_id: int) -> Optional[List[OrderModel]]:
+     8. select_orders_by_company_at_date(company_id: int, target_date: date) -> Optional[List[OrderModel]]:
+     9. select_orders_by_company_at_date_range(company_id: int, start_date: date, end_date: date) -> Optional[List[OrderModel]]:
     10. select_orders_by_company_ago(company_id: int, days_ago_str: str = None) -> Optional[List[OrderModel]]:
 
     # 店舗(shop_name) を指定して、注文を取得する
@@ -35,7 +35,7 @@
     22. update_order(order_id: int, company_id: int, username: str, shop_name: str, menu_id: int, amount: int, updated_at: Optional[str] = None) -> bool:
     23. delete_order(order_id: int) -> bool:
     24. delete_all_orders():
-    
+
     25. get_datetime_range_for_date(target_date) -> start_dt, end_dt
     26. select_order_summary(conditions: Dict) -> Dict:
 '''
@@ -296,7 +296,7 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
     else:
         return order_models
 
-from utils.utils import get_datetime_range
+from utils.date_utils import get_datetime_range
 from datetime import time
 
 # 選択（一般ユーザー:日付遡及）
@@ -1373,7 +1373,8 @@ async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[Ord
 '''-------------------------------------------------------------'''
 # 追加
 from log_unified import log_order
-from utils.utils import get_naive_jst_now
+from utils.date_utils import get_naive_jst_now
+
 from config.config_loader import skip_holiday
 
 @log_decorator
@@ -1434,17 +1435,20 @@ async def insert_order(
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
     else:
+        logger.debug("logger.info直前")
         logger.info(f"注文が完了しました - order_id:{order_id} ")
+        logger.info(f"logger.handlers: {logger.handlers}")
         log_order(
             "ORDER",
             f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
         )
+        logger.info(f"logger.handlers: {logger.handlers}")
         return order_id
 
 '''-------------------------------------------------------------'''
 # 更新
 from sqlalchemy import update, text
-from utils.utils import get_naive_jst_now
+from utils.date_utils import get_naive_jst_now
 
 @log_decorator
 async def update_order(order_id: int, checked: bool):

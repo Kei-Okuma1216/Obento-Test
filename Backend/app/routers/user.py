@@ -10,7 +10,11 @@ from fastapi.templating import Jinja2Templates
 
 
 from utils.helper import redirect_error
-from utils.utils import get_all_cookies, log_decorator, check_permission, set_last_order
+from utils.utils import log_decorator
+from utils.cookie_helper import get_all_cookies, set_last_order
+from utils.permission_helper import check_permission
+
+
 from models.user import select_user
 from models.order import select_orders_by_user_ago, insert_order
 from schemas.user_schemas import UserResponse
