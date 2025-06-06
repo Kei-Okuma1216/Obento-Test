@@ -89,9 +89,9 @@ async def get_manager_context(request: Request, orders):
         fax_context = {
             "shop_name": "はーとあーす勝谷",
             "menu_name": "お昼のお弁当",
-            "price": 450,
+            "price": 500,
             "order_count": 6,
-            "total_amount": 450 * 6,
+            "total_amount": 500 * 6,
             "facility_name": "テンシステム",
             "POC": "林"
         }

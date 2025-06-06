@@ -1,6 +1,6 @@
 # models/user.py
 '''
-    1. class UserModel(Base):
+    1. class User(Base):
     2. create_user_table():
 
     3. select_user(username: str) -> Optional[UserModel]:
@@ -59,11 +59,12 @@ class User(Base):
 
 # ログ用の設定
 from log_unified import logger
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-from utils.utils import log_decorator
+# from log_unified import logger
+# import logging
+# logging.basicConfig(level=logging.INFO)
+# logger = logging.getLogger(__name__)
 
+from utils.utils import log_decorator
 
 from sqlalchemy.exc import DatabaseError, OperationalError ,IntegrityError
 from database.local_postgresql_database import AsyncSessionLocal, default_shop_name, engine, get_db
@@ -248,7 +249,13 @@ async def update_existing_passwords(request: Request):
     pprint(users)
     # セッションオブジェクトを非同期コンテキストマネージャで取得
     try:
-        async with get_db() as session:
+        # async with get_db() as session:
+            # anextに変更した
+            # 非同期ジェネレーターからセッションを1回だけ取り出す
+            # get_db() は FastAPI依存注入用の「非同期ジェネレーター」で yield session しています。
+            # そのため async with では使用できず、手動で取り出すには anext() が必要です。
+            session_gen = get_db()
+            session = await anext(session_gen)
 
             for user in users:
                 username = user.get_username()

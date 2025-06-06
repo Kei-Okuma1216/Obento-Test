@@ -18,6 +18,9 @@
     12. get_orders_summary_by_shop(shop_id: int):
     13. get_orders_summary_by_admin():
     14. get_orders_summary_common(user_id=None, company_id=None, shop_id=None, is_admin=False):
+    # 注文キャンセル
+    15. set_order_cancel_by_user(payload: CancelOrderRequest):
+
 '''
 from fastapi import APIRouter
 
@@ -162,7 +165,6 @@ async def get_orders_range_by_admin(
     "/shop/{shop_id}/date_range/orders",
     summary="注文一覧取得（日付範囲）：店舗ユーザー",
     description="指定された店舗IDの注文一覧を、日付範囲（begin, end）で取得します。",
-    # response_model=List[OrderModel],
     response_model=OrderListResponse,
     tags=["order: range"]
 )
@@ -343,4 +345,71 @@ async def get_orders_summary_common(user_id=None, company_id=None, shop_id=None,
     summary_data = await select_order_summary(conditions)
     return {"summary": summary_data}
 
+'''-------------------------------------------------------------------'''
+# 注文キャンセル実行
 
+
+
+
+# クライアントからのPOST例
+# curl -X POST http://localhost:8000/api/v1/order/cancel \
+#   -H "Content-Type: application/json" \
+#   -d '{
+#     "order_ids": [101, 102],
+#     "user_id": 5
+#   }'
+
+# JavaScript Fetch APIの例
+# fetch("/api/v1/order/cancel", {
+#   method: "POST",
+#   headers: {
+#     "Content-Type": "application/json"
+#   },
+#   body: JSON.stringify({
+#     order_ids: [101, 102],
+#     user_id: 5
+#   })
+# });
+
+from schemas.order_schemas import CancelOrderRequest
+# class CancelOrderRequest(BaseModel):
+#     order_ids: List[int]
+#     user_id: int  # 必要なら。省略可能にしてもOK
+from fastapi import HTTPException, Depends
+
+from models.order import cancel_orders
+from database.local_postgresql_database import get_db  # セッション取得用の依存関数
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models.user import select_user_by_id 
+
+@order_api_router.post(
+    "/cancel",
+    summary="注文キャンセルAPI",
+    description="指定された注文IDの注文をキャンセルします。",
+    tags=["order: cancel"]
+)
+async def set_order_cancel_by_user(
+    payload: CancelOrderRequest,
+    session: AsyncSession = Depends(get_db)
+):
+    try:
+        # 引数の受け取り方
+        # payload.order_ids → [101, 102]
+        # payload.user_id   → 5
+        user = await select_user_by_id(payload.user_id)
+        if not user:
+            raise HTTPException(404, "ユーザーが見つかりません")
+        username = user.username
+        
+        print(f"[DEBUG] キャンセル対象の注文ID: {payload.order_ids}")
+        result = await cancel_orders(payload.order_ids, username, session)
+
+    except Exception as e:
+        logger.exception("注文キャンセル中にエラーが発生しました")
+        raise HTTPException(status_code=500, detail="注文キャンセルに失敗しました")
+
+    if not result:
+        raise HTTPException(status_code=404, detail="対象の注文が見つかりません")
+    else:
+        return {"message": "キャンセル処理が完了しました", "canceled_order_ids": result}

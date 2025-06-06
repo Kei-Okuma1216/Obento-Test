@@ -1,0 +1,16 @@
+<!-- templates/order_cancel_form.html -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>注文キャンセルフォーム</title>
+</head>
+<body>
+    <h1>注文キャンセル</h1>
+    <form method="post" action="/user/{{ user_id }}/order_cancel_submit">
+        <label for="order_ids">注文ID（カンマ区切り）:</label><br>
+        <input type="text" id="order_ids" name="order_ids" placeholder="例: 14,15"><br><br>
+        <button type="submit">キャンセル実行</button>
+    </form>
+</body>
+</html>

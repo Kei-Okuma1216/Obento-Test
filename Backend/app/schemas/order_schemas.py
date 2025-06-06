@@ -1,5 +1,12 @@
 # schemas/order_schemas.py
 # pydantic用クラス
+'''
+    1. OrderModel: 注文情報を表すモデル
+    2. OrderUpdate: 注文の更新情報を表すモデル
+    3. OrderUpdateList: 複数の注文更新情報をまとめるモデル
+    4. CancelOrderRequest: 注文キャンセル用リクエストモデル
+'''
+
 from datetime import datetime
 from pydantic import BaseModel
 from typing import Optional
@@ -27,3 +34,9 @@ class OrderUpdate(BaseModel):
 class OrderUpdateList(BaseModel):
     updates: List[OrderUpdate]
 
+# 注文キャンセル用
+from typing import List
+
+class CancelOrderRequest(BaseModel):
+    order_ids: List[int]
+    user_id: int  # 必要なら。省略可能にしてもOK

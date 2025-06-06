@@ -75,7 +75,7 @@ async def skip_holiday(start_date: datetime) -> datetime:
         # 祝日でなければ採用
         if holiday_map.get(date_str) is None:
             # print(f"非祝日として確定: {start_date}")
-            logger.debug(f"注文日: {init_date} 配達予定日: {start_date.strftime('%Y-%m-%d')}")
+            logger.debug(f"skip_holiday() 注文日: {init_date} 配達予定日: {start_date.strftime('%Y-%m-%d')}")
 
             return start_date.date()
 

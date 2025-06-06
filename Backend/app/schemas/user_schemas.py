@@ -1,6 +1,12 @@
 # schemas/user_schemas.py
 # pydantic用クラス
-from pydantic import BaseModel, PrivateAttr
+'''
+    1. UserBase: ユーザの基本情報を表すモデル
+    2. UserCreate: ユーザ作成用のモデル
+    3. UserResponse: ユーザ情報のレスポンス用モデル
+'''
+
+from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 

@@ -114,7 +114,7 @@
                 <label style="margin-right: 10px;">個数：</label>
                 <input type="number" id="bento-count" name="bento_count" min="0" value="{{ order_count }}" style="width:40px;"> 個
               </div>
-              <!-- ５．合計金額（個数×450円） -->
+              <!-- ５．合計金額（個数×500円） -->
               <div class="form-group mb-2">
                 <div style="background-color: #fff9db; padding: 6px; border-radius: 4px; display: inline-block;">
                   <label style="margin-right: 10px;">合計金額：</label>
@@ -249,7 +249,7 @@
     }
 
     // 1個あたりの価格
-    const pricePerBento = 450;
+    const pricePerBento = 500;
 
     // 個数入力欄の変更時に合計金額を更新する関数
     function updateTotal() {

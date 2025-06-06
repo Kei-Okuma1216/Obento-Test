@@ -52,8 +52,9 @@ async def create_session_with_retry():
                 "status_code": 500,
                 "message": str(e)
             })
+これは FastAPI の Depends では 動きません。FastAPIは yield ベースの依存関数を使うとき、@contextmanager ではなく yield を使った依存関数スタイルである必要があります。以下のように get_db() は「非同期ジェネレータ関数」ではなく、「非同期依存関数」として使います。FastAPIは「yield形式の依存関数」に対してとても相性が良いです。
 '''
-@asynccontextmanager
+# @asynccontextmanager
 async def get_db():
     try:
         session = await create_session_with_retry()

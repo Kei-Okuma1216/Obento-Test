@@ -84,7 +84,7 @@ async def check_permission(request: Request, permits: list):
 
         # Cookieからpermission取得
         permission_str = request.cookies.get("permission")
-        logger.debug(f"check_permission() - 取得したpermission: {permission_str}")
+        # logger.debug(f"check_permission() - 取得したpermission: {permission_str}")
 
         # Cookieが存在しない or 空の場合はデフォルト0
         if not permission_str:
@@ -99,7 +99,7 @@ async def check_permission(request: Request, permits: list):
                 )
             permission = int(permission_str)
 
-        logger.debug(f"check_permission() - 解析後のpermission: {permission}")
+        # logger.debug(f"check_permission() - 解析後のpermission: {permission}")
 
         if permission in permits:
             logger.info(f"check_permission() - 許可されたパーミッション: {permission}")
@@ -133,7 +133,7 @@ async def get_last_order(request: Request):
 
     if today_orders:
         last_order = today_orders[0]
-        logger.warning(f"get_last_order() - 既に注文が存在します: {last_order}")
+        logger.warning(f"- 既に注文が存在します: {last_order}")
         response = templates.TemplateResponse(
             "duplicate_order.html",
             {

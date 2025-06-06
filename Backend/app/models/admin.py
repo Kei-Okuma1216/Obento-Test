@@ -16,7 +16,7 @@
 import asyncio
 import logging
 from venv import logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # 定数
 from utils.utils import log_decorator
@@ -38,6 +38,7 @@ from core.settings import settings
 async def init_database():
     # 一度実行後は、コメントアウトしてください。
     try:
+        logger.info("init_database() - データベースの初期化を開始します。")
         # テーブル削除
         db_name = settings.database_name
 
@@ -144,7 +145,7 @@ async def init_database():
         # print(f"お正月の日付: {oneone}")
         await insert_order(1, "user1", "shop01", 1, 1, datetime(2025, 1, 1))
 
-        logger.info("データベースファイル 'example' が正常に作成されました。")
+        logger.info("データベース 'example' が正常に作成されました。")
 
     except (DatabaseError, SQLAlchemyError, IntegrityError, OperationalError) as e:
         logger.error(f"init_database Error: {str(e)}")

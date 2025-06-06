@@ -21,7 +21,7 @@ from schemas.user_schemas import UserResponse
 from services.order_view import order_table_view
 
 from database.local_postgresql_database import endpoint
-from log_unified import logger
+from log_unified import logger, log_order
 
 templates = Jinja2Templates(directory="templates")
 user_router = APIRouter()
@@ -94,6 +94,78 @@ async def get_user_context(request: Request, orders, user_id: int):
     user_context.update(order_context)
     
     return user_context
+
+
+
+# 注文キャンセル
+# GET
+# https://192.168.3.14:8000/user/1/order_cancel_form
+@user_router.get(
+    "/{user_id}/order_cancel_form",
+    response_class=HTMLResponse,
+    summary="注文キャンセルフォーム画面"
+)
+async def show_order_cancel_form(request: Request, user_id: int):
+    try:
+        logger.debug(f"show_order_cancel_form() - ユーザーID: {user_id}")
+        return templates.TemplateResponse("order_cancel_form.html", {
+            "request": request,
+            "user_id": user_id
+        })
+
+    except Exception as e:
+        logger.exception(f"show_order_cancel_form() - エラー発生: {e}")
+        raise HTTPException(status_code=500, detail="注文キャンセルフォームの表示に失敗しました")
+
+
+# POST
+from fastapi import APIRouter, HTTPException, Depends, Form
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from database.local_postgresql_database import get_db
+from schemas.order_schemas import CancelOrderRequest
+from routers.order import set_order_cancel_by_user
+
+
+@user_router.post(
+    "/{user_id}/order_cancel_submit",
+    response_class=HTMLResponse,
+    summary="フォーム送信で注文キャンセル処理"
+)
+async def submit_order_cancel_form(
+    request: Request,
+    user_id: int,
+    order_ids: str = Form(...),
+    session: AsyncSession = Depends(get_db)
+):
+    try:
+        # 入力はカンマ区切り: "101,102"
+        order_id_list = [int(i.strip()) for i in order_ids.split(",") if i.strip().isdigit()]
+        payload = CancelOrderRequest(order_ids=order_id_list, user_id=user_id)
+        response = await set_order_cancel_by_user(payload=payload, session=session)
+
+
+    except Exception as e:
+        logger.exception(f"submit_order_cancel_form() - エラー発生: {e}")
+        raise HTTPException(status_code=500, detail="注文キャンセルに失敗しました")
+    else:
+        log_order(
+            "ORDER",
+            f"全ての注文を削除しました。"
+        )
+        logger.debug(f"submit_order_cancel_form() - ユーザーID: {user_id}")
+        return templates.TemplateResponse("order_cancel.html", {
+            "request": request,
+            "user_id": user_id,
+            "canceled_order_ids": response.get("canceled_order_ids", [])
+        })
+
+# テスト方法
+# curl -X POST "https://192.168.3.14:8000/user/2/order/cancel" \
+#   -H "Content-Type: application/json" \
+#   -d '{"order_ids": [14]}'
+
+
 
 
 ''' 開発中止する ユーザーのメニュー選択 '''

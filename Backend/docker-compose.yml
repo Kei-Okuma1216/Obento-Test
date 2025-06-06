@@ -1,6 +1,20 @@
-version: "3.9"
 services:
   db:
-    image: mydb:dev
+    image: postgres:17.5
+    container_name: postgres_db
     env_file:
       - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: always
+
+volumes:
+  postgres_data:
+# コメントアウトされている# docker compose --env-file app/core/.env upは、FastAPIアプリケーション側で.envファイルを読み込むための設定が別途必要になる場合に考慮すべきですが、PostgreSQLコンテナの起動にはenv_file: .envが正しく機能します。
+# docker compose --env-file app/core/.env up

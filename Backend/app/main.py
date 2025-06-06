@@ -82,11 +82,11 @@ from core.constants import (
 import jwt
 from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
-# from utils.utils import delete_all_cookies, get_last_order
 from utils.cookie_helper import delete_all_cookies
 from utils.permission_helper import get_last_order
 from requests.exceptions import ConnectionError
 import requests
+
 
 from models.admin import init_database
 
@@ -96,27 +96,30 @@ from models.admin import init_database
          summary="アプリケーションのエントリポイント",
          description="二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
          tags=["login"])
-@log_decorator
+# @log_decorator
 async def root(request: Request):
-
+# @app.get("/nfc/{tag_id}")
+# async def root(request: Request, tag_id: str):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
-
 
         # ここでCookieよりuserの有無をチェックする
         username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
 
         if not username:
             # ログを出して処理を止める
-            logger.info("Cookieから username が取得できませんでした。")
+            logger.debug("Cookieから username が取得できませんでした。")
+            logger.info("ログイン画面を表示します。")
+            
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
-        # 二重注文の禁止
+        # 当日二重注文の禁止
         has_order, response = await get_last_order(request)
         if has_order:
+            logger.info("当日二重注文が検出されました。")
             return response
 
 
@@ -138,7 +141,8 @@ async def root(request: Request):
             logger.debug("token is expired.")
             return redirect_login_success(request, error=ERROR_TOKEN_EXPIRED)
         else:
-            logger.debug("token is not expired.") # expires 有効
+            # expires 有効
+            logger.debug("token is not expired.") 
 
         payload = decode_jwt_token(token) # token 解読
 
@@ -148,7 +152,7 @@ async def root(request: Request):
         # user情報を取得
         user = await get_user(username)
         if user is None:
-            return redirect_login_failure(request, error="ユーザー情報が取得できません")
+            return redirect_login_failure(request, error="ユーザー情報が取得できません。")
 
         kwargs = {}
         if str(permission) == "1":
@@ -205,7 +209,7 @@ async def root(request: Request):
 @app.get(
     "/register",
     summary="ユーザー新規登録画面（入力前）",
-    description="二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
+    description="画面表示のみ",
     response_class=HTMLResponse,
     tags=["login"]
     )
@@ -215,6 +219,7 @@ async def register_get(request: Request):
         "register.html", {"request": request})
 
 # 重複ユーザーの有無確認
+from models.user import select_user
 async def is_user_exists(username: str) -> bool:
     existing_user = await select_user(username)
     print(f"existing_user: {existing_user}")
@@ -227,7 +232,7 @@ from models.user import register_or_get_user
 @app.post(
     "/register",
     summary="ユーザー新規登録画面（入力後）",
-    description="既存ユーザーを確認して、なければ登録。その後リダイレクトする。",
+    description="既存ユーザーを確認して、重複がなければ登録。その後リダイレクトする。",
     response_class=HTMLResponse,
     tags=["login"]
 )
@@ -284,10 +289,11 @@ async def register_post(
 @log_decorator
 async def login_get(request: Request):
     try:
-        has_order, response = await get_last_order(request)
-        if has_order:
-            logger.info("二重注文が検出されました。")
-            return response
+        # # 当日二重注文の禁止
+        # has_order, response = await get_last_order(request)
+        # if has_order:
+        #     logger.info("当日二重注文が検出されました。")
+        #     return response
 
         # ログイン成功画面にリダイレクト
         # return redirect_login_success(request)
@@ -354,11 +360,11 @@ async def login_post(request: Request,
         logger.info(f"ユーザー認証成功: {input_username}（{user.get_name()}）")
         request._cookies["sub"] = user.get_username()  # Cookieをセットするか、別途パラメータとして渡す
 
-        # 二重注文の拒否
-        has_order, response = await get_last_order(request)
-        if has_order:
-            logger.info("二重注文が検出されました。")
-            return response
+        # # 当日二重注文の禁止
+        # has_order, response = await get_last_order(request)
+        # if has_order:
+        #     logger.info("当日二重注文が検出されました。")
+        #     return response
 
         # 権限確認
         permission = user.get_permission()
@@ -493,6 +499,10 @@ if __name__ == "__main__":
 # for route in app.routes:
 #     print(route.path, route.name)
 
-@app.get("/debug_routes", tags=["shop"], include_in_schema=False)
+@app.get(
+    "/debug_routes",
+    tags=["shop"],
+    include_in_schema=False
+)
 async def debug_routes():
     return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]

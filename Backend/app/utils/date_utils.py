@@ -10,6 +10,8 @@
 from fastapi import HTTPException, status
 from datetime import datetime, date, timedelta
 import pytz
+
+from utils.utils import log_decorator
 # from log_unified import logger
 
 
@@ -74,10 +76,10 @@ def get_today_datetime(offset: int = 0) -> date:
 
 
 # 今日の日付取得 update_datetime用
-# @log_decorator
 from datetime import timedelta, date
 from fastapi import HTTPException, status
 
+@log_decorator
 def get_today_date(offset: int = 0) -> date:
     """
     今日の日付 (date型) を取得する関数。

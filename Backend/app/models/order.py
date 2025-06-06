@@ -1,4 +1,5 @@
 # models/order.py
+# SQLAlchemyモデルと注文クエリ関数
 '''
     注文クエリ関数
 
@@ -38,8 +39,9 @@
 
     25. get_datetime_range_for_date(target_date) -> start_dt, end_dt
     26. select_order_summary(conditions: Dict) -> Dict:
+    27. cancel_orders(order_ids: List[int], user_id: int, session: AsyncSession):
 '''
-from sqlalchemy import Column, Integer, String, DateTime, Date, func
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, func
 from database.local_postgresql_database import Base, engine
 
 # SELECT * FROM public."Orders"
@@ -59,15 +61,16 @@ class Order(Base):
     updated_at = Column(DateTime, nullable=True)
     expected_delivery_date = Column(Date, nullable=True)
     checked = Column(Integer, default=0)
+    canceled = Column(Boolean, default=False)
 
     def as_dict(self):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
 
-import logging
-logger = logging.getLogger(__name__)
-from log_unified import logger
+# import logging
+# logger = logging.getLogger(__name__)
+from log_unified import logger, log_order
 
 from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 
@@ -675,7 +678,7 @@ from sqlalchemy import select
 
 from schemas.order_schemas import OrderModel
 
-logger = logging.getLogger(__name__)
+# logger = logging.getLogger(__name__)
 
 # 選択（店舗ユーザー:全件）
 @log_decorator
@@ -1372,7 +1375,6 @@ async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[Ord
 
 '''-------------------------------------------------------------'''
 # 追加
-from log_unified import log_order
 from utils.date_utils import get_naive_jst_now
 
 from config.config_loader import skip_holiday
@@ -1392,6 +1394,7 @@ async def insert_order(
     """
 
     try:
+        logger.debug(f"insert_order() - 開始")
         async with AsyncSessionLocal() as session:
             if created_at is None:
                 created_at = get_naive_jst_now()
@@ -1402,7 +1405,7 @@ async def insert_order(
                 created_at = created_at.replace(tzinfo=None)
                 print(f"2: {created_at=}")
 
-            logger.debug(f"insert_order() - 使用する created_at: {created_at} (tzinfo={created_at.tzinfo})")
+            logger.debug(f"created_at: {created_at} (tzinfo={created_at.tzinfo})")
             # 配達予定日を取得し、printで確認
             delivery_date = await skip_holiday(created_at)
 
@@ -1435,14 +1438,13 @@ async def insert_order(
         await session.rollback()
         logger.error(f"Unexpected error: {e}")
     else:
-        logger.debug("logger.info直前")
-        logger.info(f"注文が完了しました - order_id:{order_id} ")
-        logger.info(f"logger.handlers: {logger.handlers}")
+        # log_order.info(f"注文が完了しました - order_id:{order_id} ")
         log_order(
             "ORDER",
             f"注文完了 - order_id:{order_id:>4} - company_id:{company_id}, username:{username}, shop_name:{shop_name}, menu_id:{menu_id}, amount:{amount}"
         )
-        logger.info(f"logger.handlers: {logger.handlers}")
+        logger.debug(f"logger.handlers: {logger.handlers}")
+        logger.info(f"insert_order(): 完了 - order_id:{order_id:>4}")
         return order_id
 
 '''-------------------------------------------------------------'''
@@ -1490,7 +1492,7 @@ async def update_order(order_id: int, checked: bool):
             logger.error(f"{stmt=}")
         else:
             logger.info(f"注文更新成功: order_id {order_id}")
-        logger.debug(f"update_order() - SQL: {stmt}")
+            logger.debug(f"update_order() - SQL: {stmt}")
 
 '''-------------------------------------------------------------'''
 # 削除（指定ID）
@@ -1625,3 +1627,29 @@ async def select_order_summary(conditions: Dict) -> Dict:
         return {"total_orders": 0}
 
 '''-------------------------------------------------------------'''
+# 注文キャンセル
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from datetime import datetime
+from models.order import Order  # Order ORMクラスを想定
+from typing import List
+
+@log_decorator
+async def cancel_orders(order_ids: List[int], username: str, session: AsyncSession):
+
+    canceled = []
+
+    for oid in order_ids:
+        result = await session.execute(
+            select(Order).where(Order.order_id == oid, Order.username == username)
+        )
+        order = result.scalar_one_or_none()
+        print(f"cancel_orders() - order: {order}, order_id: {oid}, username: {username}")
+        if order and not order.canceled:
+            order.canceled = True
+            order.updated_at = datetime.now()
+            canceled.append(oid)
+
+    await session.commit()
+    return canceled
+

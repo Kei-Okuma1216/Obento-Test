@@ -200,7 +200,7 @@ def compare_expire_date(expires: str) -> bool:
 
 
 from datetime import datetime
-from utils.date_utils import get_today_date, get_today_datetime, get_naive_jst_now
+from utils.date_utils import get_today_date
 import pytz
 
 # 二重注文の禁止
@@ -224,6 +224,6 @@ def set_last_order(response: Response, last_order_date: datetime):
     response.set_cookie(
         key="last_order_date", value=last_order_date,
         max_age=future_time, httponly=True)
-    logger.debug("# 期限を本日の23:59:59にした")
+    logger.debug("set_last_order() # 期限を本日の23:59:59にした")
 
 
