@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from models.user import update_user, select_all_users
 
 from utils.helper import redirect_error, redirect_unauthorized
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.permission_helper import check_permission
 
 templates = Jinja2Templates(directory="templates")

@@ -33,7 +33,7 @@ class Company(Base):
 # SELECT * FROM public."Companies"
 # ORDER BY company_id DESC
 
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 
 
 import logging

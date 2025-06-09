@@ -13,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from venv import logger
 
 from utils.helper import redirect_login_failure, redirect_unauthorized
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.permission_helper import check_permission
 
 from models.order import select_orders_by_shop_all

@@ -64,7 +64,7 @@ from log_unified import logger
 # logging.basicConfig(level=logging.INFO)
 # logger = logging.getLogger(__name__)
 
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 
 from sqlalchemy.exc import DatabaseError, OperationalError ,IntegrityError
 from database.local_postgresql_database import AsyncSessionLocal, default_shop_name, engine, get_db

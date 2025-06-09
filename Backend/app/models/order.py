@@ -75,7 +75,7 @@ from log_unified import logger, log_order
 
 from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 
 # 作成
 @log_decorator

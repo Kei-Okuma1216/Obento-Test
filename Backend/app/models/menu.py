@@ -16,7 +16,7 @@ from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
 
 from database.local_postgresql_database import Base, engine, AsyncSessionLocal
 
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 
 '''------------------------------------------------------'''
 # Menuテーブル

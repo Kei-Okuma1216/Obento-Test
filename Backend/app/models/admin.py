@@ -19,7 +19,7 @@ from venv import logger
 logging.basicConfig(level=logging.DEBUG)
 
 # 定数
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.date_utils import get_today_datetime
 
 from core.constants import DEFAULT_COMPANY_NAME, DEFAULT_COMPANY_TEL, DEFAULT_SHOP_NAME, DEFAULT_LUNCH_NAME
@@ -204,12 +204,11 @@ async def drop_database(database_name: str = DATABASE_NAME):
 
     await engine.dispose()
 
-
-
 from sqlalchemy import text
 from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 from database.local_postgresql_database import Base
 from fastapi import HTTPException
+
 
 @log_decorator
 async def drop_all_table():

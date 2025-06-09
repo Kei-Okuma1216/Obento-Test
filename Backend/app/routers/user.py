@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 
 
 from utils.helper import redirect_error
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.cookie_helper import get_all_cookies, set_last_order
 from utils.permission_helper import check_permission
 
@@ -141,8 +141,6 @@ async def submit_order_cancel_form(
     session: AsyncSession = Depends(get_db)
 ):
     try:
-        
-        
         # 入力はカンマ区切り: "101,102"
         order_id_list = [int(i.strip()) for i in order_ids.split(",") if i.strip().isdigit()]
         payload = CancelOrderRequest(order_ids=order_id_list, user_id=user_id)

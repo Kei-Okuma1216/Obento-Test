@@ -1,7 +1,7 @@
 # config/config_loader.py
 import json
 import os
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 
 # 権限別main画面遷移マップを読み込む関数
 @log_decorator

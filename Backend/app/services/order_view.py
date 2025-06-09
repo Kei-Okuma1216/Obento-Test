@@ -5,7 +5,9 @@
     3. batch_update_orders(updates: list[dict]):
 '''
 from fastapi import HTTPException, APIRouter, Query, Request, Response, status
-from utils.utils import log_decorator, get_all_cookies
+from utils.cookie_helper import get_all_cookies
+from utils.decorator import log_decorator
+
 from utils.helper import redirect_login_failure
 
 view_router = APIRouter()

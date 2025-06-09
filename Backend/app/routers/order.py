@@ -22,8 +22,7 @@
     15. set_order_cancel_by_user(payload: CancelOrderRequest):
 
 '''
-from fastapi import APIRouter
-
+from fastapi import APIRouter, Query, HTTPException
 
 order_api_router = APIRouter(
     prefix="/api/v1/order",
@@ -34,14 +33,10 @@ from log_unified import logger
 from fastapi import Query
 from datetime import date
 from typing import List
-from schemas.order_schemas import OrderModel
+from schemas.order_schemas import OrderModel  # ← Pydanticモデル
 
 '''-------------------------------------------------------------------'''
 # 注文一覧（日付指定）
-from fastapi import Query, HTTPException
-from datetime import date
-from typing import List
-from schemas.order_schemas import OrderModel  # ← Pydanticモデル
 from models.order import (
     select_orders_by_admin_at_date,
     select_orders_by_shop_at_date
@@ -141,7 +136,6 @@ async def get_orders_date_by_username(
 # 注文一覧（日付範囲で取得） クエリオブジェクトで条件指定する
 # schemas/order_schemas.py
 from pydantic import BaseModel
-from typing import List
 
 class OrderListResponse(BaseModel):
     orders: List[OrderModel]
@@ -206,8 +200,6 @@ async def get_orders_range_by_user(
 ):
     return await get_order_range_common(user_id=user_id, begin=begin, end=end)
 
-
-from datetime import datetime
 
 # 5. 共通：パラメータによる注文一覧取得
 async def get_order_range_common(user_id=None, company_id=None, shop_id=None, is_admin=False, begin=None, end=None):
@@ -276,7 +268,6 @@ async def get_order_range_common(user_id=None, company_id=None, shop_id=None, is
 '''-------------------------------------------------------------------'''
 # 注文概要（FAX送信用）
 from typing import Any, Dict
-from schemas.order_schemas import BaseModel
 
 class OrderSummaryResponse(BaseModel):
     summary: Dict[str, Any]  # または適切な構造がわかれば詳細に指定も可
@@ -330,7 +321,6 @@ async def get_orders_summary_by_user(user_id: int):
 
 # 5. 共通処理　注文概要
 from models.order import select_order_summary
-import datetime
 
 async def get_orders_summary_common(user_id=None, company_id=None, shop_id=None, is_admin=False):
     today = datetime.date.today().strftime("%Y-%m-%d")

@@ -7,7 +7,7 @@
 '''
 from fastapi import HTTPException, Request, Response, status
 
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.date_utils import get_today_date
 from utils.cookie_helper import delete_all_cookies
 

@@ -16,7 +16,7 @@ manager_router = APIRouter()
 
 
 from utils.helper import redirect_unauthorized
-from utils.utils import log_decorator
+from utils.decorator import log_decorator
 from utils.permission_helper import check_permission
 from utils.cookie_helper import get_all_cookies
 

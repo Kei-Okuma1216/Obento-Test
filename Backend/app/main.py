@@ -17,7 +17,7 @@
     10. favicon():
     11. debug_routes():
 '''
-from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form
+from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.staticfiles import StaticFiles
@@ -25,7 +25,9 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import TemplateNotFound
 
 from utils.helper import create_auth_response, get_main_url, redirect_error
-from utils.utils import *
+# from utils.utils import *
+from utils.decorator import log_decorator
+
 from sqlalchemy.exc import DatabaseError
 from log_unified import logger
 
@@ -134,6 +136,7 @@ async def root(request: Request):
             return redirect_login_success(request, message="ようこそ")
 
         # token チェック
+        from utils.cookie_helper import get_token_expires, compare_expire_date
         expires = get_token_expires(request)
 
         if compare_expire_date(expires):

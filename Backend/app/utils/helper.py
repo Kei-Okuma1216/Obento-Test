@@ -14,7 +14,9 @@
 from fastapi import HTTPException, Request, Response, status
 
 from schemas.user_schemas import UserResponse
-from utils.utils import log_decorator, set_all_cookies
+from utils.decorator import log_decorator
+from utils.cookie_helper import set_all_cookies
+
 from log_unified import logger
 
 from config.config_loader import load_permission_map, load_holiday_map
