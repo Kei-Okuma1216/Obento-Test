@@ -84,7 +84,7 @@ from core.constants import (
 import jwt
 from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
-from utils.cookie_helper import delete_all_cookies
+from utils.cookie_helper import get_token_expires, compare_expire_date, delete_all_cookies
 from utils.permission_helper import get_last_order
 from requests.exceptions import ConnectionError
 import requests
@@ -105,7 +105,7 @@ async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
         # ここでCookieよりuserの有無をチェックする
@@ -136,7 +136,6 @@ async def root(request: Request):
             return redirect_login_success(request, message="ようこそ")
 
         # token チェック
-        from utils.cookie_helper import get_token_expires, compare_expire_date
         expires = get_token_expires(request)
 
         if compare_expire_date(expires):
@@ -509,3 +508,176 @@ if __name__ == "__main__":
 )
 async def debug_routes():
     return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]
+
+
+# # エントリポイント
+# @app.get("/order/cancel",
+#          response_class=HTMLResponse,
+#          summary="アプリケーションのエントリポイント（注文キャンセル）",
+#          description="注文キャンセル用。NFCタグを読んでこのURLにアクセスする。その後、二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
+#          tags=["login: cancel"])
+# # @log_decorator
+# async def cancel_root(request: Request):
+#     try:
+#         logger.info(f"cancel_root() - Cancelにアクセスしました")
+
+#         # Cookie
+#         # ユーザー名取得
+#         username = request.cookies.get("sub")
+#         if not username:
+#             logger.debug("Cookieから username が取得できませんでした。")
+#             logger.info("ログイン画面を表示します。")
+#             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
+
+#         # token 取得
+#         token = request.cookies.get("token")
+#         if token is None:
+#             logger.debug("token: ありません")
+#             return redirect_login_success(request, message="ようこそ")
+
+#         # token 有効期限チェック
+#         expires = get_token_expires(request)
+#         if compare_expire_date(expires):
+#             logger.debug("token is expired.") # expires 無効
+#             return redirect_login_success(request, error=ERROR_TOKEN_EXPIRED)
+#         else:
+#             logger.debug("token is not expired.") # expires 有効
+
+#         # token 解読
+#         payload = decode_jwt_token(token)
+
+#         # username = payload['sub']
+
+#         # user情報を取得
+#         user = await get_user(username)
+#         if user is None:
+#             return redirect_login_failure(request, error="tokenからユーザー情報が取得できません。")
+
+#         kwargs = {}
+#         if str(permission) == "1":
+#             kwargs["user_id"] = str(user.get_id())
+#         elif str(permission) == "2":
+#             kwargs["manager_id"] = user.get_id()
+#         elif str(permission) == "10":
+#             kwargs["shop_id"] = user.get_id()
+
+#         # ロールに応じてメインURLを取得
+#         permission = payload['permission']
+#         main_url = await get_main_url(permission, **kwargs)
+#         logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
+
+#         return await create_auth_response(
+#             username, permission, main_url)
+
+
+#     # トークン検証に失敗した場合の例外
+#     except jwt.ExpiredSignatureError:
+#         return redirect_login_failure(request, "トークンの有効期限が切れています")
+#     except jwt.MissingRequiredClaimError:
+#         return redirect_login_failure(request, "トークンに必要なクレームが不足しています")
+#     except jwt.DecodeError:
+#         return redirect_login_failure(request, "トークンの形式が不正です")
+#     except jwt.InvalidTokenError:
+#         return redirect_login_failure(request, "無効なトークンです")
+
+#     # 特に、トークン検証前後に「外部認証サーバ」「外部API」「DBアクセス」 などが関わる場合、
+#     # 接続系のエラー（ConnectionError）も考慮すべきです。
+#     except requests.exceptions.ConnectionError as ce:
+#         logger.exception("外部認証サーバへの接続に失敗しました")
+#         return await redirect_error(request, "認証サーバに接続できませんでした", ce)
+
+#     except ConnectionError as ce:
+#         logger.exception("ネットワーク接続エラーが発生しました")
+#         return await redirect_error(request, "ネットワーク接続に失敗しました", ce)
+
+#     # check_permission_and_stop_orderから投げている
+#     except HTTPException as e:
+#         logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
+#         if e.status_code == status.HTTP_400_BAD_REQUEST:
+#             return redirect_login_failure(request, e.detail)
+#         elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+#             return await redirect_error(request, "内部サーバーエラーが発生しました", e)
+#         else:
+#             return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
+
+#     except Exception as e:
+#         logger.exception("root() - 予期せぬエラーが発生しました")
+#         return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
+
+@app.get("/order/cancel",
+         response_class=HTMLResponse,
+         summary="注文キャンセルのエントリポイント",
+         description="注文キャンセル用。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、最新の注文をキャンセル処理を実行する。",
+         tags=["login: cancel"])
+async def cancel_root(request: Request):
+    try:
+        logger.info(f"cancel_root() - Cancelにアクセスしました")
+
+        username = request.cookies.get("sub") # Cookieからユーザー名取得
+        if not username:
+            logger.debug("Cookieから username が取得できませんでした。")
+            logger.info("ログイン画面を表示します。")
+            return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
+
+        token = request.cookies.get("token") # token取得
+        if token is None:
+            logger.debug("token: ありません")
+            return redirect_login_success(request, message="ようこそ")
+
+
+        # JWTのdecodeはエラーが起きやすいため局所的にtry-exceptで囲む
+        try:
+            expires = get_token_expires(request) # token 有効期限チェック
+            if compare_expire_date(expires):
+                logger.debug("token is expired.")
+                return redirect_login_success(request, error=ERROR_TOKEN_EXPIRED)
+            else:
+                logger.debug("token is not expired.")
+
+            payload = decode_jwt_token(token) # token 解読
+
+        except jwt.ExpiredSignatureError:
+            return redirect_login_failure(request, "トークンの有効期限が切れています")
+        except jwt.MissingRequiredClaimError:
+            return redirect_login_failure(request, "トークンに必要なクレームが不足しています")
+        except jwt.DecodeError:
+            return redirect_login_failure(request, "トークンの形式が不正です")
+        except jwt.InvalidTokenError:
+            return redirect_login_failure(request, "無効なトークンです")
+
+
+        user = await get_user(username) # 認証済みユーザー取得
+        if user is None:
+            return redirect_login_failure(request, error="tokenからユーザー情報が取得できません。")
+
+        permission = payload['permission'] # ユーザー権限取得
+        
+        if str(permission) == "1":
+            user_id = user.get_id()
+            redirect_url = f"/user/{user_id}/order_cancel_complete/"
+            logger.info(f"ユーザー認証成功: {username}, キャンセル画面にリダイレクト → {redirect_url}")
+            return RedirectResponse(url=redirect_url, status_code=303)
+        else:
+            return redirect_login_failure(request, error="この操作は一般ユーザーのみ実行できます")
+
+    except requests.exceptions.ConnectionError as ce:
+        logger.exception("外部認証サーバへの接続に失敗しました")
+        return await redirect_error(request, "認証サーバに接続できませんでした", ce)
+
+    except ConnectionError as ce:
+        logger.exception("ネットワーク接続エラーが発生しました")
+        return await redirect_error(request, "ネットワーク接続に失敗しました", ce)
+
+    except HTTPException as e:
+        logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
+        if e.status_code == status.HTTP_400_BAD_REQUEST:
+            return redirect_login_failure(request, e.detail)
+        elif e.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+            return await redirect_error(request, "内部サーバーエラーが発生しました", e)
+        else:
+            return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
+
+    except Exception as e:
+        logger.exception("cancel_root() - 予期せぬエラーが発生しました")
+        return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
+

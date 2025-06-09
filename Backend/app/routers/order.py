@@ -20,7 +20,6 @@
     14. get_orders_summary_common(user_id=None, company_id=None, shop_id=None, is_admin=False):
     # 注文キャンセル
     15. set_order_cancel_by_user(payload: CancelOrderRequest):
-
 '''
 from fastapi import APIRouter, Query, HTTPException
 
@@ -29,12 +28,11 @@ order_api_router = APIRouter(
     tags=["order"]
     )
 
-from log_unified import logger
-from fastapi import Query
 from datetime import date
 from typing import List
 from schemas.order_schemas import OrderModel  # ← Pydanticモデル
 
+from log_unified import logger
 '''-------------------------------------------------------------------'''
 # 注文一覧（日付指定）
 from models.order import (

@@ -6,6 +6,7 @@
     3. delete_all_cookies(response: Response):
     4. compare_expire_date(expires: str) -> bool:    
     5. set_last_order(response: Response, last_order_date: datetime):
+    6. get_token_expires(request: Request) -> str: 
 '''
 from fastapi import HTTPException, Request, Response, status
 
@@ -226,3 +227,46 @@ def set_last_order(response: Response, last_order_date: datetime):
     logger.debug("set_last_order() # 期限を本日の23:59:59にした")
 
 
+@log_decorator
+def get_token_expires(request: Request) -> str:
+    try:
+        # Cookieヘッダー取得
+        set_cookie_header = request.headers.get("cookie")
+        if not set_cookie_header:
+            logger.debug("get_token_expires() - Cookie header が存在しないため、expires の取得をスキップ")
+            return None
+
+        # Cookieパース
+        cookie = SimpleCookie()
+        try:
+            cookie.load(set_cookie_header)
+        except Exception as parse_error:
+            logger.exception("get_token_expires() - Cookieのパースに失敗しました")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cookieヘッダーのフォーマットが不正です"
+            )
+
+        # tokenとexpiresの存在確認
+        if "token" not in cookie:
+            logger.debug("get_token_expires() - token Cookie が存在しません")
+            return None
+
+        expires = cookie["token"]["expires"] if "expires" in cookie["token"] else None
+
+        if not expires:
+            logger.debug("get_token_expires() - token expires が存在しません")
+            return None
+
+        logger.debug(f"get_token_expires() - 取得した expires: {expires}")
+
+        return expires
+
+    except HTTPException:
+        raise  # 既に投げたHTTPExceptionはそのまま返す
+    except Exception as e:
+        logger.exception("get_token_expires() - 予期せぬエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="expires取得中にサーバーエラーが発生しました"
+        )

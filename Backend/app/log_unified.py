@@ -16,7 +16,6 @@ class FixedWidthFormatter(logging.Formatter):
 
 import os
 from logging.handlers import TimedRotatingFileHandler
-from utils.date_utils import get_today_date
 from datetime import datetime
 
 # 共通のロガー作成関数
@@ -53,6 +52,8 @@ order_logger = create_logger("order_logger", "order_logs")  # 注文ログ
 
 # 注文ログ専用関数
 def log_order(log_type: str, message: str):
-    formatted = f"{log_type.upper()}: {message}"
+    # "CANCEL" に合わせて6文字右詰めにし、足りなければスペースで埋める
+    aligned_type = log_type.upper().ljust(6)
+    formatted = f"{aligned_type}: {message}"
     order_logger.info(formatted)
     print(formatted)

@@ -10,9 +10,8 @@ from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-
-from utils.helper import redirect_error
 from utils.decorator import log_decorator
+from utils.helper import redirect_error
 from utils.cookie_helper import get_all_cookies, set_last_order
 from utils.permission_helper import check_permission
 
@@ -26,6 +25,7 @@ from database.local_postgresql_database import endpoint
 from log_unified import logger, log_order
 
 templates = Jinja2Templates(directory="templates")
+
 user_router = APIRouter()
 
 
@@ -207,17 +207,20 @@ async def get_user_shop_menu(request: Request, response: Response):
             f"/get_user_shop_menu()",
             f"Error: {str(e)}")
 '''
+from models.order import update_order
 
-# お弁当の注文完了　ユーザーのみ
+# ユーザーの注文キャンセル完了　ユーザーのみ
 # @log_decorator
 @user_router.get(
     "/{user_id}/order_cancel_complete/",
     summary="お弁当の注文キャンセル完了画面：一般ユーザー",
     description="一般ユーザーがお弁当を注文キャンセル完了直後の画面",
     response_class=HTMLResponse,
-    tags=["user"])
+    tags=["user: cancel"])
 async def cancel_complete(request: Request, response: Response, user_id: str):
-
+    ''' 注文キャンセル完了画面
+        ユーザーが注文をキャンセルした後の画面
+        https://192.168.3.14:8000/user/1/order_cancel_complete/'''
     try:
         if not await check_permission(request, [1]): # ユーザーの権限
             return templates.TemplateResponse(
@@ -230,31 +233,35 @@ async def cancel_complete(request: Request, response: Response, user_id: str):
             logger.error("ユーザーが見つかりません: sub=%s", cookies['sub'])
             return await redirect_error(request, "ユーザー情報の取得に失敗しました", None)
 
-        # 最新の注文をキャンセルする
-            
-        # await insert_order(
-        #     user.company_id,
-        #     user.username,
-        #     user.shop_name,
-        #     user.menu_id,
-        #     amount=1
-        # )
-
         username = user.get_username()
-        orders = await select_orders_by_user_ago(username, 7)
+        orders = await select_orders_by_user_ago(username, 0)
 
         if not orders:
             logger.error("注文が見つかりません: username=%s", username)
             return await redirect_error(request, "注文が見つかりません", None)
 
-        order_count = len(orders) - 1
-        last_order_date = orders[order_count].created_at
-        set_last_order(response, last_order_date)  # ここで注文の重複を防止
+        orders.sort(key=lambda x: x.created_at, reverse=True)
+        order_id = orders[0].order_id
+        
+        # 最新の注文をキャンセルする
+        if await update_order(order_id, "canceled", "True")== False:
+            logger.error("注文の更新に失敗しました: order_id=%s", order_id)
+            return await redirect_error(request, "注文の更新に失敗しました", None)
+        else:
+            logger.info("注文の更新に成功しました: order_id=%s", order_id)
+            log_order(
+                "CANCEL", f"注文をキャンセルしました。 ユーザー名: {username}, 注文ID: {order_id}"
+            )
+            # ✅ 最終的にキャンセル完了画面を表示
+            return templates.TemplateResponse("order_cancel.html", {
+                "request": request,
+                "user_id": user.user_id,
+                "canceled_order_id": order_id
+            })
 
-        user_context = await get_user_context(request, orders, int(user.get_id()))
-
-        return await order_table_view(request, response, orders, "order_complete.html", user_context)
+        # return None
 
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました: %s", str(e))
         return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
+    

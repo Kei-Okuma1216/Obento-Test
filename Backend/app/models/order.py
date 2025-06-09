@@ -33,13 +33,14 @@
     20. select_orders_by_admin_ago(days_ago: int = 0) -> Optional[List[OrderModel]]:
 
     21. insert_order(company_id: int, username: str, shop_name: str, menu_id: int, amount: int, created_at: Optional[str] = None) -> int:
-    22. update_order(order_id: int, company_id: int, username: str, shop_name: str, menu_id: int, amount: int, updated_at: Optional[str] = None) -> bool:
-    23. delete_order(order_id: int) -> bool:
-    24. delete_all_orders():
+    22. update_order(order_id: int, key: str, value: str) -> bool:
+    23. update_order_on_checked(order_id: int, company_id: int, username: str, shop_name: str, menu_id: int, amount: int, updated_at: Optional[str] = None) -> bool:
+    24. delete_order(order_id: int) -> bool:
+    25. delete_all_orders():
 
-    25. get_datetime_range_for_date(target_date) -> start_dt, end_dt
-    26. select_order_summary(conditions: Dict) -> Dict:
-    27. cancel_orders(order_ids: List[int], user_id: int, session: AsyncSession):
+    26. get_datetime_range_for_date(target_date) -> start_dt, end_dt
+    27. select_order_summary(conditions: Dict) -> Dict:
+    28. cancel_orders(order_ids: List[int], user_id: int, session: AsyncSession):
 '''
 from sqlalchemy import Boolean, Column, Integer, String, DateTime, Date, func
 from database.local_postgresql_database import Base, engine
@@ -68,9 +69,6 @@ class Order(Base):
         """SQLAlchemyモデルを辞書に変換"""
         return {column.name: getattr(self, column.name) for column in self.__table__.columns}
 
-
-# import logging
-# logger = logging.getLogger(__name__)
 from log_unified import logger, log_order
 
 from sqlalchemy.exc import DatabaseError, IntegrityError, OperationalError
@@ -119,6 +117,7 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -189,6 +188,7 @@ async def select_orders_by_user_at_date(username: str, target_date: date) -> Opt
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -253,6 +253,7 @@ async def select_orders_by_user_at_date_range(username: str, start: datetime, en
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -332,6 +333,7 @@ async def select_orders_by_user_ago_old(username: str, days_ago: int = 0) -> Opt
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -400,6 +402,7 @@ async def select_orders_by_company_all(company_id: int) -> Optional[List[OrderMo
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -474,6 +477,7 @@ async def select_orders_by_company_at_date(company_id: int, target_date: date) -
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -543,6 +547,7 @@ async def select_orders_by_company_at_date_range(company_id: int, start_date: da
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -620,6 +625,7 @@ async def select_orders_by_company_ago_old(company_id: int, days_ago: int = 0) -
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -678,7 +684,6 @@ from sqlalchemy import select
 
 from schemas.order_schemas import OrderModel
 
-# logger = logging.getLogger(__name__)
 
 # 選択（店舗ユーザー:全件）
 @log_decorator
@@ -694,6 +699,7 @@ async def select_orders_by_shop_all(shop_name: str) -> Optional[List[OrderModel]
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -778,6 +784,7 @@ async def select_orders_by_shop_company(shop_name: str, company_id: int) -> Opti
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -858,6 +865,7 @@ async def select_orders_by_shop_at_date(shop_name: str, target_date: date) -> Op
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -921,6 +929,7 @@ async def select_orders_by_shop_at_date_range(shop_name: str, start_date: date, 
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1002,6 +1011,7 @@ async def select_orders_by_shop_ago_old(shop_name: str, days_ago: int = 0) -> Op
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1088,6 +1098,7 @@ async def select_single_order(order_id: int) -> Optional[OrderModel]:
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1144,6 +1155,7 @@ async def select_all_orders() -> Optional[List[OrderModel]]:
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1211,6 +1223,7 @@ async def select_orders_by_admin_at_date(target_date: date) -> Optional[List[Ord
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1262,6 +1275,7 @@ async def select_orders_by_admin_at_date_range(start_date: date, end_date: date)
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1308,7 +1322,7 @@ async def select_orders_ago(days_ago: int = 0) -> Optional[List[OrderModel]]:
     start_date = now - timedelta(days=days_ago)
     end_date = now
 
-    return await select_orders_at_date_range(start_date, end_date)
+    return await select_orders_by_admin_at_date_range(start_date, end_date)
 
 
 @log_decorator
@@ -1326,6 +1340,7 @@ async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[Ord
                 select(
                     Order.order_id,
                     Company.name.label("company_name"),
+                    Order.user_id,
                     Order.username,
                     Order.shop_name,
                     Menu.name.label("menu_name"),
@@ -1376,7 +1391,6 @@ async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[Ord
 '''-------------------------------------------------------------'''
 # 追加
 from utils.date_utils import get_naive_jst_now
-
 from config.config_loader import skip_holiday
 
 @log_decorator
@@ -1409,8 +1423,21 @@ async def insert_order(
             # 配達予定日を取得し、printで確認
             delivery_date = await skip_holiday(created_at)
 
+            # usernameからuser_idを取得
+            from models.user import User  # ← Userモデルが必要
+            stmt = select(User.user_id).where(
+                User.company_id == company_id,
+                User.username == username
+            )
+            result = await session.execute(stmt)
+            user_id = result.scalar_one_or_none()
+            if user_id is None:
+                logger.error(f"指定されたcompany_id: {company_id} と username: {username} に該当するユーザーが見つかりません。")
+                return -1   # エラーコードを返す
+
             new_order = Order(
                 company_id=company_id,
+                user_id=user_id,
                 username=username,
                 shop_name=shop_name,
                 menu_id=menu_id,
@@ -1448,12 +1475,88 @@ async def insert_order(
         return order_id
 
 '''-------------------------------------------------------------'''
-# 更新
+# 更新（任意のカラム）
 from sqlalchemy import update, text
-from utils.date_utils import get_naive_jst_now
+from models.order import Order
+from database.local_postgresql_database import AsyncSessionLocal
 
 @log_decorator
-async def update_order(order_id: int, checked: bool):
+async def update_order(order_id: int, key: str, value: str) -> bool:
+    """
+    任意の注文(order_id)に対して、指定されたカラム(key)を指定値(value)で更新する。
+    updated_at も自動で更新されます。
+
+    Parameters:
+        order_id (int): 更新対象の注文ID
+        key (str): カラム名（例: "checked", "canceled"）
+        value (str): 更新する値（strで渡されるが型によって変換）
+
+    Returns:
+        bool: 成功時 True、失敗時 False
+    
+    Usage: 
+        await update_order(101, "checked", "true")     # → checked=True
+        await update_order(102, "amount", "3")         # → amount=3
+        await update_order(103, "shop_name", "京弁")   # → shop_name="京弁"
+    """
+    try:
+        async with AsyncSessionLocal() as session:
+            await session.execute(text("SET TIME ZONE 'Asia/Tokyo'"))
+
+            # 値の型変換（型安全でなくても対応できるように最低限サポート）
+            if value.lower() == "true":
+                parsed_value = True
+            elif value.lower() == "false":
+                parsed_value = False
+            elif value.isdigit():
+                parsed_value = int(value)
+            else:
+                parsed_value = value  # 通常の文字列など
+
+            updated_time = get_naive_jst_now()
+
+            stmt = (
+                update(Order)
+                .where(Order.order_id == order_id)
+                .values({key: parsed_value, "updated_at": updated_time})
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"IntegrityError: {e}")
+        logger.error(f"{stmt=}")
+        return False
+    except OperationalError as e:
+        await session.rollback()
+        logger.error(f"OperationalError: {e}")
+        logger.error(f"{stmt=}")
+        return False
+    except DatabaseError as e:
+        await session.rollback()
+        logger.error(f"SQL実行中にエラーが発生しました: {e}")
+        logger.error(f"{stmt=}")
+        return False
+    except Exception as e:
+        await session.rollback()
+        logger.error(f"Unexpected error: {e}")
+        logger.error(f"{stmt=}")
+        return False
+    else:
+        if result.rowcount == 0:
+            logger.warning(f"注文更新失敗: order_id {order_id} の注文が見つかりませんでした。")
+            logger.error(f"{stmt=}")
+            return False
+        else:
+            logger.info(f"注文更新成功: order_id {order_id}, {key}={parsed_value}")
+            logger.debug(f"update_order() - SQL: {stmt}")
+            return True
+
+
+# 更新（チェックフラグ）
+@log_decorator
+async def update_order_on_checked(order_id: int, checked: bool):
     """
     指定された order_id の注文レコードに対して、checked フラグと updated_at を更新します。
     """
@@ -1492,12 +1595,12 @@ async def update_order(order_id: int, checked: bool):
             logger.error(f"{stmt=}")
         else:
             logger.info(f"注文更新成功: order_id {order_id}")
-            logger.debug(f"update_order() - SQL: {stmt}")
+            logger.debug(f"update_order_on_checked() - SQL: {stmt}")
 
 '''-------------------------------------------------------------'''
-# 削除（指定ID）
 from sqlalchemy import delete
 
+# 削除（指定ID）
 @log_decorator
 async def delete_order(order_id: int) -> bool:
     """
@@ -1536,7 +1639,6 @@ async def delete_order(order_id: int) -> bool:
     else:
         logger.info(f"Order with order_id {order_id} deleted successfully.")
         return True
-
 
 # 削除（全件）
 @log_decorator
@@ -1631,7 +1733,6 @@ async def select_order_summary(conditions: Dict) -> Dict:
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import datetime
-from models.order import Order  # Order ORMクラスを想定
 from typing import List
 
 @log_decorator

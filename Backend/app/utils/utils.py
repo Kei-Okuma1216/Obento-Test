@@ -469,6 +469,7 @@ def set_last_order(response: Response, last_order_date: datetime):
         max_age=future_time, httponly=True)
     logger.debug("# 期限を本日の23:59:59にした")
 
+
 @log_decorator
 def get_token_expires(request: Request) -> str:
     try:
