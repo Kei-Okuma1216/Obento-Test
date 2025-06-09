@@ -53,6 +53,7 @@ class Order(Base):
 
     order_id = Column(Integer, primary_key=True, autoincrement=True)
     company_id = Column(Integer)
+    user_id = Column(Integer, nullable=True)  # ユーザーID（nullable=Trueは、ユーザーが未登録の場合を考慮）
     username = Column(String)
     shop_name = Column(String)
     menu_id = Column(Integer)
@@ -167,7 +168,6 @@ async def select_orders_by_user_all(username: str) -> Optional[List[OrderModel]]
         logger.error(f"Unexpected error: {e}")
     else:
         return order_models#order_list
-
 
 # 選択（一般ユーザー: 日付指定）
 @log_decorator

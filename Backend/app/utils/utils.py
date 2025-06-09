@@ -63,7 +63,7 @@ def log_decorator(func):
     else:
         return sync_wrapper
 
-
+# デプリケーション警告を出すデコレーター
 def deprecated(func):
     """This is a decorator to mark functions as deprecated."""
     @functools.wraps(func)

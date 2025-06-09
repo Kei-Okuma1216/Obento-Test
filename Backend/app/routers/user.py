@@ -3,6 +3,8 @@
 '''
     1. regist_complete(request: Request, response: Response): 
     2. get_user_context(request: Request, orders, user_id: int):
+    3. show_order_cancel_form(request: Request, user_id: int):
+    4. submit_order_cancel_form(request: Request, user_id: int, order_ids: str = Form(...)):
 '''
 from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
@@ -139,6 +141,8 @@ async def submit_order_cancel_form(
     session: AsyncSession = Depends(get_db)
 ):
     try:
+        
+        
         # 入力はカンマ区切り: "101,102"
         order_id_list = [int(i.strip()) for i in order_ids.split(",") if i.strip().isdigit()]
         payload = CancelOrderRequest(order_ids=order_id_list, user_id=user_id)
@@ -205,3 +209,54 @@ async def get_user_shop_menu(request: Request, response: Response):
             f"/get_user_shop_menu()",
             f"Error: {str(e)}")
 '''
+
+# お弁当の注文完了　ユーザーのみ
+# @log_decorator
+@user_router.get(
+    "/{user_id}/order_cancel_complete/",
+    summary="お弁当の注文キャンセル完了画面：一般ユーザー",
+    description="一般ユーザーがお弁当を注文キャンセル完了直後の画面",
+    response_class=HTMLResponse,
+    tags=["user"])
+async def cancel_complete(request: Request, response: Response, user_id: str):
+
+    try:
+        if not await check_permission(request, [1]): # ユーザーの権限
+            return templates.TemplateResponse(
+                "Unauthorized.html", {"request": request})
+
+        cookies = get_all_cookies(request)
+
+        user: UserResponse = await select_user(cookies['sub'])
+        if user is None:
+            logger.error("ユーザーが見つかりません: sub=%s", cookies['sub'])
+            return await redirect_error(request, "ユーザー情報の取得に失敗しました", None)
+
+        # 最新の注文をキャンセルする
+            
+        # await insert_order(
+        #     user.company_id,
+        #     user.username,
+        #     user.shop_name,
+        #     user.menu_id,
+        #     amount=1
+        # )
+
+        username = user.get_username()
+        orders = await select_orders_by_user_ago(username, 7)
+
+        if not orders:
+            logger.error("注文が見つかりません: username=%s", username)
+            return await redirect_error(request, "注文が見つかりません", None)
+
+        order_count = len(orders) - 1
+        last_order_date = orders[order_count].created_at
+        set_last_order(response, last_order_date)  # ここで注文の重複を防止
+
+        user_context = await get_user_context(request, orders, int(user.get_id()))
+
+        return await order_table_view(request, response, orders, "order_complete.html", user_context)
+
+    except Exception as e:
+        logger.exception("予期せぬエラーが発生しました: %s", str(e))
+        return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
