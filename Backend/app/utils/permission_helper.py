@@ -3,11 +3,12 @@
 '''
     1. check_permission_and_stop_order(request: Request, response: Response)
     2. check_permission(request: Request, permits: list)  
-    3. get_last_order(request: Request)
+    -3. get_last_order(request: Request)
+    4. get_last_order_simple(request: Request):
 '''
 from fastapi import HTTPException, Request, Response, status
 
-from utils.decorator import log_decorator
+from utils.decorator import deprecated, log_decorator
 from utils.date_utils import get_today_date
 from utils.cookie_helper import delete_all_cookies
 
@@ -120,6 +121,7 @@ async def check_permission(request: Request, permits: list):
 
 
 @log_decorator
+@deprecated
 async def get_last_order(request: Request):
     username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
 
@@ -151,3 +153,37 @@ async def get_last_order(request: Request):
 
 
 
+@log_decorator
+async def get_last_order_simple(request: Request):
+    logger.debug("get_last_order_simple(): 二重注文チェック開始")
+
+    username = request.cookies.get("sub")
+    if not username:
+        logger.error("Cookieから username が取得できませんでした。")
+        return templates.TemplateResponse(
+            "error.html",
+            {"request": request, "error": "認証情報が不正です。"}
+        )
+
+    today = get_today_date()
+    logger.debug(f"{today=}, {username=}")
+
+    today_orders = await select_orders_by_user_at_date(username, today)
+    logger.debug(f"{today_orders=}")
+
+    if today_orders:
+        last_order = today_orders[0]
+        logger.warning(f"- 既に注文が存在します: {last_order}")
+        return templates.TemplateResponse(
+            "duplicate_order.html",
+            {
+                "request": request,
+                "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
+                "last_order": last_order,
+                "endpoint": endpoint
+            },
+            status_code=200
+        )
+
+    # 注文がなければ次の処理へ（呼び出し元で続ける）
+    return None

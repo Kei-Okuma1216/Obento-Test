@@ -28,11 +28,10 @@ from fastapi.templating import Jinja2Templates
 from jinja2 import TemplateNotFound
 
 from utils.helper import create_auth_response, get_main_url, redirect_error
-# from utils.utils import *
 from utils.decorator import log_decorator
 
 from sqlalchemy.exc import DatabaseError
-from log_unified import logger
+from log_unified import logger, log_order
 
 from routers.router import account_router
 from routers.admin import admin_router
@@ -68,9 +67,6 @@ app.include_router(order_api_router)
 # app.include_router(order_api_router, prefix="/api/v1/order")　＃これで表示されていないので保留にしている。
 app.include_router(log_router)
 
-# エントリポイントの選択
-from database.local_postgresql_database import endpoint
-
 # tracemallocを有効にする
 import tracemalloc
 tracemalloc.start()
@@ -88,7 +84,7 @@ import jwt
 from core.security import decode_jwt_token
 from utils.helper import redirect_login_failure, redirect_login_success
 from utils.cookie_helper import get_token_expires, compare_expire_date, delete_all_cookies
-from utils.permission_helper import get_last_order
+from utils.permission_helper import get_last_order, get_last_order_simple
 from requests.exceptions import ConnectionError
 import requests
 
@@ -106,7 +102,7 @@ async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # 昨日の二重注文禁止が有効か確認する
+        # await init_database() # コメントアウトしないと、毎回データを初期化する。
         # print("このappはBackend versionです。")
 
         # ここでCookieよりuserの有無をチェックする
@@ -116,15 +112,19 @@ async def root(request: Request):
             # ログを出して処理を止める
             logger.debug("Cookieから username が取得できませんでした。")
             logger.info("ログイン画面を表示します。")
-            
+
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
         # 一般ユーザー当日二重注文の禁止
-        has_order, response = await get_last_order(request)
-        if has_order:
-            logger.info(f"当日二重注文が検出されました。username:{username}")
+        # has_order, response = await get_last_order(request)
+        # if has_order:
+        #     logger.info(f"当日二重注文が検出されました。username:{username}")
+        #     return response
+        response = await get_last_order_simple(request)
+        if response:
+            logger.info(f"当日二重注文が検出されました。username: {username}")
             return response
-
+        print("そのまま通過する")
 
         # cookies チェック
         token = request.cookies.get("token")
@@ -431,7 +431,11 @@ async def clear_cookie(response: Response):
 
 from fastapi.responses import RedirectResponse
 
-@app.get("/logout", summary="ログアウト", tags=["login"])
+@app.get(
+    "/logout",
+    summary="ログアウト",
+    tags=["login"]
+)
 @log_decorator
 def logout():
     response = RedirectResponse(url="/login")
@@ -520,18 +524,30 @@ async def cancel_root(request: Request):
     try:
         logger.info(f"cancel_root() - Cancelにアクセスしました")
 
-        # 14時以降は注文キャンセルを受け付けない
-        from datetime import datetime, time
-        current_time = datetime.now().time()
-        if current_time >= time(14, 0):
-            logger.info("14時以降は注文キャンセルを受け付けません。")
-            return await redirect_error(request, "14時以降は注文キャンセルを受け付けません。")
-
         username = request.cookies.get("sub") # Cookieからユーザー名取得
         if not username:
             logger.debug("Cookieから username が取得できませんでした。")
             logger.info("ログイン画面を表示します。")
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
+
+        # 14時以降は注文キャンセルを受け付けない
+        from datetime import datetime, time
+        current_time = datetime.now().time()
+        if current_time >= time(14, 0):
+            logger.info(f"14時以降は注文キャンセルを受け付けません。username:{username}")
+            log_order(
+                "CANCEL", f"取消不可 - username: {username} 14時以降は注文キャンセルを受け付けません。"
+            )
+            # return await redirect_error(request, "14時以降は注文キャンセルを受け付けません。")
+            return templates.TemplateResponse(
+                "stop_cancel.html",
+                {
+                    "request": request,
+                    "status_code": 403,
+                    "message": "14時以降は注文キャンセルを受け付けておりません。"
+                },
+                status_code=403
+            )
 
         token = request.cookies.get("token") # token取得
         if token is None:
@@ -587,10 +603,20 @@ async def cancel_root(request: Request):
         else:
             return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
 
+    # except Exception as e:
+    #     logger.exception("cancel_root() - 予期せぬエラーが発生しました")
+    #     return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
     except Exception as e:
-        logger.exception("cancel_root() - 予期せぬエラーが発生しました")
-        return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
-
+            logger.exception("cancel_root() - 予期せぬエラーが発生しました")
+            return templates.TemplateResponse(
+                "stop_cancel.html",
+                {
+                    "request": request,
+                    "status_code": 500,
+                    "message": "キャンセル処理中にサーバーエラーが発生しました。"
+                },
+                status_code=500
+            )
     else: # キャンセル画面へリダイレクト
         user_id = user.get_id()
         redirect_url = f"/user/{user_id}/order_cancel_complete/"
