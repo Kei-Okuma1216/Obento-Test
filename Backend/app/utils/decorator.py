@@ -1,5 +1,8 @@
-
 # utils/decorator.py
+'''
+    1. log_decorator(func):
+    2. deprecated(func):
+'''
 
 # カスタムデコレーターを定義
 # @log_decoratorを関数の上に記述すると、関数の前後にログを出力する

@@ -99,16 +99,14 @@ from models.admin import init_database
 @app.get("/",
          response_class=HTMLResponse,
          summary="アプリケーションのエントリポイント",
-         description="二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
+         description="一般ユーザーは二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
          tags=["login"])
 # @log_decorator
 async def root(request: Request):
-# @app.get("/nfc/{tag_id}")
-# async def root(request: Request, tag_id: str):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # 昨日の二重注文禁止が有効か確認する
+        await init_database() # 昨日の二重注文禁止が有効か確認する
         # print("このappはBackend versionです。")
 
         # ここでCookieよりuserの有無をチェックする
@@ -121,10 +119,10 @@ async def root(request: Request):
             
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
-        # 当日二重注文の禁止
+        # 一般ユーザー当日二重注文の禁止
         has_order, response = await get_last_order(request)
         if has_order:
-            logger.info("当日二重注文が検出されました。")
+            logger.info(f"当日二重注文が検出されました。username:{username}")
             return response
 
 
@@ -159,6 +157,7 @@ async def root(request: Request):
         if user is None:
             return redirect_login_failure(request, error="ユーザー情報が取得できません。")
 
+        # リダイレクト先を取得
         kwargs = {}
         if str(permission) == "1":
             kwargs["user_id"] = str(user.get_id())
@@ -294,11 +293,11 @@ async def register_post(
 @log_decorator
 async def login_get(request: Request):
     try:
-        # # 当日二重注文の禁止
-        # has_order, response = await get_last_order(request)
-        # if has_order:
-        #     logger.info("当日二重注文が検出されました。")
-        #     return response
+        # 当日二重注文の禁止
+        has_order, response = await get_last_order(request)
+        if has_order:
+            logger.info("当日二重注文が検出されました。")
+            return response
 
         # ログイン成功画面にリダイレクト
         # return redirect_login_success(request)
@@ -433,6 +432,7 @@ async def clear_cookie(response: Response):
 from fastapi.responses import RedirectResponse
 
 @app.get("/logout", summary="ログアウト", tags=["login"])
+@log_decorator
 def logout():
     response = RedirectResponse(url="/login")
     delete_all_cookies(response)
@@ -452,6 +452,7 @@ from services.order_view import batch_update_orders
     description="注文テーブルのチェックボックス更新する。",
     tags=["util"]
 )
+@log_decorator
 async def update_cancel_status(update: OrderUpdateList):
     logger.info(f"受信内容: {update.updates}")
 
@@ -518,9 +519,14 @@ async def debug_routes():
          summary="注文キャンセルのエントリポイント",
          description="注文キャンセル用。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、最新の注文をキャンセル処理を実行する。",
          tags=["login: cancel"])
+@log_decorator
 async def cancel_root(request: Request):
     try:
         logger.info(f"cancel_root() - Cancelにアクセスしました")
+
+        # 14時以降は注文キャンセルを受け付けない
+        from datetime import datetime, time
+        current_time = datetime.now().time()
 
         username = request.cookies.get("sub") # Cookieからユーザー名取得
         if not username:
@@ -531,6 +537,7 @@ async def cancel_root(request: Request):
         token = request.cookies.get("token") # token取得
         if token is None:
             logger.debug("token: ありません")
+            logger.info("ログイン画面を表示します。")
             return redirect_login_success(request, message="ようこそ")
 
 
@@ -585,7 +592,7 @@ async def cancel_root(request: Request):
         logger.exception("cancel_root() - 予期せぬエラーが発生しました")
         return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
 
-    else:
+    else: # キャンセル画面へリダイレクト
         user_id = user.get_id()
         redirect_url = f"/user/{user_id}/order_cancel_complete/"
         logger.info(f"ユーザー認証成功: {username}, キャンセル画面にリダイレクト → {redirect_url}")

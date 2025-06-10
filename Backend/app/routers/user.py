@@ -39,6 +39,7 @@ user_router = APIRouter()
     description="一般ユーザーがお弁当を注文完了直後の画面",
     response_class=HTMLResponse,
     tags=["user"])
+@log_decorator
 async def regist_complete(request: Request, response: Response, user_id: str):
 
     try:
@@ -82,7 +83,7 @@ async def regist_complete(request: Request, response: Response, user_id: str):
         return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
 
 
-
+@log_decorator
 async def get_user_context(request: Request, orders, user_id: int):
     user_context = {
         'request': request,
@@ -108,7 +109,7 @@ async def get_user_context(request: Request, orders, user_id: int):
     response_class=HTMLResponse,
     summary="注文キャンセルフォーム画面"
 )
-
+@log_decorator
 async def show_order_cancel_form(request: Request, user_id: int):
     try:
         logger.debug(f"show_order_cancel_form() - ユーザーID: {user_id}")
@@ -136,6 +137,7 @@ from routers.order import set_order_cancel_by_user
     response_class=HTMLResponse,
     summary="フォーム送信で注文キャンセル処理"
 )
+@log_decorator
 async def submit_order_cancel_form(
     request: Request,
     user_id: int,
@@ -214,7 +216,7 @@ from models.order import update_order
 ''' 注文キャンセル完了画面 一般ユーザーのみ
     ユーザーが注文をキャンセルした後の画面
     https://192.168.3.14:8000/user/1/order_cancel_complete/'''
-# @log_decorator
+@log_decorator
 @user_router.get(
     "/{user_id}/order_cancel_complete/",
     summary="お弁当の注文キャンセル完了画面：一般ユーザー",
