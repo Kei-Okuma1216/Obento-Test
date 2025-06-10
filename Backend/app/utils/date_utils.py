@@ -98,12 +98,8 @@ def get_today_date(offset: int = 0) -> date:
                 detail="offset は整数で指定してください"
             )
 
-        from utils.utils import get_today_datetime  # 循環インポート注意
         new_datetime = get_today_datetime() + timedelta(days=offset)
         result_date = new_datetime.date()
-
-        # from log_unified import logger
-        # logger.debug(f"get_today_date(): {result_date}")  # デバッグ出力
 
         return result_date
 
