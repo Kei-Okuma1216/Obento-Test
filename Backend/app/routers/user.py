@@ -5,6 +5,7 @@
     2. get_user_context(request: Request, orders, user_id: int):
     3. show_order_cancel_form(request: Request, user_id: int):
     4. submit_order_cancel_form(request: Request, user_id: int, order_ids: str = Form(...)):
+    5. cancel_complete(request: Request, response: Response, user_id: str):
 '''
 from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
@@ -107,6 +108,7 @@ async def get_user_context(request: Request, orders, user_id: int):
     response_class=HTMLResponse,
     summary="注文キャンセルフォーム画面"
 )
+
 async def show_order_cancel_form(request: Request, user_id: int):
     try:
         logger.debug(f"show_order_cancel_form() - ユーザーID: {user_id}")
@@ -121,7 +123,7 @@ async def show_order_cancel_form(request: Request, user_id: int):
 
 
 # POST
-from fastapi import APIRouter, HTTPException, Depends, Form
+from fastapi import HTTPException, Depends, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.local_postgresql_database import get_db
@@ -209,7 +211,9 @@ async def get_user_shop_menu(request: Request, response: Response):
 '''
 from models.order import update_order
 
-# ユーザーの注文キャンセル完了　ユーザーのみ
+''' 注文キャンセル完了画面 一般ユーザーのみ
+    ユーザーが注文をキャンセルした後の画面
+    https://192.168.3.14:8000/user/1/order_cancel_complete/'''
 # @log_decorator
 @user_router.get(
     "/{user_id}/order_cancel_complete/",
@@ -218,9 +222,7 @@ from models.order import update_order
     response_class=HTMLResponse,
     tags=["user: cancel"])
 async def cancel_complete(request: Request, response: Response, user_id: str):
-    ''' 注文キャンセル完了画面
-        ユーザーが注文をキャンセルした後の画面
-        https://192.168.3.14:8000/user/1/order_cancel_complete/'''
+
     try:
         if not await check_permission(request, [1]): # ユーザーの権限
             return templates.TemplateResponse(
@@ -240,6 +242,7 @@ async def cancel_complete(request: Request, response: Response, user_id: str):
             logger.error("注文が見つかりません: username=%s", username)
             return await redirect_error(request, "注文が見つかりません", None)
 
+        # 最新の注文を取得
         orders.sort(key=lambda x: x.created_at, reverse=True)
         order_id = orders[0].order_id
         
@@ -247,21 +250,18 @@ async def cancel_complete(request: Request, response: Response, user_id: str):
         if await update_order(order_id, "canceled", "True")== False:
             logger.error("注文の更新に失敗しました: order_id=%s", order_id)
             return await redirect_error(request, "注文の更新に失敗しました", None)
-        else:
-            logger.info("注文の更新に成功しました: order_id=%s", order_id)
-            log_order(
-                "CANCEL", f"注文をキャンセルしました。 ユーザー名: {username}, 注文ID: {order_id}"
-            )
-            # ✅ 最終的にキャンセル完了画面を表示
-            return templates.TemplateResponse("order_cancel.html", {
-                "request": request,
-                "user_id": user.user_id,
-                "canceled_order_id": order_id
-            })
-
-        # return None
 
     except Exception as e:
         logger.exception("予期せぬエラーが発生しました: %s", str(e))
         return await redirect_error(request, "注文確定中に予期せぬエラーが発生しました", e)
-    
+    else:
+        logger.info("注文の更新に成功しました: order_id=%s", order_id)
+        log_order(
+            "CANCEL", f"注文取消 - order_id: {order_id} - username: {username}"
+        )
+        # ✅ 最終的にキャンセル完了画面を表示
+        return templates.TemplateResponse("order_cancel.html", {
+            "request": request,
+            "user_id": user.user_id,
+            "canceled_order_id": order_id
+        })
