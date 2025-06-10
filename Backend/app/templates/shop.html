@@ -230,7 +230,7 @@
               // alert(orderId + ' ' + checked); // 修正済み
             });  // ← ここで forEach を閉じる
 
-            fetch("/update_cancel_status", {
+            fetch("/update_check_status", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json"

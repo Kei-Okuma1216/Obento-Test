@@ -2,6 +2,7 @@
 # 2.7 UIのAPI整理完了
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
+
     2. register_get(request: Request):
     3. is_user_exists(username: str) -> bool:
     4. register_post(request: Request, username: str = Form(...), password: str = Form(...), nickname: str = Form(...)):
@@ -10,14 +11,13 @@
     6. login_post(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):
 
     7. clear_cookie(response: Response):
+    8. logout():
 
-    8. class CancelUpdate(BaseModel):
-        updates: List[dict]  # 各辞書は {"order_id": int, "checked": bool} の形式
-    9. update_cancel_status(update: CancelUpdate):
+    9. update_check_status(update: CancelUpdate):
     10. favicon():
     11. debug_routes():
+
     12. cancel_root(request: Request):
-    13. show_order_cancel_form(request: Request, user_id: int):
 
 '''
 from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form, status
@@ -438,22 +438,18 @@ def logout():
     delete_all_cookies(response)
     return response
 
-# async def clear_cookie():
-#     response = RedirectResponse(url="/login", status_code=302)
-#     delete_all_cookies(response)
-#     return response
 
 from schemas.order_schemas import OrderUpdateList
 from services.order_view import batch_update_orders
 
 @app.post(
-    "/update_cancel_status",
+    "/update_check_status",
     summary="チェックボックス更新",
     description="注文テーブルのチェックボックス更新する。",
     tags=["util"]
 )
 @log_decorator
-async def update_cancel_status(update: OrderUpdateList):
+async def update_check_status(update: OrderUpdateList):
     logger.info(f"受信内容: {update.updates}")
 
     return await batch_update_orders([item.model_dump() for item in update.updates])
@@ -527,6 +523,9 @@ async def cancel_root(request: Request):
         # 14時以降は注文キャンセルを受け付けない
         from datetime import datetime, time
         current_time = datetime.now().time()
+        if current_time >= time(14, 0):
+            logger.info("14時以降は注文キャンセルを受け付けません。")
+            return await redirect_error(request, "14時以降は注文キャンセルを受け付けません。")
 
         username = request.cookies.get("sub") # Cookieからユーザー名取得
         if not username:

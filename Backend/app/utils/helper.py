@@ -69,7 +69,7 @@ async def get_account_by_id_or_404_response(user_id: int):
 from fastapi import HTTPException, status, Response
 from fastapi.responses import RedirectResponse
 from core.security import get_access_token
-from utils.utils import set_all_cookies
+from utils.cookie_helper import set_all_cookies
 
 @log_decorator
 # ユースケース層に近い関数なので、ログ出力は必要
