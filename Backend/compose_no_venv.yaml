@@ -1,0 +1,54 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: obento-api
+    restart: always
+    volumes:
+      - ./app:/code/app
+      - ./app/core/my-local.key:/code/app/core/my-local.key
+      - ./app/core/my-local.crt:/code/app/core/my-local.crt
+    ports:
+      - "8000:8000"
+    command: >
+      uvicorn app.main:app
+      --host 192.168.3.14
+      --port 8000
+      --ssl-keyfile=/code/app/core/my-local.key
+      --ssl-certfile=/code/app/core/my-local.crt
+    depends_on:
+      - db
+    env_file:
+      - .env
+    environment:
+      DATABASE_NAME: 'example'
+      DATABASE_URL: postgresql+asyncpg://postgres:root@db:5432/example
+      ENDPOINT: https://192.168.3.14:8000
+      ADMIN_DATABASE_URL: postgresql+asyncpg://postgres:root@db:5432/postgres
+    networks:
+      - obento-net
+
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    env_file:
+      - .env
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - obento-net
+
+volumes:
+  postgres_data: {}
+
+networks:
+  obento-net:
+    driver: bridge
