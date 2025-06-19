@@ -1,24 +1,5 @@
 name: obento-project
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: fastapi:0.1.0
-    container_name: obento-web
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql://postgres:root@db:5432/example
-    volumes:
-      - ./certs:/app/certs
-    env_file:
-      - .env
-    depends_on:
-      - db  # DB遅延実行
-    networks:
-      - backend_network
-
   db:
     image: postgres:15
     container_name: obento-db
@@ -35,6 +16,31 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fastapi:0.1.0
+    container_name: obento-web
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./certs:/app/certs
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy  # dbが健全になるまで待機
+    networks:
+      - backend_network
 
 volumes:
   db-data:

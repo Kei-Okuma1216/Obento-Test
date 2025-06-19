@@ -13,7 +13,7 @@ import os
 os.environ["PERMISSION_MAP_PATH"] = "tests/test_data/mock_permission_map.json"
 
 
-DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/example"
+# DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/example"
 
 # テスト用DB接続
 from core.settings import settings
