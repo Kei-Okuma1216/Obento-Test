@@ -24,10 +24,10 @@ COPY ./certs ./certs
 ENV PYTHONPATH=/app
 
 # 起動コマンド SSL接続の場合　# 本番用 https://localhost:8000/
-## ENTRYPOINT ["uvicorn"]
-# CMD ["main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile=/app/core/my-local.key", "--ssl-certfile=/app/core/my-local.crt"]
+## ENTRYPOINT ["uvicorn"] # 不要
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile=/app/core/my-local.key", "--ssl-certfile=/app/core/my-local.crt"]
 # 開発用 http://localhost:8000/
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 # Dockerfileコマンド
 # 1. イメージのビルド
