@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import pytz
 import sys
 
-from utils.utils import get_today_datetime
+from utils import get_today_datetime
 
 
 # このテストは、get_today_datetime() が datetime オブジェクトを返し、

@@ -1,44 +1,43 @@
+name: obento-project
 services:
   web:
     build:
       context: .
       dockerfile: Dockerfile
-    volumes:
-      - ./app:/Backend/app
-      - ./app/core/my-local.key:/Backend/app/core/my-local.key
-      - ./app/core/my-local.crt:/Backend/app/core/my-local.crt
+    image: fastapi:0.1.0
+    container_name: obento-web
     ports:
       - "8000:8000"
-    command: >
-      uvicorn app.main:app
-      --host 192.168.3.14
-      --port 8000
-      --ssl-keyfile=/Backend/app/core/my-local.key
-      --ssl-certfile=/Backend/app/core/my-local.crt
-    depends_on:
-      - db
+    environment:
+      DATABASE_URL: postgresql://postgres:root@db:5432/example
+    volumes:
+      - ./certs:/app/certs
     env_file:
       - .env
+    depends_on:
+      - db  # DB遅延実行
     networks:
       - backend_network
 
   db:
     image: postgres:15
-    container_name: postgres_db
+    container_name: obento-db
     env_file:
       - .env
     restart: always
     environment:
+      POSTGRES_DB: example
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: root
-      POSTGRES_DB: example
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
+      TZ: Asia/Tokyo
     ports:
       - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
-  postgres_data:
+  db-data:
 
 networks:
   backend_network:

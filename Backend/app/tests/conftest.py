@@ -4,9 +4,9 @@ import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from app.database.local_postgresql_database import get_db
+from database.local_postgresql_database import get_db
 # from database.local_postgresql_database import Base
-from app.main import app
+from main import app
 
 import os
 

@@ -102,7 +102,7 @@ async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        # await init_database() # コメントアウトしないと、毎回データを初期化する。
+        await init_database() # コメントアウトしないと、毎回データを初期化する。
         # print("このappはBackend versionです。")
 
         # ここでCookieよりuserの有無をチェックする
@@ -603,11 +603,9 @@ async def cancel_root(request: Request):
         else:
             return await redirect_error(request, "不明なHTTPエラーが発生しました", e)
 
-    # except Exception as e:
-    #     logger.exception("cancel_root() - 予期せぬエラーが発生しました")
-    #     return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
     except Exception as e:
             logger.exception("cancel_root() - 予期せぬエラーが発生しました")
+            # return redirect_login_failure(request, f"予期せぬエラーが発生しました: {str(e)}", e)
             return templates.TemplateResponse(
                 "stop_cancel.html",
                 {

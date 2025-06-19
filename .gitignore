@@ -69,6 +69,10 @@ Documents/
 **/DBBrowser/
 Obento-Test.git/
 
+# Docker
+Dockerfile.bak
+compose.yaml.bak
+
 # macOS 特有の除外設定
 **.DS_Store
 

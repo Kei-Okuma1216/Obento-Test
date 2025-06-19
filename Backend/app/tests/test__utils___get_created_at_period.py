@@ -5,9 +5,8 @@
 import pytest
 from datetime import datetime, timedelta
 import pytz
-import asyncio
 
-from utils.utils import get_datetime_range
+from utils import get_datetime_range
 
 # ----------------------------------------------------------
 # 📌 補助関数

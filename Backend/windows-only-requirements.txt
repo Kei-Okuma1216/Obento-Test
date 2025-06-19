@@ -1,0 +1,3 @@
+# windows-only-requirements.txt
+pywin32==310
+-e git+https://github.com/Kei-Okuma1216/Obento-Test.git@f342b9908bcfc73824c400bde2fff6deeaeb021b#egg=obento_test
