@@ -3,13 +3,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 # postgreSQL用設定
-from core.settings import settings   # settings は .env から環境変数をロード
+from core.settings import settings   # settings は .env~ から環境変数をロード
 DATABASE_NAME = settings.database_name
 DATABASE_URL = settings.database_url
 ENDPOINT = settings.endpoint # "https://192.168.3.14:8000"
 endpoint = ENDPOINT
 
-# 非同期エンジン作成
+# 非同期エンジン作成 
 engine = create_async_engine(
     DATABASE_URL,
     pool_size=10,          # 最大接続数 (任意)

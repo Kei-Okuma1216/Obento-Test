@@ -170,7 +170,9 @@ async def drop_database(database_name: str = DATABASE_NAME):
     from sqlalchemy.sql import text
 
     # 重要：削除対象 DB にではなく、管理DB（postgres）に接続する
-    ADMIN_DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/postgres"
+    # ADMIN_DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/postgres"
+    from core.settings import settings
+    ADMIN_DATABASE_URL = settings.admin_database_url #"postgresql+asyncpg://postgres:root@localhost:5432/postgres"
     engine = create_async_engine(ADMIN_DATABASE_URL, echo=False)
 
     async with engine.connect() as raw_conn:
@@ -302,7 +304,6 @@ async def create_database(database_name: str = DATABASE_NAME):
     from core.settings import settings
     admin_db_url = settings.admin_database_url   
     engine = create_async_engine(admin_db_url, echo=False)
-
     # ADMIN_DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/postgres"
     # engine = create_async_engine(ADMIN_DATABASE_URL, echo=False)
 

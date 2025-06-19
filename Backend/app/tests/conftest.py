@@ -16,6 +16,9 @@ os.environ["PERMISSION_MAP_PATH"] = "tests/test_data/mock_permission_map.json"
 DATABASE_URL = "postgresql+asyncpg://postgres:root@localhost:5432/example"
 
 # テスト用DB接続
+from core.settings import settings
+DATABASE_URL = settings.database_url
+
 test_engine = create_async_engine(DATABASE_URL, echo=True)
 TestSessionLocal = sessionmaker(test_engine, expire_on_commit=False, class_=AsyncSession)
 

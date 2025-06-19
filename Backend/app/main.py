@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 2.7 UIのAPI整理完了
+# 3.0 Dockerコンテナ移行中
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
 
@@ -33,13 +33,6 @@ from utils.decorator import log_decorator
 from sqlalchemy.exc import DatabaseError
 from log_unified import logger, log_order
 
-from routers.router import account_router
-from routers.admin import admin_router
-from routers.manager import manager_router
-from routers.shop import shop_router
-from routers.user import user_router
-from routers.order import order_api_router
-from routers.log import log_router
 
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
@@ -56,6 +49,14 @@ app.add_middleware(
     allow_headers=["*"],  # すべてのヘッダーを許可
 )
 
+from routers.router import account_router
+from routers.admin import admin_router
+from routers.manager import manager_router
+from routers.shop import shop_router
+from routers.user import user_router
+from routers.order import order_api_router
+from routers.log import log_router
+
 # UI表示系（HTMLを返す） → prefixなしで短く、直感的に
 app.include_router(admin_router, prefix="/admin")
 app.include_router(manager_router, prefix="/manager")
@@ -71,7 +72,6 @@ app.include_router(log_router)
 import tracemalloc
 tracemalloc.start()
 
-
 from core.constants import (
     ERROR_TOKEN_EXPIRED,
     ERROR_ACCESS_DENIED,
@@ -81,15 +81,15 @@ from core.constants import (
 )
 # -----------------------------------------------------
 import jwt
+import requests
+from requests.exceptions import ConnectionError
+
 from core.security import decode_jwt_token
+from models.admin import init_database
 from utils.helper import redirect_login_failure, redirect_login_success
 from utils.cookie_helper import get_token_expires, compare_expire_date, delete_all_cookies
 from utils.permission_helper import get_last_order, get_last_order_simple
-from requests.exceptions import ConnectionError
-import requests
 
-
-from models.admin import init_database
 
 # エントリポイント
 @app.get("/",
@@ -103,6 +103,7 @@ async def root(request: Request):
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
         await init_database() # コメントアウトしないと、毎回データを初期化する。
+        # 接続先変更する場合は、あらかじめ core\settings.pyを変更してください。
         # print("このappはBackend versionです。")
 
         # ここでCookieよりuserの有無をチェックする
