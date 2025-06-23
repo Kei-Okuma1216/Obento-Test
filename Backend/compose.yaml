@@ -32,8 +32,12 @@ services:
     container_name: obento-web
     ports:
       - "8000:8000"
+    # environment:
+    #   - TZ=Asia/Tokyo
     volumes:
       - ./certs:/app/certs
+      - ./logs:/app/logs
+      - ./order_logs:/app/order_logs
     env_file:
       - .env
     depends_on:

@@ -1,5 +1,5 @@
 # Backend/app/main.py
-# 3.0 Dockerコンテナ移行中
+# 3.1 Dockerコンテナ移行完了後
 '''ページ・ビュー・関数
     1. root(request: Request, response: Response):
 
@@ -33,8 +33,17 @@ from utils.decorator import log_decorator
 from sqlalchemy.exc import DatabaseError
 from log_unified import logger, log_order
 
+# サーバ起動時のみ初期化する
+from contextlib import asynccontextmanager
+from models.admin import init_database
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_database()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+# app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 
@@ -91,29 +100,30 @@ from utils.cookie_helper import get_token_expires, compare_expire_date, delete_a
 from utils.permission_helper import get_last_order, get_last_order_simple
 
 
+'''
+備考
+ 接続先変更する場合は、あらかじめ core\settings.pyを変更してください。
+問題点
+ 現在ログオフしたら再注文できる。登録なしユーザーも返却値が発生する。
+'''
 # エントリポイント
 @app.get("/",
          response_class=HTMLResponse,
          summary="アプリケーションのエントリポイント",
-         description="一般ユーザーは二重注文のチェック後、もしCookieがあればcreate_auth_responseでリダイレクトする。",
+         description="ユーザーはCookieにusernameがあればcreate_auth_responseで権限別のページへ遷移する。途中一般ユーザーは二重注文のチェックが入る。",
          tags=["login"])
 # @log_decorator
 async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
         # テストデータ作成
-        await init_database() # コメントアウトしないと、毎回データを初期化する。
-        # 接続先変更する場合は、あらかじめ core\settings.pyを変更してください。
+        # await init_database() # コメントアウトしないと、毎回データを初期化する。
         # print("このappはBackend versionです。")
 
-        # ここでCookieよりuserの有無をチェックする
-        username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
-
+        username = request.cookies.get("sub")
         if not username:
-            # ログを出して処理を止める
             logger.debug("Cookieから username が取得できませんでした。")
             logger.info("ログイン画面を表示します。")
-
             return RedirectResponse(url="/login?message=ログインしてください。", status_code=303)
 
         # 一般ユーザー当日二重注文の禁止
@@ -121,13 +131,12 @@ async def root(request: Request):
         # if has_order:
         #     logger.info(f"当日二重注文が検出されました。username:{username}")
         #     return response
-        response = await get_last_order_simple(request)
-        if response:
-            logger.info(f"当日二重注文が検出されました。username: {username}")
-            return response
-        print("そのまま通過する")
+        # response = await get_last_order_simple(request)
+        # if response:
+        #     logger.info(f"当日二重注文が検出されました。username: {username}")
+        #     return response
 
-        # cookies チェック
+
         token = request.cookies.get("token")
         if token is None:
             ''' 備考：ここは例外に置き換えない。login.htmlへリダイレクトする。
@@ -137,9 +146,7 @@ async def root(request: Request):
             logger.debug("token: ありません")
             return redirect_login_success(request, message="ようこそ")
 
-        # token チェック
         expires = get_token_expires(request)
-
         if compare_expire_date(expires):
             # expires 無効
             logger.debug("token is expired.")
@@ -148,17 +155,36 @@ async def root(request: Request):
             # expires 有効
             logger.debug("token is not expired.") 
 
-        payload = decode_jwt_token(token) # token 解読
 
+        payload = decode_jwt_token(token) # token 解読
         username = payload['sub']
         permission = payload['permission']
 
-        # user情報を取得
+        # ★ 一般ユーザー（permission == 1）の場合のみ二重注文チェック
+        if str(permission) == "1":
+            logger.info(f"一般ユーザーの二重注文チェック開始 - username: {username}")
+            
+            # JWTから取得したusernameでリクエストCookieを更新
+            request._cookies["sub"] = username
+            
+            response = await get_last_order_simple(request)
+            if response:
+                logger.warning(f"当日二重注文が検出されました。username: {username}")
+                return response
+            else:
+                logger.info(f"二重注文なし。処理を続行します。username: {username}")
+        # if str(permission) == "1":
+        #     response = await get_last_order_simple(request)
+        #     if response:
+        #         logger.info(f"当日二重注文が検出されました。username: {username}")
+        #         return response
+        
+
         user = await get_user(username)
         if user is None:
             return redirect_login_failure(request, error="ユーザー情報が取得できません。")
 
-        # リダイレクト先を取得
+
         kwargs = {}
         if str(permission) == "1":
             kwargs["user_id"] = str(user.get_id())
@@ -168,7 +194,6 @@ async def root(request: Request):
             kwargs["shop_id"] = user.get_id()
 
         main_url = await get_main_url(permission, **kwargs)
-
         logger.debug(f"get_main_url() 戻り値 - main_url: {main_url}")
 
         return await create_auth_response(
@@ -294,11 +319,11 @@ async def register_post(
 @log_decorator
 async def login_get(request: Request):
     try:
-        # 当日二重注文の禁止
-        has_order, response = await get_last_order(request)
-        if has_order:
-            logger.info("当日二重注文が検出されました。")
-            return response
+        # 二重注文チェックを削除（ログイン前なので不要）
+        # has_order, response = await get_last_order(request)
+        # if has_order:
+        #     logger.info("当日二重注文が検出されました。")
+        #     return response
 
         # ログイン成功画面にリダイレクト
         # return redirect_login_success(request)
@@ -319,7 +344,7 @@ async def login_get(request: Request):
 
     # 将来的にユーザー情報取得やDBアクセスを追加した場合に備え、
     # DatabaseError ハンドリングをここに追加することを検討
-    
+
     except HTTPException as e:
         logger.exception(f"HTTPException 発生 - ステータス: {e.status_code}, 内容: {e.detail}")
         return await redirect_login_failure(request, e.detail)

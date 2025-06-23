@@ -15,8 +15,7 @@
 # ログ用の設定
 import asyncio
 import logging
-from venv import logger
-logging.basicConfig(level=logging.DEBUG)
+from log_unified import logger, log_order
 
 # 定数
 from utils.decorator import log_decorator

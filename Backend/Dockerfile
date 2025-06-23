@@ -22,6 +22,7 @@ COPY ./certs ./certs
 
 # Pythonの検索パスに /app を追加
 ENV PYTHONPATH=/app
+ENV TZ=Asia/Tokyo
 
 # 起動コマンド SSL接続の場合　# 本番用 https://localhost:8000/
 ## ENTRYPOINT ["uvicorn"] # 不要

@@ -123,6 +123,7 @@ async def check_permission(request: Request, permits: list):
 @log_decorator
 @deprecated
 async def get_last_order(request: Request):
+    logger.debug("get_last_order()に入ります")
     username = request.cookies.get("sub") # ログオフしたら再注文できる　それと登録なしユーザーも返却値が発生する。
 
     if not username:
@@ -155,35 +156,62 @@ async def get_last_order(request: Request):
 
 @log_decorator
 async def get_last_order_simple(request: Request):
-    logger.debug("get_last_order_simple(): 二重注文チェック開始")
-
+    # logger.debug("get_last_order_simple(): 二重注文チェック開始")
+    logger.info("=== 二重注文チェック開始 ===")
+    
     username = request.cookies.get("sub")
+    logger.info(f"Cookieから取得したusername: '{username}'")
     if not username:
         logger.error("Cookieから username が取得できませんでした。")
-        return templates.TemplateResponse(
-            "error.html",
-            {"request": request, "error": "認証情報が不正です。"}
+        # return templates.TemplateResponse(
+        #     "error.html",
+        #     {"request": request, "error": "認証情報が不正です。"}
+        # )
+        # エラーレスポンスを返すのではなく、適切な処理を行う
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="認証情報が不正です。"
         )
 
     today = get_today_date()
     logger.debug(f"{today=}, {username=}")
-
+    logger.info(f"検索対象日: {today} (型: {type(today)})")
+    logger.info(f"検索対象ユーザー: '{username}'")
+    
     today_orders = await select_orders_by_user_at_date(username, today)
     logger.debug(f"{today_orders=}")
 
-    if today_orders:
-        last_order = today_orders[0]
-        logger.warning(f"- 既に注文が存在します: {last_order}")
-        return templates.TemplateResponse(
-            "duplicate_order.html",
-            {
-                "request": request,
-                "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
-                "last_order": last_order,
-                "endpoint": endpoint
-            },
-            status_code=200
+    try:
+        logger.info(f"検索結果: {today_orders}")
+        logger.info(f"取得した注文数: {len(today_orders) if today_orders else 0}")
+        if today_orders:
+            logger.warning(f"=== 二重注文検出！ ===")
+            for i, order in enumerate(today_orders):
+                logger.warning(f"注文{i+1}: {order}")
+
+            last_order = today_orders[0]
+            logger.warning(f"- 既に注文が存在します: {last_order}")
+            return templates.TemplateResponse(
+                "duplicate_order.html",
+                {
+                    "request": request,
+                    "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
+                    "last_order": last_order,
+                    "endpoint": endpoint
+                },
+                status_code=200
+            )
+
+        # 注文がなければ次の処理へ（呼び出し元で続ける）
+        # return None
+    except Exception as e:
+        logger.exception("注文検索中にエラーが発生しました")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="注文情報の取得に失敗しました"
         )
 
-    # 注文がなければ次の処理へ（呼び出し元で続ける）
+    # 注文がなければNoneを返す
+    logger.debug("本日の注文は見つかりませんでした")
+    logger.info("=== 二重注文なし、処理続行 ===")
     return None

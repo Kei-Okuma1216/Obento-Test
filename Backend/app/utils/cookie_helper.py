@@ -214,12 +214,13 @@ def set_last_order(response: Response, last_order_date: datetime):
 
     current = datetime.strptime(datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
         "%Y-%m-%d %H:%M:%S")#get_naive_jst_now()
+    
     current_time = int(current.timestamp())
 
     future_time = end_time - current_time
 
     logger.debug(f"last_order_date: {last_order_date}")
-    logger.debug(f"future_time: {future_time}")
+    # logger.debug(f"future_time: {future_time}")
 
     response.set_cookie(
         key="last_order_date", value=last_order_date,
