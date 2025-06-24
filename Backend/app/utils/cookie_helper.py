@@ -199,7 +199,6 @@ def compare_expire_date(expires: str) -> bool:
             detail="有効期限チェック中にサーバーエラーが発生しました"
         )
 
-
 from utils.date_utils import get_today_date
 import pytz
 
@@ -209,12 +208,16 @@ import pytz
 def set_last_order(response: Response, last_order_date: datetime):
     ''' 最終注文日をCookieにセットしている '''
     today = get_today_date()
+    # tz = pytz.timezone("Asia/Tokyo")
+    # current_time = datetime.now(tz)
+    # today = current_time.date()
+    
     end_of_day = datetime(today.year, today.month, today.day, 23, 59, 59)
     end_time = int(end_of_day.timestamp())
 
     current = datetime.strptime(datetime.now(pytz.timezone("Asia/Tokyo")).strftime("%Y-%m-%d %H:%M:%S"),
         "%Y-%m-%d %H:%M:%S")#get_naive_jst_now()
-    
+
     current_time = int(current.timestamp())
 
     future_time = end_time - current_time

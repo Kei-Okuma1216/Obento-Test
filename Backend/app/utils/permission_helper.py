@@ -156,9 +156,17 @@ async def get_last_order(request: Request):
 
 @log_decorator
 async def get_last_order_simple(request: Request):
-    # logger.debug("get_last_order_simple(): 二重注文チェック開始")
+    # username = request.cookies.get("sub")
+    # user = await get_user(username)
+    # today = datetime.now().date()
+    # result = await select_orders_by_user_and_date(user.get_id(), today)
+    # if result:
+    #     return templates.TemplateResponse("error_duplicate_order.html", ...)
+    # return None
+
+    logger.debug("get_last_order_simple(): 二重注文チェック開始")
     logger.info("=== 二重注文チェック開始 ===")
-    
+
     username = request.cookies.get("sub")
     logger.info(f"Cookieから取得したusername: '{username}'")
     if not username:
@@ -172,16 +180,22 @@ async def get_last_order_simple(request: Request):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="認証情報が不正です。"
         )
-
-    today = get_today_date()
-    logger.debug(f"{today=}, {username=}")
-    logger.info(f"検索対象日: {today} (型: {type(today)})")
-    logger.info(f"検索対象ユーザー: '{username}'")
-    
-    today_orders = await select_orders_by_user_at_date(username, today)
-    logger.debug(f"{today_orders=}")
-
     try:
+        # today = get_today_date()
+        import pytz
+        from datetime import datetime
+        tz = pytz.timezone("Asia/Tokyo")
+        current_time = datetime.now(tz)
+        today = current_time.date()
+
+        logger.debug(f"{today=}, {username=}")
+        logger.info(f"検索対象日: {today} (型: {type(today)})")
+        logger.info(f"検索対象ユーザー: '{username}'")
+
+        today_orders = await select_orders_by_user_at_date(username, today)
+        logger.debug(f"{today_orders=}")
+
+    # try:
         logger.info(f"検索結果: {today_orders}")
         logger.info(f"取得した注文数: {len(today_orders) if today_orders else 0}")
         if today_orders:

@@ -39,6 +39,9 @@ from models.admin import init_database
 # app未使用の警告はエディタの静的解析によるもので、FastAPIでは問題ありません。
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # テストデータ作成
+    # await init_database() # コメントアウトしないと、毎回データを初期化する。
+    print("このappはBackend versionです。")
     await init_database()
     yield
 
@@ -115,9 +118,6 @@ from utils.permission_helper import get_last_order_simple
 async def root(request: Request):
     try:
         logger.info(f"root() - ルートにアクセスしました")
-        # テストデータ作成
-        # await init_database() # コメントアウトしないと、毎回データを初期化する。
-        # print("このappはBackend versionです。")
 
         username = request.cookies.get("sub")
         if not username:
@@ -136,12 +136,10 @@ async def root(request: Request):
 
         expires = get_token_expires(request)
         if compare_expire_date(expires):
-            # expires 無効
-            logger.debug("token is expired.")
+            logger.debug("token is expired.")# expires 無効
             return redirect_login_success(request, error=ERROR_TOKEN_EXPIRED)
         else:
-            # expires 有効
-            logger.debug("token is not expired.") 
+            logger.debug("token is not expired.") # expires 有効
 
 
         payload = decode_jwt_token(token) # token 解読
@@ -161,7 +159,6 @@ async def root(request: Request):
                 return response
             else:
                 logger.info(f"二重注文なし。処理を続行します。username: {username}")
-        
 
         user = await get_user(username)
         if user is None:
@@ -364,6 +361,24 @@ async def login_post(request: Request,
         # ここで認証成功後に username をセットして判定させる
         logger.info(f"ユーザー認証成功: {input_username}（{user.get_name()}）")
         request._cookies["sub"] = user.get_username()  # Cookieをセットするか、別途パラメータとして渡す
+
+        # 一般ユーザー（permission == 1）の場合のみ二重注文チェック
+        user_permission = user.get_permission()
+        username = user.get_username()
+        if str(user_permission) == "1":
+            logger.info(f"一般ユーザーの二重注文チェック開始 - username: {username}")
+
+            # # JWTから取得したusernameでリクエストCookieを更新
+            # request._cookies["sub"] = username
+
+            response = await get_last_order_simple(request)
+            if response:
+                logger.warning(f"当日二重注文が検出されました。username: {username}")
+                return response
+            else:
+                logger.info(f"二重注文なし。処理を続行します。username: {username}")
+
+
 
         # 権限確認
         permission = user.get_permission()
