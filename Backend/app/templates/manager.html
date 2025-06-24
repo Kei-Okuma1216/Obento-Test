@@ -10,7 +10,47 @@
     <!-- Bootstrap JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <style>
-
+      /* コンテンツ部分に下余白を追加（フッターの高さ分を確保） */
+      .content-wrapper {
+        padding-bottom: 80px;
+      }
+      .custom-table {
+        border-collapse: separate; /* 角丸を有効にする */
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        font-size: 0.8rem; /* 文字を小さく */
+        margin: 0 auto; /* テーブルを中央に寄せる */
+      }
+      .custom-table th, 
+      .custom-table td {
+        padding: 0.5rem; /* コンパクトな余白 */
+        text-align: center; /* セル内の文字を中央寄せ */
+      }
+      .custom-table th {
+        background-color: #f2f2f2; /* ヘッダーは淡い色 */
+        width: 50%; /* カラム1は50% */
+      }
+      .custom-table td {
+        width: 50%; /* カラム2は50% */
+      }
+      @media (max-width: 576px) { /* スマホサイズ（576px以下）の場合 */
+        .fixed-footer { /* footer のクラス名を指定 */
+            display: none;
+        }
+        .table-responsive {
+          overflow-x: auto; /* 横スクロールを許可 */
+        }
+        .table-responsive table {
+          min-width: 220%; /* テーブル幅を画面の2倍に設定 */
+        }
+      }
+        .delivery-date-label {
+        width: 30% !important;
+      }
+        .delivery-date-value {
+        width: 70% !important;
+      }
     </style>
   </head>
   <body>
@@ -25,13 +65,16 @@
 
         <!-- タブナビゲーション -->
         <ul class="nav nav-tabs" id="managerTab" role="tablist">
+          <!-- 情報タブ -->
           <li class="nav-item" role="presentation">
             <button class="nav-link active" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button"
               role="tab" aria-controls="info" aria-selected="true">情報</button>
           </li>
+          <!-- 注文一覧タブ -->
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="order-tab" data-bs-toggle="tab" data-bs-target="#order" type="button" role="tab" aria-controls="order" aria-selected="false">注文一覧</button>
           </li>
+          <!-- FAX送信タブ -->
           <li class="nav-item" role="presentation">
             <button class="nav-link" id="fax-tab" data-bs-toggle="tab" data-bs-target="#fax" type="button" role="tab" aria-controls="fax" aria-selected="false">FAX送信</button>
           </li>
@@ -66,7 +109,7 @@
             </div>
           </div>
 
-          <!-- 注文タブ -->
+          <!-- 注文一覧タブ -->
           <div class="tab-pane fade" id="order" role="tabpanel" aria-labelledby="order-tab">
             <div class="table-responsive mt-3">
               <div class="table-responsive mt-3 position-relative">
@@ -75,12 +118,11 @@
                 <div style="max-height: 300px; overflow-y: auto;">
                   <table class="table table-striped table-bordered mb-0">
                     <tbody>
-                      <!-- 注文データをここに挿入 -->
                       {% include 'order_table.html' %}
                     </tbody>
                   </table>
                 </div>
-              </div>  
+              </div>
             </div>
           </div>
 

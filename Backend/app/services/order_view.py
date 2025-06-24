@@ -57,7 +57,6 @@ async def order_table_view(request: Request, response: Response, orders, redirec
         context.update({
             'checked_count': checked_count,
             'aggregated_orders': aggregated_orders,
-            # 'username': current_username  # ★ ここに追加
         })
         context["request"] = request
         

@@ -16,17 +16,14 @@ class FixedWidthFormatter(logging.Formatter):
 
 import os
 from logging.handlers import TimedRotatingFileHandler
-# from datetime import datetime
 from utils.date_utils import get_today_datetime
 
 # 共通のロガー作成関数
 def create_logger(name: str, log_dir: str) -> logging.Logger:
     os.makedirs(log_dir, exist_ok=True)
     
-    # current_date = current_date = datetime.now().strftime("%Y-%m-%d") 
     current_date = current_date = get_today_datetime().strftime("%Y-%m-%d") 
     
-    #get_today_date()
     log_file = os.path.join(log_dir, f"{current_date}.log")
 
     logger = logging.getLogger(name)
