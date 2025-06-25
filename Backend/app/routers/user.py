@@ -6,6 +6,7 @@
     3. show_order_cancel_form(request: Request, user_id: int):
     4. submit_order_cancel_form(request: Request, user_id: int, order_ids: str = Form(...)):
     5. cancel_complete(request: Request, response: Response, user_id: str):
+    6. view_my_order_history(request: Request, user_id: int, db: AsyncSession = Depends(get_db)):
 '''
 from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
@@ -107,8 +108,8 @@ async def get_user_context(request: Request, orders, user_id: int):
 @user_router.get(
     "/{user_id}/order_cancel_form",
     response_class=HTMLResponse,
-    summary="注文キャンセルフォーム画面"
-)
+    summary="注文キャンセルフォーム画面",
+    tags=["user: cancel"])
 @log_decorator
 async def show_order_cancel_form(request: Request, user_id: int):
     try:
@@ -135,8 +136,8 @@ from routers.order import set_order_cancel_by_user
 @user_router.post(
     "/{user_id}/order_cancel_submit",
     response_class=HTMLResponse,
-    summary="フォーム送信で注文キャンセル処理"
-)
+    summary="フォーム送信で注文キャンセル処理",
+    tags=["user: cancel"])
 @log_decorator
 async def submit_order_cancel_form(
     request: Request,
@@ -284,14 +285,13 @@ from fastapi import Response
     summary="注文履歴表示のエントリポイント",
     description="一般ユーザーが注文履歴を表示する。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、自身の注文履歴を表示する。",
     tags=["login: order_history"],
-    response_class=HTMLResponse
-    )
+    response_class=HTMLResponse,
+    tags=["user"])
 @log_decorator
 async def view_my_order_history(
     request: Request, user_id: int, db: AsyncSession = Depends(get_db)):
 # async def view_my_order_history(request: Request):
     # https://localhost:8000/user/1/order/history
-    # 注文履歴の表示エントリポイント
     try:
         logger.debug("=== view_my_order_history 開始 ===")
         token = request.cookies.get("token")
@@ -307,7 +307,13 @@ async def view_my_order_history(
             return redirect_login_failure(request, "ユーザー情報が取得できません")
 
         orders = await select_orders_by_user_all(username)
-        logger.debug(f"select_orders_by_user_all(username)を実行しました: {username}")
+        if not orders:
+            logger.info("注文履歴がありません")
+            return templates.TemplateResponse("no_orders.html", {
+                "request": request,
+                "message": "注文履歴がありません",
+                "user_id": user.get_id()
+            })
         logger.debug(f"ordersの件数は {len(orders)} ")
 
         # return templates.TemplateResponse("order_history.html", {
@@ -323,26 +329,17 @@ async def view_my_order_history(
             "status_code": 500
         })
     else:
-        if not orders:
-            logger.info("注文履歴がありません")
-            return templates.TemplateResponse("no_orders.html", {
-                "request": request,
-                "message": "注文履歴がありません",
-                "user_id": user.get_id()
-            })
-
         from routers.user import get_user_context
         user_context = await get_user_context(request, orders, user.get_id())
         user_context['name'] = user.get_name()
         
         logger.info(f"user_contextの取得に成功しました{user_context=}")
 
-        logger.info("注文履歴の取得に成功しました")
-
         from services.order_view import order_table_view
         from fastapi.responses import Response
         response = Response()
-        
+
+        logger.info("注文履歴の取得に成功しました")
         return await order_table_view(request, response, orders, "order_history.html", user_context)
 
 # print("✅ user_router モジュールが読み込まれました")
