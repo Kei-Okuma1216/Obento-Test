@@ -18,6 +18,7 @@
     11. debug_routes():
 
     12. cancel_root(request: Request):
+    13. view_my_order_history(request: Request, db: AsyncSession = Depends(get_db)):
 '''
 from fastapi import Depends, FastAPI, Response, HTTPException, Request, requests, Form, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
@@ -368,9 +369,6 @@ async def login_post(request: Request,
         if str(user_permission) == "1":
             logger.info(f"一般ユーザーの二重注文チェック開始 - username: {username}")
 
-            # # JWTから取得したusernameでリクエストCookieを更新
-            # request._cookies["sub"] = username
-
             response = await get_last_order_simple(request)
             if response:
                 logger.warning(f"当日二重注文が検出されました。username: {username}")
@@ -513,13 +511,31 @@ if __name__ == "__main__":
 # これはデバッグに有用なので絶対に消さない！
 # for route in app.routes:
 #     print(route.path, route.name)
-@app.get(
-    "/debug_routes",
-    tags=["shop"],
-    include_in_schema=False
-)
+# @app.get(
+#     "/debug_routes",
+#     tags=["shop"],
+#     include_in_schema=False
+# )
+# async def debug_routes():
+#     return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]
+
+@app.get("/debug_routes", tags=["debug"])
 async def debug_routes():
-    return [{"path": route.path, "name": route.name, "methods": list(route.methods)} for route in app.router.routes]
+# https://localhost:8000/debug_routes
+    routes_info = []
+    for route in app.router.routes:
+        try:
+            routes_info.append({
+                "path": route.path,
+                "name": getattr(route, "name", "N/A"),
+                "methods": list(getattr(route, "methods", [])),
+            })
+        except Exception as e:
+            routes_info.append({
+                "path": "ERROR",
+                "error": str(e)
+            })
+    return routes_info
 
 
 # 注文キャンセル エントリポイント
@@ -628,3 +644,69 @@ async def cancel_root(request: Request):
         redirect_url = f"/user/{user_id}/order_cancel_complete/"
         logger.info(f"ユーザー認証成功: {username}, キャンセル画面にリダイレクト → {redirect_url}")
         return RedirectResponse(url=redirect_url, status_code=303)
+
+
+# from database.local_postgresql_database import get_db
+# from sqlalchemy.ext.asyncio import AsyncSession
+# from models.order import select_orders_by_user_all
+
+# @user_router.get(
+#     "/order/history",
+#     summary="注文履歴表示のエントリポイント",
+#     description="一般ユーザーが注文履歴を表示する。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、自身の注文履歴を表示する。",
+#     tags=["login: order_history"],
+#     response_class=HTMLResponse
+#     )
+# @log_decorator
+# async def view_my_order_history(
+#     request: Request, db: AsyncSession = Depends(get_db)):
+#     # https://localhost:8000/user/order/history
+#     # 注文履歴の表示エントリポイント
+#     try:
+#         logger.debug("=== view_my_order_history 開始 ===")
+#         token = request.cookies.get("token")
+#         if not token:
+#             return redirect_login_failure(request, "ログインが必要です")
+#         logger.debug("token 取得成功")
+#         payload = decode_jwt_token(token)
+#         username = payload["sub"]
+#         logger.debug("username 取得成功")
+#         user = await get_user(username)
+#         if user is None:
+#             return redirect_login_failure(request, "ユーザー情報が取得できません")
+
+#         orders = await select_orders_by_user_all(username)
+#         logger.debug(f"select_orders_by_user_all(username)を実行しました: {username}")
+#         logger.debug(f"ordersの件数は {len(orders)} ")
+
+#         # return templates.TemplateResponse("order_history.html", {
+#         #     "request": request,
+#         #     "orders": orders,
+#         #     "username": user.get_username(),
+#         # })
+#     except Exception:
+#         logger.exception("注文履歴の取得に失敗しました")
+#         return templates.TemplateResponse("error.html", {
+#             "request": request,
+#             "message": "注文履歴の取得中にエラーが発生しました",
+#             "status_code": 500
+#         })
+#     else:
+#         if not orders:
+#             logger.info("注文履歴がありません")
+#             return templates.TemplateResponse("no_orders.html", {
+#                 "request": request,
+#                 "message": "注文履歴がありません",
+#                 "user_id": user.get_id()
+#             })
+
+#         # order_count = len(orders) - 1
+#         # last_order_date = orders[order_count].created_at
+
+#         # 注文の重複を防止
+#         # set_last_order(request, last_order_date)
+#         from routers.user import get_user_context
+#         user_context = await get_user_context(request, orders, int(user.get_id()))
+#         from services.order_view import order_table_view
+#         logger.info("注文履歴の取得に成功しました")
+#         return await order_table_view(request, orders, "order_history.html", user_context)

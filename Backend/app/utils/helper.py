@@ -262,7 +262,6 @@ def redirect_login_failure(request: Request, error: str, e: Exception = None):
 async def redirect_error(request: Request, message: str, e: Exception = None):
     """error.html にリダイレクトし、クエリにエラー内容を表示"""
     try:
-        # デフォルトのステータスコード
         status_code = 500
         detail_message = None
 
@@ -274,9 +273,6 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
                 detail_message = getattr(e, "detail", str(e))
         else:
             detail_message = "詳細情報はありません"
-
-        # ログ出力
-        logger.error(f"{message} - detail: {detail_message}")
 
     except TemplateNotFound:
         logger.exception("error.html テンプレートが見つかりません")
@@ -300,6 +296,7 @@ async def redirect_error(request: Request, message: str, e: Exception = None):
             detail="エラーページ表示中にサーバーエラーが発生しました"
         )
     else:
+        logger.error(f"{message} - detail: {detail_message}")
         return templates.TemplateResponse(
             "error.html",
             {

@@ -67,7 +67,9 @@
           {{ forbid_second_order_message }}
         </div>
         <p class="lead text-center">前回の注文日時: {{ last_order.created_at }}</p>
-        <!-- <a href="{{ endpoint }}/clear" class="btn btn-primary">Cookieを消去</a> -->
+        <a href="/user/{{ user_id }}/order/history" class="btn btn-outline-primary">
+          注文履歴を確認する
+        </a>
       </div>
 
       <!-- フッター -->

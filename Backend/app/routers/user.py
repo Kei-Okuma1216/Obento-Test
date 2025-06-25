@@ -214,8 +214,8 @@ async def get_user_shop_menu(request: Request, response: Response):
 from models.order import update_order
 
 ''' 注文キャンセル完了画面 一般ユーザーのみ
-    ユーザーが注文をキャンセルした後の画面
-    https://192.168.3.14:8000/user/1/order_cancel_complete/'''
+    ユーザーが注文をキャンセルした後の画面'''
+    # https://192.168.3.14:8000/user/1/order_cancel_complete/
 @log_decorator
 @user_router.get(
     "/{user_id}/order_cancel_complete/",
@@ -267,3 +267,82 @@ async def cancel_complete(request: Request, response: Response, user_id: str):
             "user_id": user.user_id,
             "canceled_order_id": order_id
         })
+
+
+from database.local_postgresql_database import get_db
+from sqlalchemy.ext.asyncio import AsyncSession
+from models.order import select_orders_by_user_all
+from models.user import select_user
+from core.security import decode_jwt_token
+from utils.helper import redirect_login_failure
+
+from fastapi import Response
+
+
+@user_router.get(
+    "/{user_id}/order/history",
+    summary="注文履歴表示のエントリポイント",
+    description="一般ユーザーが注文履歴を表示する。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、自身の注文履歴を表示する。",
+    tags=["login: order_history"],
+    response_class=HTMLResponse
+    )
+@log_decorator
+async def view_my_order_history(
+    request: Request, user_id: int, db: AsyncSession = Depends(get_db)):
+# async def view_my_order_history(request: Request):
+    # https://localhost:8000/user/1/order/history
+    # 注文履歴の表示エントリポイント
+    try:
+        logger.debug("=== view_my_order_history 開始 ===")
+        token = request.cookies.get("token")
+        if not token:
+            return redirect_login_failure(request, "ログインが必要です")
+        logger.debug("token 取得成功")
+        payload = decode_jwt_token(token)
+        username = payload["sub"]
+        logger.debug("username 取得成功")
+        
+        user = await select_user(username)
+        if user is None:
+            return redirect_login_failure(request, "ユーザー情報が取得できません")
+
+        orders = await select_orders_by_user_all(username)
+        logger.debug(f"select_orders_by_user_all(username)を実行しました: {username}")
+        logger.debug(f"ordersの件数は {len(orders)} ")
+
+        # return templates.TemplateResponse("order_history.html", {
+        #     "request": request,
+        #     "orders": orders,
+        #     "username": user.get_username(),
+        # })
+    except Exception:
+        logger.exception("注文履歴の取得に失敗しました")
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": "注文履歴の取得中にエラーが発生しました",
+            "status_code": 500
+        })
+    else:
+        if not orders:
+            logger.info("注文履歴がありません")
+            return templates.TemplateResponse("no_orders.html", {
+                "request": request,
+                "message": "注文履歴がありません",
+                "user_id": user.get_id()
+            })
+
+        from routers.user import get_user_context
+        user_context = await get_user_context(request, orders, user.get_id())
+        user_context['name'] = user.get_name()
+        
+        logger.info(f"user_contextの取得に成功しました{user_context=}")
+
+        logger.info("注文履歴の取得に成功しました")
+
+        from services.order_view import order_table_view
+        from fastapi.responses import Response
+        response = Response()
+        
+        return await order_table_view(request, response, orders, "order_history.html", user_context)
+
+# print("✅ user_router モジュールが読み込まれました")

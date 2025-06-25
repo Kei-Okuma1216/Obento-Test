@@ -156,48 +156,38 @@ async def get_last_order(request: Request):
 
 @log_decorator
 async def get_last_order_simple(request: Request):
-    # username = request.cookies.get("sub")
-    # user = await get_user(username)
-    # today = datetime.now().date()
-    # result = await select_orders_by_user_and_date(user.get_id(), today)
-    # if result:
-    #     return templates.TemplateResponse("error_duplicate_order.html", ...)
-    # return None
-
     logger.debug("get_last_order_simple(): 二重注文チェック開始")
     logger.info("=== 二重注文チェック開始 ===")
-
-    username = request.cookies.get("sub")
-    logger.info(f"Cookieから取得したusername: '{username}'")
-    if not username:
-        logger.error("Cookieから username が取得できませんでした。")
-        # return templates.TemplateResponse(
-        #     "error.html",
-        #     {"request": request, "error": "認証情報が不正です。"}
-        # )
-        # エラーレスポンスを返すのではなく、適切な処理を行う
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="認証情報が不正です。"
-        )
     try:
-        # today = get_today_date()
+        username = request.cookies.get("sub")
+        logger.debug(f"Cookieから取得したusername: '{username}'")
+        if not username:
+            logger.error("Cookieから username が取得できませんでした。")
+            # return templates.TemplateResponse(
+            #     "error.html",
+            #     {"request": request, "error": "認証情報が不正です。"}
+            # )
+            # エラーレスポンスを返すのではなく、適切な処理を行う
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="認証情報が不正です。"
+            )
+
+        from models.user import select_user
+        user = await select_user(username)
+        
         import pytz
         from datetime import datetime
         tz = pytz.timezone("Asia/Tokyo")
         current_time = datetime.now(tz)
         today = current_time.date()
-
-        logger.debug(f"{today=}, {username=}")
-        logger.info(f"検索対象日: {today} (型: {type(today)})")
-        logger.info(f"検索対象ユーザー: '{username}'")
+        logger.debug(f"検索対象日: {today} (型: {type(today)})")
 
         today_orders = await select_orders_by_user_at_date(username, today)
-        logger.debug(f"{today_orders=}")
-
-    # try:
-        logger.info(f"検索結果: {today_orders}")
+        logger.debug(f"検索結果: {today_orders}")
         logger.info(f"取得した注文数: {len(today_orders) if today_orders else 0}")
+
+        # 注文が存在する場合
         if today_orders:
             logger.warning(f"=== 二重注文検出！ ===")
             for i, order in enumerate(today_orders):
@@ -211,21 +201,20 @@ async def get_last_order_simple(request: Request):
                     "request": request,
                     "forbid_second_order_message": ERROR_FORBIDDEN_SECOND_ORDER,
                     "last_order": last_order,
-                    "endpoint": endpoint
+                    "endpoint": endpoint,
+                    "user_id": user.get_id()
                 },
                 status_code=200
             )
 
-        # 注文がなければ次の処理へ（呼び出し元で続ける）
-        # return None
-    except Exception as e:
+    except Exception:
         logger.exception("注文検索中にエラーが発生しました")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="注文情報の取得に失敗しました"
         )
-
-    # 注文がなければNoneを返す
-    logger.debug("本日の注文は見つかりませんでした")
-    logger.info("=== 二重注文なし、処理続行 ===")
-    return None
+    else:
+        # 注文がなければ次の処理へ（呼び出し元で続ける）
+        logger.debug("本日の注文は見つかりませんでした")
+        logger.info("=== 二重注文なし、処理続行 ===")
+        return None
