@@ -14,8 +14,7 @@
 
 # ログ用の設定
 import asyncio
-import logging
-from log_unified import logger, log_order
+from log_unified import logger
 
 # 定数
 from utils.decorator import log_decorator

@@ -72,8 +72,6 @@ def get_today_datetime(offset: int = 0) -> date:
 
 
 # 今日の日付取得 update_datetime用
-from datetime import timedelta, date
-from fastapi import HTTPException, status
 
 @log_decorator
 def get_today_date(offset: int = 0) -> date:

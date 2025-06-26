@@ -7,6 +7,7 @@
     4. submit_order_cancel_form(request: Request, user_id: int, order_ids: str = Form(...)):
     5. cancel_complete(request: Request, response: Response, user_id: str):
     6. view_my_order_history(request: Request, user_id: int, db: AsyncSession = Depends(get_db)):
+    7. redirect_to_order_history(request: Request):
 '''
 from fastapi import Request, Response, APIRouter
 from fastapi.responses import HTMLResponse
@@ -284,13 +285,11 @@ from fastapi import Response
     "/{user_id}/order/history",
     summary="注文履歴表示のエントリポイント",
     description="一般ユーザーが注文履歴を表示する。NFCタグを読んでこのURLにアクセスする。その後Cookieの値により一般ユーザーの場合、自身の注文履歴を表示する。",
-    tags=["login: order_history"],
     response_class=HTMLResponse,
-    tags=["user"])
+    tags=["user : order history"])
 @log_decorator
 async def view_my_order_history(
     request: Request, user_id: int, db: AsyncSession = Depends(get_db)):
-# async def view_my_order_history(request: Request):
     # https://localhost:8000/user/1/order/history
     try:
         logger.debug("=== view_my_order_history 開始 ===")
@@ -301,7 +300,7 @@ async def view_my_order_history(
         payload = decode_jwt_token(token)
         username = payload["sub"]
         logger.debug("username 取得成功")
-        
+
         user = await select_user(username)
         if user is None:
             return redirect_login_failure(request, "ユーザー情報が取得できません")
@@ -316,11 +315,6 @@ async def view_my_order_history(
             })
         logger.debug(f"ordersの件数は {len(orders)} ")
 
-        # return templates.TemplateResponse("order_history.html", {
-        #     "request": request,
-        #     "orders": orders,
-        #     "username": user.get_username(),
-        # })
     except Exception:
         logger.exception("注文履歴の取得に失敗しました")
         return templates.TemplateResponse("error.html", {
@@ -341,5 +335,43 @@ async def view_my_order_history(
 
         logger.info("注文履歴の取得に成功しました")
         return await order_table_view(request, response, orders, "order_history.html", user_context)
+
+
+from fastapi.responses import RedirectResponse
+# https://localhost:8000/user/history
+@user_router.get(
+    "/history",
+    summary="簡易注文履歴アクセス",
+    description="ユーザー名（Cookie）からuser_idを逆引きして、正式な注文履歴ページにリダイレクトする。",
+    tags=["user : redirect"]
+)
+@log_decorator
+async def redirect_to_order_history(request: Request):
+    try:
+        token = request.cookies.get("token")
+        if not token:
+            return redirect_login_failure(request, "ログインが必要です")
+
+        payload = decode_jwt_token(token)
+        username = payload["sub"]
+        logger.debug(f"username取得成功: {username}")
+
+        user = await select_user(username)
+        if user is None:
+            return redirect_login_failure(request, "ユーザー情報が取得できません")
+
+        user_id = user.get_id()
+        redirect_url = f"/user/{user_id}/order/history"
+        logger.info(f"/hogehoge → {redirect_url} にリダイレクトします")
+        return RedirectResponse(url=redirect_url, status_code=303)
+
+    except Exception:
+        logger.exception("hogehogeリダイレクトに失敗しました")
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "message": "自動リダイレクトに失敗しました",
+            "status_code": 500
+        })
+
 
 # print("✅ user_router モジュールが読み込まれました")
