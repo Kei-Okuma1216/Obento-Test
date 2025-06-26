@@ -1,25 +1,24 @@
 <thead class="table-light text-center">
   <tr>
     <th style="width: 6%;">番号</th>
-    <th style="width: 12%;">会社</th>
+    <th style="width: 18%;">会社</th>
     <th style="width: 12%;">名前</th>
     <th style="width: 16%;">メニュー名</th>
     <th style="width: 8%;">注文数</th>
     <th style="width: 18%;">注文日時</th>
-    <th style="width: 18%;">配達予定日</th>
+    <th style="width: 12%;">配達予定日</th>
     <th style="width: 10%;">☑</th>
   </tr>
 </thead>
 {% for order in orders %}
 <tr class="text-center">
   <td style="width: 6%;">{{ order.order_id }}</td>
-  <td style="width: 12%;">{{ order.company_name }}</td>
+  <td style="width: 18%;">{{ order.company_name }}</td>
   <td style="width: 12%;">{{ order.username }}</td>
   <td style="width: 16%;">{{ order.menu_name }}</td>
   <td style="width: 8%;">{{ order.amount }}</td>
   <td style="width: 18%;">{{ order.created_at }}</td>
-  <!-- <td style="width: 18%;">{{ order.expected_delivery_date }}</td> -->
-  <td style="width: 18%;">
+  <td style="width: 12%;">
     {% if order.expected_delivery_date %}
       {{ order.expected_delivery_date.strftime('%Y-%m-%d') }}
     {% else %}
