@@ -101,7 +101,6 @@
 
       <!-- タブコンテンツ -->
       <div class="tab-content" id="orderCompleteTabContent">
-
         <!-- 注文完了タブ -->
         <div class="tab-pane fade show active" id="complete" role="tabpanel" aria-labelledby="complete-tab">
           <!-- <div class="mt-4"> -->
@@ -176,7 +175,6 @@
 
   <!-- JSON取得用JS -->
   <script>
-      // 
       const userId = "{{ user_id }}";  // このようにしてJavaScriptへ展開
 
       document.getElementById("fetchOrderJsonButton").addEventListener("click", function () {
@@ -198,22 +196,10 @@
           });
       });
   </script>
-  <!-- <script>
-    // URLパラメータから ?tab=history のような値を読み取り、タブを切り替える
-    document.addEventListener("DOMContentLoaded", function () {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-
-      if (tab) {
-        const triggerEl = document.querySelector(`#orderCompleteTab button[data-bs-target="#${tab}"]`);
-        if (triggerEl) {
-          const tabInstance = new bootstrap.Tab(triggerEl);
-          tabInstance.show();
-        }
-      }
-    });
-  </script> -->
   <script>
+    // ページ読み込み時にアクティブなタブを設定
+    // URLパラメータから ?tab=history のような値を読み取り、タブを切り替える
+    // 例. /user/1/order_complete/?tab=json
     document.addEventListener("DOMContentLoaded", function () {
       const activeTab = "{{ active_tab | default('complete') }}";
       const triggerEl = document.querySelector(`#orderCompleteTab button[data-bs-target="#${activeTab}"]`);
