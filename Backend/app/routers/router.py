@@ -6,8 +6,8 @@
     4. get_shop_account(request: Request, user_id: str = Query(...)):
     5. get_account_by_id_or_404_response(user_id: int):
 
-    6. check_holiday(date: str):
-    7. delivery_date_view(date_str: str):
+    6. get_holiday(date: str):
+    7. get_delivery_date(date_str: str):
 '''
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -139,7 +139,8 @@ from config.config_loader import load_holiday_map
     description=f"指定された日付が祝日かどうかを判定し、祝日名を返すAPI 例: /api/check_holiday?date=2025/1/1",
     tags=["util"]
 )
-async def check_holiday(date: str):
+@log_decorator
+async def get_holiday(date: str):
     """
     指定された日付が祝日かどうかを判定し、祝日名を返すAPI
     例: /api/check_holiday?date=2025/1/1
@@ -164,7 +165,7 @@ delivery_mapping = {
 
 from datetime import datetime
 from utils.decorator import log_decorator
-from config.config_loader import skip_holiday
+from config.config_loader import search_delivery_date
 
 @account_router.get(
     "/v1/delivery_date/{date_str}",
@@ -173,7 +174,9 @@ from config.config_loader import skip_holiday
     tags=["util"]
 )
 @log_decorator
-async def delivery_date_view(date_str: str):
+# async def delivery_date_view(date_str: str):
+async def get_delivery_date(date_str: str):
+
     """
     指定された日付（YYYY-MM-DD）から配達可能日を判定するAPI
     """
@@ -183,7 +186,7 @@ async def delivery_date_view(date_str: str):
         return {"error": "Invalid date format. Use YYYY-MM-DD."}
 
     # 祝日をスキップ
-    valid_date = await skip_holiday(date)
+    valid_date = await search_delivery_date(date)
     print(f"{valid_date}")
 
     # 曜日判定

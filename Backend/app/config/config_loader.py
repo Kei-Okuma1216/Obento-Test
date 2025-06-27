@@ -1,4 +1,9 @@
 # config/config_loader.py
+'''
+    1. load_permission_map(path: str = "config/redirect_main_by_permission_map.json")
+    2. load_holiday_map(path: str = "config/holidays_map.json") -> dict:
+    3. search_delivery_date(start_date: datetime) -> datetime:
+'''
 import json
 import os
 from utils.decorator import log_decorator
@@ -14,13 +19,13 @@ def load_permission_map(path: str = "config/redirect_main_by_permission_map.json
 
 '''------------------------------------------------------------'''
 # キャッシュ用変数（モジュールスコープ）
+# holiday_map = load_holiday_map()
+# holiday_name = holiday_map.get("2025/1/1")
+# print(holiday_name)  # "元日"
 _cached_holiday_map = None
 # @log_decorator
 def load_holiday_map(path: str = "config/holidays_map.json") -> dict:
     ''' 祝日マップを読み込む関数（キャッシュ対応）'''
-    # holiday_map = load_holiday_map()
-    # holiday_name = holiday_map.get("2025/1/1")
-    # print(holiday_name)  # "元日"
     global _cached_holiday_map
 
     if _cached_holiday_map is not None:
@@ -35,7 +40,7 @@ def load_holiday_map(path: str = "config/holidays_map.json") -> dict:
 
     return _cached_holiday_map
 
-
+'''------------------------------------------------------------'''
 from log_unified import logger
 from pprint import pprint
 from datetime import datetime, timedelta
@@ -52,11 +57,12 @@ delivery_mapping = {
 }
 
 # @log_decorator
-async def skip_holiday(start_date: datetime) -> datetime:
-    # print(f"初回 start_date: {start_date}")
+async def search_delivery_date(start_date: datetime) -> datetime:
+
     init_date = start_date.strftime('%Y-%m-%d')
+    # print(f"初回 start_date: {start_date}")
     # print(f"注文日: {init_date}")
-    
+
     holiday_map = load_holiday_map()
 
     while True:
@@ -75,7 +81,7 @@ async def skip_holiday(start_date: datetime) -> datetime:
         # 祝日でなければ採用
         if holiday_map.get(date_str) is None:
             # print(f"非祝日として確定: {start_date}")
-            logger.debug(f"skip_holiday() 注文日: {init_date} 配達予定日: {start_date.strftime('%Y-%m-%d')}")
+            logger.debug(f"search_delivery_date() 注文日: {init_date} 配達予定日: {start_date.strftime('%Y-%m-%d')}")
 
             return start_date.date()
 

@@ -1391,7 +1391,7 @@ async def select_orders_by_admin_ago_old(days_ago: int = 0) -> Optional[List[Ord
 '''-------------------------------------------------------------'''
 # 追加
 from utils.date_utils import get_naive_jst_now
-from config.config_loader import skip_holiday
+from config.config_loader import search_delivery_date
 
 @log_decorator
 async def insert_order(
@@ -1421,7 +1421,7 @@ async def insert_order(
 
             logger.debug(f"created_at: {created_at} (tzinfo={created_at.tzinfo})")
             # 配達予定日を取得し、printで確認
-            delivery_date = await skip_holiday(created_at)
+            delivery_date = await search_delivery_date(created_at)
 
             # usernameからuser_idを取得
             from models.user import User  # ← Userモデルが必要
@@ -1493,7 +1493,7 @@ async def update_order(order_id: int, key: str, value: str) -> bool:
 
     Returns:
         bool: 成功時 True、失敗時 False
-    
+
     Usage: 
         await update_order(101, "checked", "true")     # → checked=True
         await update_order(102, "amount", "3")         # → amount=3
